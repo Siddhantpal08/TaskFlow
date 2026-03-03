@@ -1,0 +1,178 @@
+import { useState, useRef, useEffect } from "react";
+import { I, IC } from "../ui/Icon.jsx";
+import { EMOJIS, mkBlock } from "../../data/notes.js";
+import NoteBlock from "./NoteBlock.jsx";
+import SlashMenu from "./SlashMenu.jsx";
+
+export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage }) {
+    const pg = pages[notePageId];
+    if (!pg) return null;
+
+    const [blocks, setBlocks] = useState(pg.blocks || [mkBlock("p", "")]);
+    const [slash, setSlash] = useState(null);
+    const [emojiOpen, setEmojiOpen] = useState(false);
+    const titleRef = useRef();
+
+    useEffect(() => {
+        setBlocks(pages[notePageId]?.blocks || [mkBlock("p", "")]);
+        setSlash(null);
+    }, [notePageId]);
+
+    const save = nb => { setBlocks(nb); updateNotePage(notePageId, { blocks: nb }); };
+
+    const addBlk = (afterIdx, type = "p", content = "") => {
+        const b = mkBlock(type, content);
+        const nb = [...blocks]; nb.splice(afterIdx + 1, 0, b); save(nb);
+        setTimeout(() => document.getElementById("blk-" + (afterIdx + 1))?.focus(), 30);
+    };
+    const updBlk = (idx, ch) => { const nb = [...blocks]; nb[idx] = { ...nb[idx], ...ch }; save(nb); };
+    const delBlk = idx => {
+        if (blocks.length <= 1) { updBlk(0, { content: "" }); return; }
+        const nb = blocks.filter((_, i) => i !== idx); save(nb);
+        setTimeout(() => document.getElementById("blk-" + Math.max(0, idx - 1))?.focus(), 30);
+    };
+
+    const insertSlashType = type => {
+        if (slash === null) return;
+        const nb = [...blocks];
+        nb[slash.idx] = { ...nb[slash.idx], content: nb[slash.idx].content.replace(/\/[^\n]*$/, "") };
+        const b = mkBlock(type, ""); nb.splice(slash.idx + 1, 0, b); save(nb);
+        setSlash(null);
+        setTimeout(() => document.getElementById("blk-" + (slash.idx + 1))?.focus(), 30);
+    };
+
+    // Breadcrumb
+    const crumbs = [];
+    let cur = notePageId;
+    while (cur && pages[cur]) { crumbs.unshift(pages[cur]); cur = pages[cur].parentId; }
+    const subPages = (pg.childIds || []).map(id => pages[id]).filter(Boolean);
+
+    return (
+        <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+                {/* Breadcrumb bar */}
+                <div style={{ display: "flex", alignItems: "center", padding: "9px 28px", borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0, gap: 0 }}>
+                    {crumbs.map((p, i) => (
+                        <div key={p.id} style={{ display: "flex", alignItems: "center" }}>
+                            {i > 0 && <span style={{ color: t.t3, fontSize: 11, margin: "0 5px" }}>/</span>}
+                            <button onClick={() => navigateNote(p.id)}
+                                style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 7px", borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: i < crumbs.length - 1 ? t.t2 : t.t1, fontFamily: t.disp, fontSize: 12, fontWeight: i === crumbs.length - 1 ? 600 : 400, transition: "background .12s" }}
+                                onMouseEnter={e => { if (i < crumbs.length - 1) e.currentTarget.style.background = t.noteHover; }}
+                                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                <span style={{ fontSize: 11 }}>{p.emoji || "📄"}</span>{p.title || "Untitled"}
+                            </button>
+                        </div>
+                    ))}
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+                        <button onClick={() => addNotePage(notePageId)}
+                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                            <I d={IC.plus} sz={12} c="currentColor" />Add sub-page
+                        </button>
+                        <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono }}>Updated {pg.updatedAt}</span>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div style={{ flex: 1, overflow: "auto" }} onClick={() => setEmojiOpen(false)}>
+                    {/* Cover strip */}
+                    <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.purple})`, flexShrink: 0 }} />
+
+                    <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
+                        {/* Emoji picker */}
+                        <div style={{ position: "relative", display: "inline-block", marginBottom: 6 }}>
+                            <button onClick={e => { e.stopPropagation(); setEmojiOpen(p => !p); }}
+                                style={{ fontSize: 52, background: "none", border: "none", cursor: "pointer", lineHeight: 1, padding: 4, borderRadius: 8, transition: "background .15s" }}
+                                onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                {pg.emoji || "📄"}
+                            </button>
+                            {emojiOpen && (
+                                <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, zIndex: 60, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10, boxShadow: t.shadow, display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 3, width: 230 }}
+                                    onClick={e => e.stopPropagation()}>
+                                    {EMOJIS.map(em => (
+                                        <button key={em} onClick={() => { updateNotePage(notePageId, { emoji: em }); setEmojiOpen(false); }}
+                                            style={{ fontSize: 19, background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, transition: "background .1s" }}
+                                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                            {em}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Title */}
+                        <div contentEditable suppressContentEditableWarning ref={titleRef}
+                            data-ph="Untitled"
+                            onBlur={e => updateNotePage(notePageId, { title: e.target.innerText || "Untitled" })}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("blk-0")?.focus(); } }}
+                            style={{ fontSize: 38, fontWeight: 700, color: t.noteText, lineHeight: 1.2, marginBottom: 20, fontFamily: "'Lora',serif", wordBreak: "break-word", minHeight: 46, cursor: "text" }}>
+                            {pg.title}
+                        </div>
+
+                        {/* Meta */}
+                        <div style={{ display: "flex", gap: 20, marginBottom: 28, paddingBottom: 18, borderBottom: `1px solid ${t.noteBorder}` }}>
+                            {[["Created", pg.updatedAt], ["Blocks", blocks.length + " blocks"], ["Sub-pages", (pg.childIds?.length || 0) + " pages"]].map(([l, v]) => (
+                                <div key={l}>
+                                    <div style={{ fontSize: 9.5, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2, fontFamily: t.mono }}>{l}</div>
+                                    <div style={{ fontSize: 12, color: t.noteSubText }}>{v}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Blocks */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                            {blocks.map((blk, idx) => (
+                                <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
+                                    onUpdate={ch => updBlk(idx, ch)}
+                                    onDelete={() => delBlk(idx)}
+                                    onAddAfter={type => addBlk(idx, type)}
+                                    onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
+                                    onSlashClose={() => setSlash(null)} />
+                            ))}
+                        </div>
+
+                        {/* Sub-pages */}
+                        {subPages.length > 0 && (
+                            <div style={{ marginTop: 36 }}>
+                                <div style={{ fontSize: 10, fontWeight: 600, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10, fontFamily: t.mono }}>Sub-pages</div>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
+                                    {subPages.map(sp => (
+                                        <div key={sp.id} onClick={() => navigateNote(sp.id)}
+                                            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: `1px solid ${t.noteBorder}`, cursor: "pointer", background: t.noteCard, transition: "all .15s" }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = t.noteHover; e.currentTarget.style.borderColor = t.accent + "44"; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = t.noteCard; e.currentTarget.style.borderColor = t.noteBorder; }}>
+                                            <span style={{ fontSize: 22 }}>{sp.emoji || "📄"}</span>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: t.noteText, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.title || "Untitled"}</div>
+                                                <div style={{ fontSize: 10.5, color: t.noteMuted, marginTop: 1, fontFamily: t.mono }}>
+                                                    {sp.childIds?.length > 0 ? `${sp.childIds.length} sub-pages · ` : ""}Updated {sp.updatedAt}
+                                                </div>
+                                            </div>
+                                            <I d={IC.chev} sz={13} c={t.t3} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Add sub-page CTA */}
+                        <button onClick={() => addNotePage(notePageId)}
+                            style={{ marginTop: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 14px", borderRadius: 9, border: `1px dashed ${t.noteBorder}`, background: "transparent", cursor: "pointer", color: t.noteMuted, fontSize: 12.5, fontFamily: t.disp, width: "100%", transition: "all .15s" }}
+                            onMouseEnter={e => { e.currentTarget.style.color = t.noteText; e.currentTarget.style.borderColor = t.accent + "55"; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = t.noteMuted; e.currentTarget.style.borderColor = t.noteBorder; }}>
+                            <I d={IC.plus} sz={13} c="currentColor" />
+                            Add a sub-page inside "{pg.title || "this page"}"
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Slash menu */}
+            {slash && <SlashMenu t={t} filter={slash.filter} pos={{ x: slash.x, y: slash.y }} onSelect={insertSlashType} onClose={() => setSlash(null)} />}
+        </div>
+    );
+}

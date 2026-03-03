@@ -1,0 +1,82 @@
+/* Global CSS — animations, scrollbar, utility classes */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+input,
+textarea,
+[contenteditable] {
+  outline: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accentDim) !important;
+}
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translate(-50%, -47%) scale(0.95); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+/* ── Utility animation classes ── */
+.fadeUp     { animation: fadeUp     0.3s  ease forwards; }
+.slideRight { animation: slideRight 0.25s ease forwards; }
+.slideDown  { animation: slideDown  0.18s ease forwards; }
+.popIn      { animation: popIn      0.22s ease forwards; }
+.glw        { animation: glow       2.2s  ease infinite; }
+
+/* ── Theme-dependent utility classes (set via inline <style> in App) ── */
+/* These are declared here as placeholders; App injects them dynamically */
+.hvr:hover  { background: var(--accentDim) !important; }
+.hvrC:hover { transform: translateY(-2px); box-shadow: var(--accentGlow) !important; }
+.hvrB:hover { opacity: 0.85; transform: translateY(-1px); }
+.hvrI:hover { color: var(--accent) !important; }
+.pill:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
+.nsi:hover              { background: var(--noteHover) !important; }
+.nsi:hover .nsa         { opacity: 1 !important; }
+.blkr:hover .blkh       { opacity: 1 !important; }
+
+[contenteditable]:empty::before {
+  content: attr(data-ph);
+  color: var(--t3);
+  pointer-events: none;
+}

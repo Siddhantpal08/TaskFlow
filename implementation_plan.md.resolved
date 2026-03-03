@@ -1,0 +1,47 @@
+# Backend Architecture Implementation Plan
+
+This plan outlines the steps to build the separate backend project, structurally completely independent from `taskflow-app` (frontend) and future mobile app, inside `d:\Developments\College Project\taskflow-backend`.
+
+## User Review Required
+Please review the proposed backend directory structure and the initial base dependencies. Once approved, I will functionally create these folders and files. No changes will be made to the frontend or UI.
+
+## Proposed Changes
+
+### 1. Directory Structure (`taskflow-backend`)
+I will execute commands to create the following directory tree:
+```
+taskflow-backend/
+├── src/
+│   ├── controllers/    # Route handlers
+│   ├── services/       # Business logic layer
+│   ├── models/         # Database queries
+│   ├── middleware/     # Auth, rate-limiter, errorHandler
+│   ├── routes/         # Express routers
+│   ├── utils/          # Helpers (jwt, logger, etc.)
+│   └── app.js          # Express app configuration
+├── migrations/         # SQL migration files
+├── seeds/              # Dev seed data
+├── tests/              # Jest test files
+├── .env.example        # Environment variables template
+├── .gitignore          # Git ignore rules
+└── server.js           # Entry point and Server startup
+```
+
+### 2. Base Dependency Initialization
+I will initialize an NPM project and install the base packages required to set up the foundation:
+- **Core:** `express`, `cors`, `dotenv`, `helmet`, `morgan`
+- **Database:** `mysql2`
+- **Dev:** `nodemon` 
+
+### 3. File Creation (Boilerplate)
+I will write simple, foundational setup code (non-complex, as requested) to get the server ready:
+#### [NEW] `taskflow-backend/server.js` (Entry Point, attaches to port, handles graceful shutdown)
+#### [NEW] `taskflow-backend/src/app.js` (Express configuration with core middlewares like CORS, Helmet, JSON parsing)
+#### [NEW] `taskflow-backend/.env.example` (Template variables)
+
+## Verification Plan
+
+### Automated Verification
+1. I will use the `run_command` tool to initialize the folders.
+2. I will verify that `npm init -y` and `npm install` complete successfully.
+3. I will start the server momentarily to verify that the placeholder app runs successfully without errors on a defined port (e.g., `5000`).
