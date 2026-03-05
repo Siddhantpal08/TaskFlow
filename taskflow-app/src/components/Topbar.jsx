@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { I, IC } from "./ui/Icon.jsx";
-import { NOTIFS } from "../data/data.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useData } from "../context/DataContext.jsx";
 
 export default function Topbar({ t, dark, setDark, notif, setNotif, page, setModal }) {
     const [q, setQ] = useState("");
+    const { user, logout } = useAuth();
+    const { unreadCount } = useData();
     const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team" };
-    const unread = NOTIFS.filter(n => !n.read).length;
 
     return (
         <div style={{
             display: "flex", alignItems: "center", gap: 14, padding: "13px 26px",
             borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0
-        }}>
-            <div style={{ minWidth: 0 }}>
+        }} className="topbar">
+            <div style={{ minWidth: 0 }} className="topbar-title">
                 <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.4px", color: t.t1 }}>{labels[page]}</div>
                 <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>
                     {new Date().toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
@@ -21,7 +23,7 @@ export default function Topbar({ t, dark, setDark, notif, setNotif, page, setMod
             <div style={{
                 flex: 1, maxWidth: 340, margin: "0 auto", display: "flex", alignItems: "center",
                 gap: 9, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 9, padding: "7px 13px"
-            }}>
+            }} className="topbar-search">
                 <I d={IC.srch} sz={14} c={t.t3} />
                 <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…"
                     style={{ flex: 1, background: "transparent", border: "none", color: t.t1, fontSize: 12.5, fontFamily: t.disp }} />
@@ -46,8 +48,24 @@ export default function Topbar({ t, dark, setDark, notif, setNotif, page, setMod
                     borderRadius: 9, padding: 8, cursor: "pointer", display: "flex", position: "relative", transition: "all .2s"
                 }}>
                 <I d={IC.bell} sz={15} c={notif ? t.accent : t.t2} />
-                {unread > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: t.red, border: `2px solid ${t.nav}` }} />}
+                {unreadCount > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: t.red, border: `2px solid ${t.nav}` }} />}
             </button>
+            {/* User avatar + logout */}
+            {user && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                        width: 30, height: 30, borderRadius: '50%',
+                        background: `linear-gradient(135deg, ${t.accent}40, ${t.purple || '#B083FF'}40)`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 700, color: t.accent, flexShrink: 0,
+                        border: `1.5px solid ${t.accent}44`,
+                    }}>{user.avatar_initials}</div>
+                    <button onClick={logout} title="Logout" className="hvrI"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 11, fontFamily: t.mono }}>
+                        ⏻
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

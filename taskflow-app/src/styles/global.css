@@ -80,3 +80,62 @@ textarea:focus {
   color: var(--t3);
   pointer-events: none;
 }
+
+/* ── Mobile Responsive ── */
+@media (max-width: 768px) {
+  /* Sidebar hidden on mobile — handled by JS class toggle */
+  .app-root > *:first-child {
+    display: none !important;
+  }
+
+  /* Topbar: hide search and some buttons */
+  .topbar-search { display: none !important; }
+  .topbar-title div:last-child { display: none; }
+
+  /* Dashboard stats: 2-column */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Dashboard main: single column */
+  .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Team grid: 2 columns */
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Calendar: stack vertically */
+  .cal-wrap {
+    flex-direction: column !important;
+  }
+  .cal-sidebar {
+    width: 100% !important;
+  }
+
+  /* Tasks table: hide some columns */
+  .tasks-table-header,
+  .tasks-table-row {
+    grid-template-columns: 1fr 80px 88px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Stats: single column */
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Team grid: single column */
+  .team-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Reduce padding */
+  .app-root main > div {
+    padding: 14px 16px !important;
+  }
+}
+

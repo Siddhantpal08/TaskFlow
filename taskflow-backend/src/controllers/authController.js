@@ -102,7 +102,8 @@ const login = asyncWrapper(async (req, res, next) => {
  * Reads refresh_token cookie; rotates it (old deleted, new issued).
  */
 const refresh = asyncWrapper(async (req, res, next) => {
-    const oldRefreshToken = req.cookies?.refresh_token;
+    // Cookies for web, body for mobile (Expo/React Native can't use httpOnly cookies)
+    const oldRefreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
 
     if (!oldRefreshToken) {
         return next(new AppError('No refresh token provided.', 401));

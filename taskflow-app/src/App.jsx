@@ -3,6 +3,13 @@ import { FONTS, DARK, LIGHT } from "./data/themes.js";
 import { INIT_PAGES, mkId, mkBlock, EMOJIS } from "./data/notes.js";
 import "./styles/global.css";
 
+// Auth
+import { useAuth } from "./context/AuthContext.jsx";
+import { DataProvider } from "./context/DataContext.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
+
 // Layout
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
@@ -19,7 +26,7 @@ import NotifPanel from "./components/NotifPanel.jsx";
 import TaskDrawer from "./components/TaskDrawer.jsx";
 import AssignModal from "./components/AssignModal.jsx";
 
-export default function App() {
+function MainApp() {
     const [dark, setDark] = useState(true);
     const [page, setPage] = useState("dashboard");
     const [notif, setNotif] = useState(false);
@@ -33,7 +40,6 @@ export default function App() {
 
     const t = dark ? DARK : LIGHT;
 
-    // Dynamic theme CSS vars (used by global.css utility classes)
     const themeCss = `
     :root {
       --accent:    ${t.accent};
@@ -43,7 +49,6 @@ export default function App() {
       --t3:        ${t.t3};
       --noteHover: ${t.noteHover};
     }
-    /* Theme-sensitive hover overrides */
     .hvr:hover  { background: ${t.accentDim} !important; }
     .hvrC:hover { transform: translateY(-2px); box-shadow: ${t.accentGlow} !important; }
     .hvrI:hover { color: ${t.accent} !important; }
@@ -51,7 +56,6 @@ export default function App() {
     .nsi:hover  { background: ${t.noteHover} !important; }
   `;
 
-    // Notes helpers
     const addNotePage = parentId => {
         const id = mkId();
         const emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
@@ -87,7 +91,8 @@ export default function App() {
     return (
         <>
             <style>{FONTS}{themeCss}</style>
-            <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}>
+            <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}
+                className="app-root">
 
                 <Sidebar t={t} page={page} setPage={setPage}
                     pages={pages} expanded={expanded} setExpanded={setExpanded}
@@ -113,5 +118,56 @@ export default function App() {
                 {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
             </div>
         </>
+    );
+}
+
+export default function App() {
+    const { user, loading, login, register, logout, requestReset, verifyReset } = useAuth();
+    const [authPage, setAuthPage] = useState("login"); // "login" | "register" | "forgot"
+
+    if (loading) {
+        return (
+            <div style={{
+                minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+                background: "#060B12",
+            }}>
+                <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: "linear-gradient(135deg, #00E5CC, #00E5CC88)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 18, fontWeight: 900, color: "#060B12",
+                    animation: "glow 1.5s ease infinite",
+                }}>T</div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        if (authPage === "login") return (
+            <LoginPage
+                onLogin={login}
+                onGoRegister={() => setAuthPage("register")}
+                onGoForgot={() => setAuthPage("forgot")}
+            />
+        );
+        if (authPage === "register") return (
+            <RegisterPage
+                onRegister={register}
+                onGoLogin={() => setAuthPage("login")}
+            />
+        );
+        if (authPage === "forgot") return (
+            <ForgotPasswordPage
+                onRequest={requestReset}
+                onVerify={verifyReset}
+                onGoLogin={() => setAuthPage("login")}
+            />
+        );
+    }
+
+    return (
+        <DataProvider>
+            <MainApp />
+        </DataProvider>
     );
 }
