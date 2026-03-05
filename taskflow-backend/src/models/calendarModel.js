@@ -1,0 +1,74 @@
+const db = require('../utils/db');
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+
+const createEvent = async (userId, { title, description, event_date, event_time, priority }) => {
+    const [result] = await db.query(
+        `INSERT INTO events (user_id, title, description, event_date, event_time, priority)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [userId, title, description || null, event_date, event_time || null, priority || 'low']
+    );
+    return getEventById(result.insertId, userId);
+};
+
+const getEventById = async (id, userId) => {
+    const [rows] = await db.query(
+        `SELECT * FROM events WHERE id = ? AND user_id = ?`,
+        [id, userId]
+    );
+    return rows[0] || null;
+};
+
+/**
+ * Get events for a specific month + tasks with due_dates in that month.
+ * Returns { events: [...], taskDates: [...] }
+ */
+const getEventsForMonth = async (userId, year, month) => {
+    // Events
+    const [events] = await db.query(
+        `SELECT * FROM events
+         WHERE user_id = ? AND YEAR(event_date) = ? AND MONTH(event_date) = ?
+         ORDER BY event_date ASC, event_time ASC`,
+        [userId, year, month]
+    );
+
+    // Task due dates in the same month (tasks visible to user)
+    const [taskDates] = await db.query(
+        `SELECT id, title, priority, status, due_date
+         FROM tasks
+         WHERE (assigned_by = ? OR assigned_to = ?)
+           AND YEAR(due_date) = ? AND MONTH(due_date) = ?
+           AND due_date IS NOT NULL`,
+        [userId, userId, year, month]
+    );
+
+    return { events, taskDates };
+};
+
+const updateEvent = async (id, userId, { title, description, event_date, event_time, priority }) => {
+    await db.query(
+        `UPDATE events SET title = ?, description = ?, event_date = ?, event_time = ?, priority = ?
+         WHERE id = ? AND user_id = ?`,
+        [title, description || null, event_date, event_time || null, priority || 'low', id, userId]
+    );
+    return getEventById(id, userId);
+};
+
+const deleteEvent = async (id, userId) => {
+    const [result] = await db.query(`DELETE FROM events WHERE id = ? AND user_id = ?`, [id, userId]);
+    return result.affectedRows > 0;
+};
+
+/** Get upcoming events (next N days) for dashboard */
+const getUpcomingEvents = async (userId, limit = 3) => {
+    const [rows] = await db.query(
+        `SELECT * FROM events
+         WHERE user_id = ? AND event_date >= CURDATE()
+         ORDER BY event_date ASC, event_time ASC
+         LIMIT ?`,
+        [userId, limit]
+    );
+    return rows;
+};
+
+module.exports = { createEvent, getEventById, getEventsForMonth, updateEvent, deleteEvent, getUpcomingEvents };
