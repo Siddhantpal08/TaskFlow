@@ -16,6 +16,7 @@ export function DataProvider({ children }) {
     const { user, token } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [events, setEvents] = useState([]);
+    const [taskDates, setTaskDates] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
@@ -34,7 +35,10 @@ export function DataProvider({ children }) {
             notificationsApi.list(),
         ]).then(([t, e, tm, n]) => {
             setTasks(t.data || []);
-            setEvents(e.data || []);
+            // Calendar API returns { events: [...], taskDates: [...] }
+            const calData = e.data || {};
+            setEvents(Array.isArray(calData) ? calData : (calData.events || []));
+            setTaskDates(calData.taskDates || []);
             setTeamMembers(tm.data || []);
             // Notifications returns { data: { notifications, unreadCount } }
             setNotifications(n.data?.notifications || n.data || []);
@@ -145,7 +149,7 @@ export function DataProvider({ children }) {
 
     return (
         <DataContext.Provider value={{
-            tasks, events, teamMembers, notifications, onlineUsers,
+            tasks, events, taskDates, teamMembers, notifications, onlineUsers,
             loading, unreadCount,
             createTask, updateTaskStatus, updateTask, delegateTask, deleteTask,
             createEvent, deleteEvent,

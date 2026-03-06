@@ -13,7 +13,13 @@ function fmtDate(d) {
 
 export default function Dashboard({ t, setPage, setTask }) {
     const { user } = useAuth();
-    const { tasks, events, teamMembers, onlineUsers, loading } = useData();
+    const { tasks = [], events = [], teamMembers = [], onlineUsers = new Set(), loading } = useData();
+
+    if (loading) return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: t.t2, fontSize: 13 }}>
+            Loading dashboard…
+        </div>
+    );
 
     const done = tasks.filter(x => x.status === "done").length;
     const total = tasks.length;
@@ -32,12 +38,6 @@ export default function Dashboard({ t, setPage, setTask }) {
     ];
 
     const firstName = user?.name?.split(' ')[0] || 'there';
-
-    if (loading) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: t.t2, fontSize: 13 }}>
-            Loading dashboard…
-        </div>
-    );
 
     return (
         <div style={{ padding: "22px 26px", display: "flex", flexDirection: "column", gap: 20 }}>

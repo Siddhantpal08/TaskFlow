@@ -3,7 +3,7 @@ import { useData } from "../context/DataContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Team({ t }) {
-    const { tasks, teamMembers, onlineUsers, loading } = useData();
+    const { tasks = [], teamMembers = [], onlineUsers = new Set(), loading } = useData();
     const { user } = useAuth();
 
     // Find delegation chains from real tasks
@@ -18,7 +18,7 @@ export default function Team({ t }) {
                     <div style={{ fontSize: 10.5, color: t.t3, fontFamily: t.mono, marginBottom: 22 }}>
                         task: "{delegatedTasks[0]?.title}"
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", flexWrap: 'wrap', gap: 8 }}>
                         {(() => {
                             const tk = delegatedTasks[0];
                             const steps = [

@@ -47,7 +47,7 @@ function AddEventModal({ t, onClose, onAdd }) {
 }
 
 export default function Calendar({ t }) {
-    const { events, createEvent } = useData();
+    const { events = [], taskDates = [], createEvent } = useData();
     const [showAdd, setShowAdd] = useState(false);
 
     const now = new Date();
@@ -64,6 +64,17 @@ export default function Calendar({ t }) {
         const d = new Date(ev.event_date);
         if (d.getFullYear() === year && d.getMonth() === month) {
             evMap[d.getDate()] = ev;
+        }
+    });
+
+    // Map task due dates (for dot indicators on the grid)
+    const taskDaySet = new Set();
+    taskDates.forEach(tk => {
+        if (tk.due_date) {
+            const d = new Date(tk.due_date);
+            if (d.getFullYear() === year && d.getMonth() === month) {
+                taskDaySet.add(d.getDate());
+            }
         }
     });
 
@@ -89,10 +100,12 @@ export default function Calendar({ t }) {
                             const ev = evMap[d];
                             const c = ev ? PCOLORS[ev.id % PCOLORS.length] : null;
                             const isToday = d === today;
+                            const hasTask = taskDaySet.has(d);
                             return (
                                 <div key={d} style={{ background: t.card, minHeight: 68, padding: 6 }}>
                                     <div style={{ width: 24, height: 24, borderRadius: "50%", background: isToday ? t.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isToday ? 800 : 400, color: isToday ? "#000" : d > today ? t.t2 : t.t3, marginBottom: 3 }}>{d}</div>
                                     {ev && <div style={{ background: c + "18", border: `1px solid ${c}33`, borderRadius: 3, padding: "2px 4px", fontSize: 9, color: c, fontWeight: 600, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{ev.title}</div>}
+                                    {hasTask && !ev && <div style={{ width: 5, height: 5, borderRadius: "50%", background: t.amber, margin: "2px auto 0" }} />}
                                 </div>
                             );
                         })}

@@ -56,9 +56,9 @@ const updateStatus = async (taskId, userId, newStatus) => {
     const task = await taskModel.getTaskById(taskId);
     if (!task) throw new AppError('Task not found.', 404);
 
-    // Only assignee can change status
-    if (task.assigned_to !== userId) {
-        throw new AppError('Only the assigned user can update task status.', 403);
+    // Only the creator or the assignee can change status
+    if (task.assigned_to !== userId && task.assigned_by !== userId) {
+        throw new AppError('Only the task creator or assignee can update task status.', 403);
     }
 
     // Enforce linear status transitions

@@ -71,7 +71,7 @@ function CreateTaskModal({ t, teamMembers, onClose, onCreate }) {
 }
 
 export default function Tasks({ t, setTask }) {
-    const { tasks, createTask, updateTaskStatus, deleteTask, teamMembers, loading } = useData();
+    const { tasks = [], createTask, updateTaskStatus, deleteTask, teamMembers = [], loading } = useData();
     const [fil, setFil] = useState("all");
     const [showCreate, setShowCreate] = useState(false);
 

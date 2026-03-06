@@ -41,7 +41,11 @@ export default function LoginScreen({ navigation }) {
                     {loading ? <ActivityIndicator color="#000" /> : <Text style={s.btntxt}>Sign In</Text>}
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => navigation.navigate('Register')} style={{ marginTop: 20, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')} style={{ marginTop: 14, alignItems: 'center' }}>
+                    <Text style={{ color: t.t3, fontSize: 13 }}>Forgot password? <Text style={{ color: t.accent, fontWeight: 'bold' }}>Reset it</Text></Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => navigation.navigate('Register')} style={{ marginTop: 14, alignItems: 'center' }}>
                     <Text style={{ color: t.t3, fontSize: 13 }}>New here? <Text style={{ color: t.accent, fontWeight: 'bold' }}>Create account</Text></Text>
                 </TouchableOpacity>
             </View>
