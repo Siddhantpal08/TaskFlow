@@ -3,6 +3,7 @@ import { Av } from "./ui/Av.jsx";
 import { PriTag, StTag } from "./ui/Tag.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
+import { toastError } from "./ui/Toast.jsx";
 
 // Format backend date to "Mar 6" style
 function fmtDate(d) {
@@ -31,10 +32,10 @@ export default function Dashboard({ t, setPage, setTask }) {
     }).length;
 
     const stats = [
-        { label: "Total Tasks", val: total, note: "this sprint", c: t.accent },
-        { label: "Completed", val: done, note: total ? `${Math.round(done / total * 100)}% rate` : "0% rate", c: t.green },
-        { label: "Delegated", val: delegated, note: "active chains", c: t.amber },
-        { label: "Due Soon", val: dueSoon, note: "action needed", c: t.red },
+        { label: "Total Tasks", val: total, note: "this sprint", c: t.accent, page: "tasks" },
+        { label: "Completed", val: done, note: total ? `${Math.round(done / total * 100)}% rate` : "0% rate", c: t.green, page: "tasks" },
+        { label: "Delegated", val: delegated, note: "active chains", c: t.amber, page: "team" },
+        { label: "Due Soon", val: dueSoon, note: "action needed", c: t.red, page: "tasks" },
     ];
 
     const firstName = user?.name?.split(' ')[0] || 'there';
@@ -64,9 +65,9 @@ export default function Dashboard({ t, setPage, setTask }) {
             {/* Stats */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }} className="stats-grid">
                 {stats.map((s, i) => (
-                    <div key={i} className="hvrC" style={{
+                    <div key={i} onClick={() => s.page && setPage(s.page)} className="hvrC" style={{
                         background: t.card, border: `1px solid ${t.border}`,
-                        borderRadius: 12, padding: "16px 18px", cursor: "default", boxShadow: t.shadow, transition: "all .2s"
+                        borderRadius: 12, padding: "16px 18px", cursor: s.page ? "pointer" : "default", boxShadow: t.shadow, transition: "all .2s"
                     }}>
                         <div style={{ fontSize: 34, fontWeight: 900, color: s.c, letterSpacing: "-2px", lineHeight: 1 }}>{s.val}</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: t.t1, marginTop: 5 }}>{s.label}</div>

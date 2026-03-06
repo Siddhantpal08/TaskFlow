@@ -4,6 +4,7 @@ import { Av } from "./ui/Av.jsx";
 import { PriTag, StTag } from "./ui/Tag.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { toastError, toastSuccess } from "./ui/Toast.jsx";
 
 function fmtDate(d) {
     if (!d) return "—";
@@ -113,7 +114,16 @@ export default function Tasks({ t, setTask }) {
                     <div key={tk.id} className="hvr" onClick={() => setTask(tk)}
                         style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px", padding: "12px 18px", borderBottom: `1px solid ${t.border}`, alignItems: "center", cursor: "pointer", background: "transparent", transition: "background .15s" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                            <div onClick={e => { e.stopPropagation(); updateTaskStatus(tk.id, tk.status === 'done' ? 'active' : 'done'); }}
+                            <div onClick={async e => {
+                                e.stopPropagation();
+                                const next = tk.status === 'done' ? 'active' : 'done';
+                                try {
+                                    await updateTaskStatus(tk.id, next);
+                                    toastSuccess(`Task marked ${next}.`);
+                                } catch (err) {
+                                    toastError(err.message || 'Could not update status.');
+                                }
+                            }}
                                 style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${tk.status === "done" ? t.green : t.border}`, background: tk.status === "done" ? t.green + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                                 {tk.status === "done" && <I d={IC.chk} sz={9} c={t.green} sw={3} />}
                             </div>

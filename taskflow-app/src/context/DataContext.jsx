@@ -53,7 +53,6 @@ export function DataProvider({ children }) {
 
         const socket = io(SOCKET_URL, {
             auth: { token, userId: user.id },
-            transports: ['websocket'],
         });
         socketRef.current = socket;
 

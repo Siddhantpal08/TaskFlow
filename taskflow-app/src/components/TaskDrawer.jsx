@@ -1,52 +1,214 @@
-import { I, IC } from "./ui/Icon.jsx";
-import { Av } from "./ui/Av.jsx";
-import { Tag, PriTag, StTag } from "./ui/Tag.jsx";
-import { USERS } from "../data/data.js";
+import { useState } from 'react';
+import { I, IC } from './ui/Icon.jsx';
+import { PriTag, StTag } from './ui/Tag.jsx';
+import { useData } from '../context/DataContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { toastSuccess, toastError } from './ui/Toast.jsx';
 
-export default function TaskDrawer({ t, task, onClose }) {
-    const by = USERS.find(u => u.id === task.by) || USERS[0];
-    const to = USERS.find(u => u.id === task.to) || USERS[0];
+function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+const INP = (t) => ({
+    background: t.bg,
+    border: `1px solid ${t.border}`,
+    borderRadius: 8,
+    padding: '8px 11px',
+    color: t.t1,
+    fontSize: 13,
+    fontFamily: t.disp,
+    width: '100%',
+    outline: 'none',
+    boxSizing: 'border-box',
+});
+
+export default function TaskDrawer({ t, task: initialTask, onClose }) {
+    const { user } = useAuth();
+    const { updateTask, updateTaskStatus, deleteTask, delegateTask, teamMembers } = useData();
+
+    const [task, setTask] = useState(initialTask);
+    const [editing, setEditing] = useState(false);
+    const [delegating, setDelegating] = useState(false);
+    const [form, setForm] = useState({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '' });
+    const [delegateTo, setDelegateTo] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    const isCreator = user?.id === task.assigned_by;
+    const isAssignee = user?.id === task.assigned_to;
+    const canEdit = isCreator;
+    const canStatus = isCreator || isAssignee;
+
+    // ── Status toggle ───────────────────────────────────────────────────────────
+    const handleStatusCycle = async () => {
+        if (!canStatus) return toastError('Only the creator or assignee can update status.');
+        const next = task.status === 'pending' ? 'active' : task.status === 'active' ? 'done' : null;
+        if (!next) return toastError('Task is already done.');
+        try {
+            setSaving(true);
+            const updated = await updateTaskStatus(task.id, next);
+            setTask(updated);
+            toastSuccess(`Status updated to "${next}"`);
+        } catch (e) {
+            toastError(e.message || 'Failed to update status.');
+        } finally { setSaving(false); }
+    };
+
+    // ── Save edits ──────────────────────────────────────────────────────────────
+    const handleSave = async () => {
+        if (!form.title.trim()) return toastError('Title cannot be empty.');
+        try {
+            setSaving(true);
+            const updated = await updateTask(task.id, { ...form, due_date: form.due_date || null });
+            setTask(updated);
+            setEditing(false);
+            toastSuccess('Task updated.');
+        } catch (e) {
+            toastError(e.message || 'Failed to save changes.');
+        } finally { setSaving(false); }
+    };
+
+    // ── Delete ──────────────────────────────────────────────────────────────────
+    const handleDelete = async () => {
+        if (!isCreator) return toastError('Only the creator can delete this task.');
+        if (!window.confirm('Delete this task?')) return;
+        try {
+            await deleteTask(task.id);
+            toastSuccess('Task deleted.');
+            onClose();
+        } catch (e) {
+            toastError(e.message || 'Failed to delete task.');
+        }
+    };
+
+    // ── Delegate ────────────────────────────────────────────────────────────────
+    const handleDelegate = async () => {
+        if (!delegateTo) return toastError('Select a team member.');
+        try {
+            setSaving(true);
+            await delegateTask(task.id, parseInt(delegateTo));
+            toastSuccess('Task delegated successfully.');
+            setDelegating(false);
+            onClose();
+        } catch (e) {
+            toastError(e.message || 'Failed to delegate task.');
+        } finally { setSaving(false); }
+    };
+
+    const statusLbl = { pending: 'Pending', active: 'In Progress', done: 'Done' };
+    const nextLbl = { pending: 'Mark In Progress', active: 'Mark Done', done: null };
 
     return (
         <>
-            <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 40, backdropFilter: "blur(2px)" }} />
+            <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 40, backdropFilter: 'blur(2px)' }} />
             <div className="slideRight" style={{
-                position: "fixed", top: 0, right: 0, height: "100vh", width: 360, zIndex: 50,
-                background: t.surf, borderLeft: `1px solid ${t.border}`, display: "flex", flexDirection: "column",
-                overflow: "hidden", boxShadow: "-20px 0 60px #00000044"
+                position: 'fixed', top: 0, right: 0, height: '100vh', width: 380, zIndex: 50,
+                background: t.surf, borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column',
+                overflow: 'hidden', boxShadow: '-20px 0 60px #00000066',
             }}>
-                <div style={{ padding: "15px 18px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: t.t1 }}>Task Detail</span>
-                    <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer" }} className="hvrI">
+                {/* Header */}
+                <div style={{ padding: '14px 18px', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: t.t1 }}>Task Detail</span>
+                        {canEdit && !editing && (
+                            <button onClick={() => setEditing(true)} style={{ background: t.accentDim, border: `1px solid ${t.accent}33`, borderRadius: 6, padding: '3px 9px', color: t.accent, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: t.disp }}>
+                                Edit
+                            </button>
+                        )}
+                    </div>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }} className="hvrI">
                         <I d={IC.x} sz={17} c={t.t2} />
                     </button>
                 </div>
-                <div style={{ flex: 1, overflow: "auto", padding: 18 }}>
-                    <div style={{ display: "flex", gap: 7, marginBottom: 14, flexWrap: "wrap" }}>
-                        <StTag s={task.st} t={t} /><PriTag p={task.pri} t={t} />
-                        {task.delegated && <Tag label="Delegated ↗" color={t.amber} />}
+
+                <div style={{ flex: 1, overflow: 'auto', padding: 18 }}>
+                    {/* Tags */}
+                    <div style={{ display: 'flex', gap: 7, marginBottom: 14, flexWrap: 'wrap' }}>
+                        <StTag s={task.status} t={t} />
+                        <PriTag p={task.priority} t={t} />
+                        {task.parent_task_id && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: `${t.amber}14`, color: t.amber, border: `1px solid ${t.amber}33` }}>↗ Delegated</span>}
                     </div>
-                    <h2 style={{ fontSize: 16, fontWeight: 800, color: t.t1, marginBottom: 10, letterSpacing: "-0.3px", lineHeight: 1.4 }}>
-                        {task.title.trim()}
-                    </h2>
-                    <p style={{ fontSize: 12.5, color: t.t2, lineHeight: 1.7, marginBottom: 18, fontFamily: t.mono }}>{task.desc}</p>
+
+                    {/* Edit mode */}
+                    {editing ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+                            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title" style={INP(t)} />
+                            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Description…" rows={3} style={{ ...INP(t), resize: 'vertical' }} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} style={INP(t)}>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                                <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} style={INP(t)} />
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: t.accent, color: '#000', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                    {saving ? 'Saving…' : 'Save Changes'}
+                                </button>
+                                <button onClick={() => { setEditing(false); setForm({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '' }); }} style={{ padding: '9px 14px', borderRadius: 8, border: `1px solid ${t.border}`, background: 'none', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <h2 style={{ fontSize: 16, fontWeight: 800, color: t.t1, marginBottom: 8, letterSpacing: '-0.3px', lineHeight: 1.4 }}>{task.title}</h2>
+                            {task.description && <p style={{ fontSize: 12.5, color: t.t2, lineHeight: 1.7, marginBottom: 16, fontFamily: t.mono }}>{task.description}</p>}
+                        </>
+                    )}
+
+                    {/* Details rows */}
                     {[
-                        { label: "Assigned By", el: <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Av u={by} sz={22} /><span style={{ fontSize: 12.5, color: t.t1 }}>{by.name}</span></div> },
-                        { label: "Assigned To", el: <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Av u={to} sz={22} /><span style={{ fontSize: 12.5, color: t.t1 }}>{to.name}</span></div> },
-                        { label: "Due Date", el: <span style={{ fontSize: 12.5, color: t.t1, fontFamily: t.mono }}>{task.due}</span> },
-                    ].map(({ label, el }) => (
-                        <div key={label} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${t.border}` }}>
-                            <div style={{ fontSize: 10, color: t.t3, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>{label}</div>
-                            {el}
+                        { label: 'Assigned By', val: task.assigned_by_name || '—' },
+                        { label: 'Assigned To', val: task.assigned_to_name || '—' },
+                        { label: 'Due Date', val: fmtDate(task.due_date) },
+                        { label: 'Status', val: statusLbl[task.status] || task.status },
+                    ].map(({ label, val }) => (
+                        <div key={label} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${t.border}` }}>
+                            <div style={{ fontSize: 10, color: t.t3, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: t.mono }}>{label}</div>
+                            <div style={{ fontSize: 13, color: t.t1 }}>{val}</div>
                         </div>
                     ))}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 18 }}>
-                        <button style={{ padding: "10px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 700, background: `linear-gradient(135deg,${t.green},#009950)`, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-                            <I d={IC.chk} sz={15} c="#000" sw={2.5} />Mark Complete
-                        </button>
-                        <button style={{ padding: "10px", borderRadius: 9, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.amber}44`, background: t.amber + "12", color: t.amber, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-                            <I d={IC.del} sz={15} c={t.amber} />Delegate Task
-                        </button>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 6 }}>
+                        {canStatus && nextLbl[task.status] && (
+                            <button onClick={handleStatusCycle} disabled={saving} style={{ padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, background: `linear-gradient(135deg,${t.green},#009950)`, color: '#000' }}>
+                                {saving ? 'Updating…' : nextLbl[task.status]}
+                            </button>
+                        )}
+
+                        {isAssignee && task.status !== 'done' && !delegating && (
+                            <button onClick={() => setDelegating(true)} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.amber}44`, background: `${t.amber}12`, color: t.amber }}>
+                                Delegate Task ↗
+                            </button>
+                        )}
+
+                        {delegating && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <select value={delegateTo} onChange={e => setDelegateTo(e.target.value)} style={INP(t)}>
+                                    <option value="">Select team member…</option>
+                                    {teamMembers.filter(m => m.id !== user?.id).map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <button onClick={handleDelegate} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: t.amber, color: '#000', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                        {saving ? 'Delegating…' : 'Confirm Delegate'}
+                                    </button>
+                                    <button onClick={() => setDelegating(false)} style={{ padding: '9px 14px', borderRadius: 8, border: `1px solid ${t.border}`, background: 'none', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {canEdit && (
+                            <button onClick={handleDelete} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red }}>
+                                Delete Task
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

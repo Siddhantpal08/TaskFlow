@@ -1,28 +1,35 @@
 import { useState } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { useData } from "../context/DataContext.jsx";
+import { eventsApi } from "../api/events.js";
+import { toastSuccess, toastError } from "./ui/Toast.jsx";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const PCOLORS = ['#FF3D5A', '#00E5CC', '#00D67B', '#B083FF', '#FFAA00'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 function getFirstDayOffset(year, month) {
-    // returns 0=Mon..6=Sun offset
     const d = new Date(year, month, 1).getDay();
     return (d + 6) % 7;
 }
 
-function AddEventModal({ t, onClose, onAdd }) {
+function AddEventModal({ t, date, onClose, onAdd }) {
     const [title, setTitle] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+    const [selDate, setSelDate] = useState(date || new Date().toISOString().slice(0, 10));
     const [time, setTime] = useState('09:00');
     const [loading, setLoading] = useState(false);
-    const inp = { background: '#0C1420', border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px 12px', color: t.t1, fontSize: 13, fontFamily: t.disp, width: '100%', outline: 'none' };
+    const inp = { background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px 12px', color: t.t1, fontSize: 13, fontFamily: t.disp, width: '100%', outline: 'none', boxSizing: 'border-box' };
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); setLoading(true);
+        e.preventDefault();
+        if (!title.trim()) return toastError('Event title is required.');
+        setLoading(true);
         try {
-            await onAdd({ title, event_date: date, event_time: time + ':00', priority: 'medium' });
+            await onAdd({ title, event_date: selDate, event_time: time + ':00', priority: 'medium' });
+            toastSuccess('Event added!');
             onClose();
+        } catch (err) {
+            toastError(err.message || 'Failed to add event.');
         } finally { setLoading(false); }
     };
 
@@ -32,7 +39,7 @@ function AddEventModal({ t, onClose, onAdd }) {
                 <div style={{ fontSize: 15, fontWeight: 700, color: t.t1, marginBottom: 18 }}>New Event</div>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Event title…" style={inp} />
-                    <input type="date" required value={date} onChange={e => setDate(e.target.value)} style={inp} />
+                    <input type="date" required value={selDate} onChange={e => setSelDate(e.target.value)} style={inp} />
                     <input type="time" value={time} onChange={e => setTime(e.target.value)} style={inp} />
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
                         <button type="button" onClick={onClose} style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 16px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>Cancel</button>
@@ -47,65 +54,114 @@ function AddEventModal({ t, onClose, onAdd }) {
 }
 
 export default function Calendar({ t }) {
-    const { events = [], taskDates = [], createEvent } = useData();
-    const [showAdd, setShowAdd] = useState(false);
+    const { events = [], taskDates = [], createEvent, deleteEvent } = useData();
 
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const today = now.getDate();
-    const monthName = now.toLocaleDateString('en-US', { month: 'long' });
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const offset = getFirstDayOffset(year, month);
+    const [viewYear, setViewYear] = useState(now.getFullYear());
+    const [viewMonth, setViewMonth] = useState(now.getMonth()); // 0-indexed
+    const [showAdd, setShowAdd] = useState(false);
+    const [clickedDate, setClickedDate] = useState(null);
 
-    // Map events to day numbers for this month/year
+    const today = now.getDate();
+    const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const offset = getFirstDayOffset(viewYear, viewMonth);
+
+    const prevMonth = () => {
+        if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+        else setViewMonth(m => m - 1);
+    };
+    const nextMonth = () => {
+        if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+        else setViewMonth(m => m + 1);
+    };
+    const goToday = () => { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); };
+
+    // Map events to day numbers for current view month
     const evMap = {};
     events.forEach(ev => {
         const d = new Date(ev.event_date);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-            evMap[d.getDate()] = ev;
+        if (d.getFullYear() === viewYear && d.getMonth() === viewMonth) {
+            evMap[d.getDate()] = (evMap[d.getDate()] || []);
+            evMap[d.getDate()].push(ev);
         }
     });
 
-    // Map task due dates (for dot indicators on the grid)
+    // Task due-date dots
     const taskDaySet = new Set();
     taskDates.forEach(tk => {
         if (tk.due_date) {
             const d = new Date(tk.due_date);
-            if (d.getFullYear() === year && d.getMonth() === month) {
+            if (d.getFullYear() === viewYear && d.getMonth() === viewMonth) {
                 taskDaySet.add(d.getDate());
             }
         }
     });
+
+    // Sidebar: events for current view month
+    const monthEvents = events.filter(ev => {
+        const d = new Date(ev.event_date);
+        return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+    }).sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+
+    const handleDayClick = (d) => {
+        const pad = n => String(n).padStart(2, '0');
+        setClickedDate(`${viewYear}-${pad(viewMonth + 1)}-${pad(d)}`);
+        setShowAdd(true);
+    };
+
+    const handleDeleteEvent = async (evId) => {
+        if (!window.confirm('Delete this event?')) return;
+        try {
+            await deleteEvent(evId);
+            toastSuccess('Event deleted.');
+        } catch (e) {
+            toastError(e.message || 'Failed to delete event.');
+        }
+    };
 
     return (
         <div style={{ padding: "22px 26px", display: "flex", gap: 18 }} className="cal-wrap">
             {/* Calendar grid */}
             <div style={{ flex: 1 }}>
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow }}>
+                    {/* Month nav */}
                     <div style={{ padding: "14px 20px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.4px", color: t.t1 }}>
-                            {monthName} <span style={{ color: t.accent }}>{year}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <button onClick={prevMonth} style={{ background: t.surf, border: `1px solid ${t.border}`, borderRadius: 7, width: 30, height: 30, cursor: 'pointer', color: t.t2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>‹</button>
+                            <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.4px", color: t.t1, minWidth: 160, textAlign: 'center' }}>
+                                {MONTHS[viewMonth]} <span style={{ color: t.accent }}>{viewYear}</span>
+                            </div>
+                            <button onClick={nextMonth} style={{ background: t.surf, border: `1px solid ${t.border}`, borderRadius: 7, width: 30, height: 30, cursor: 'pointer', color: t.t2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>›</button>
+                            {!isCurrentMonth && (
+                                <button onClick={goToday} style={{ background: t.accentDim, border: `1px solid ${t.accent}33`, borderRadius: 6, padding: '3px 10px', color: t.accent, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: t.disp }}>Today</button>
+                            )}
                         </div>
-                        <button onClick={() => setShowAdd(true)} style={{ background: t.accentDim, border: `1px solid ${t.accent}44`, borderRadius: 8, padding: '6px 14px', color: t.accent, fontFamily: t.disp, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <button onClick={() => { setClickedDate(null); setShowAdd(true); }} style={{ background: t.accentDim, border: `1px solid ${t.accent}44`, borderRadius: 8, padding: '6px 14px', color: t.accent, fontFamily: t.disp, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                             <I d={IC.plus} sz={11} c={t.accent} /> Add Event
                         </button>
                     </div>
+
+                    {/* Day headers */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", padding: "0 14px" }}>
                         {DAYS.map(d => <div key={d} style={{ padding: "10px 4px", textAlign: "center", fontSize: 10, fontWeight: 700, color: t.t3, letterSpacing: "0.8px", fontFamily: t.mono }}>{d}</div>)}
                     </div>
+
+                    {/* Day cells */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 1, background: t.border, padding: "0 14px 14px" }}>
-                        {[...Array(offset)].map((_, i) => <div key={`b${i}`} style={{ background: t.card, minHeight: 68 }} />)}
+                        {[...Array(offset)].map((_, i) => <div key={`b${i}`} style={{ background: t.card, minHeight: 72 }} />)}
                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
-                            const ev = evMap[d];
-                            const c = ev ? PCOLORS[ev.id % PCOLORS.length] : null;
-                            const isToday = d === today;
+                            const dayEvs = evMap[d] || [];
+                            const firstEv = dayEvs[0];
+                            const c = firstEv ? PCOLORS[firstEv.id % PCOLORS.length] : null;
+                            const isToday = isCurrentMonth && d === today;
                             const hasTask = taskDaySet.has(d);
                             return (
-                                <div key={d} style={{ background: t.card, minHeight: 68, padding: 6 }}>
-                                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: isToday ? t.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isToday ? 800 : 400, color: isToday ? "#000" : d > today ? t.t2 : t.t3, marginBottom: 3 }}>{d}</div>
-                                    {ev && <div style={{ background: c + "18", border: `1px solid ${c}33`, borderRadius: 3, padding: "2px 4px", fontSize: 9, color: c, fontWeight: 600, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{ev.title}</div>}
-                                    {hasTask && !ev && <div style={{ width: 5, height: 5, borderRadius: "50%", background: t.amber, margin: "2px auto 0" }} />}
+                                <div key={d} onClick={() => handleDayClick(d)} className="hvr" style={{ background: t.card, minHeight: 72, padding: 6, cursor: 'pointer', transition: 'background .15s' }}>
+                                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: isToday ? t.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isToday ? 800 : 400, color: isToday ? "#000" : t.t2, marginBottom: 3 }}>{d}</div>
+                                    {firstEv && <div style={{ background: c + "18", border: `1px solid ${c}33`, borderRadius: 3, padding: "2px 4px", fontSize: 9, color: c, fontWeight: 600, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{firstEv.title}</div>}
+                                    {dayEvs.length > 1 && <div style={{ fontSize: 8, color: t.t3, marginTop: 2, fontFamily: t.mono }}>+{dayEvs.length - 1} more</div>}
+                                    {hasTask && !firstEv && <div style={{ width: 5, height: 5, borderRadius: "50%", background: t.amber, margin: "3px auto 0" }} title="Task due" />}
                                 </div>
                             );
                         })}
@@ -113,37 +169,33 @@ export default function Calendar({ t }) {
                 </div>
             </div>
 
-            {/* Sidebar events */}
+            {/* Sidebar */}
             <div style={{ width: 240, flexShrink: 0 }} className="cal-sidebar">
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 15, boxShadow: t.shadow }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>This Month</div>
-                    {events.length === 0 && <div style={{ fontSize: 12, color: t.t3 }}>No events yet.</div>}
-                    {events.filter(ev => {
-                        const d = new Date(ev.event_date);
-                        return d.getFullYear() === year && d.getMonth() === month;
-                    }).map((ev, i) => {
+                    <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>{MONTHS[viewMonth].slice(0, 3)} Events</div>
+                    {monthEvents.length === 0 && <div style={{ fontSize: 12, color: t.t3 }}>No events. Click a day to add one.</div>}
+                    {monthEvents.map(ev => {
                         const c = PCOLORS[ev.id % PCOLORS.length];
                         const d = new Date(ev.event_date);
                         const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                         return (
-                            <div key={ev.id} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: `1px solid ${t.border}` }}>
-                                <div style={{ width: 2.5, borderRadius: 2, background: c, flexShrink: 0 }} />
-                                <div>
-                                    <div style={{ fontSize: 12, fontWeight: 600, color: t.t1 }}>{ev.title}</div>
-                                    <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>
-                                        {label} · {ev.event_time ? ev.event_time.slice(0, 5) : '—'}
-                                    </div>
+                            <div key={ev.id} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: `1px solid ${t.border}`, alignItems: 'flex-start' }}>
+                                <div style={{ width: 2.5, borderRadius: 2, background: c, flexShrink: 0, alignSelf: 'stretch', minHeight: 32 }} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: t.t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</div>
+                                    <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>{label} · {ev.event_time ? ev.event_time.slice(0, 5) : '—'}</div>
                                 </div>
+                                <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 12, padding: '2px 4px', lineHeight: 1 }} title="Delete event" className="hvrI">✕</button>
                             </div>
                         );
                     })}
-                    <button onClick={() => setShowAdd(true)} style={{ width: "100%", marginTop: 11, padding: "7px", borderRadius: 8, border: `1px dashed ${t.border}`, background: "transparent", color: t.t3, fontSize: 12, fontFamily: t.disp, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                    <button onClick={() => { setClickedDate(null); setShowAdd(true); }} style={{ width: "100%", marginTop: 11, padding: "7px", borderRadius: 8, border: `1px dashed ${t.border}`, background: "transparent", color: t.t3, fontSize: 12, fontFamily: t.disp, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
                         <I d={IC.plus} sz={12} c={t.t3} /> Add Event
                     </button>
                 </div>
             </div>
 
-            {showAdd && <AddEventModal t={t} onClose={() => setShowAdd(false)} onAdd={createEvent} />}
+            {showAdd && <AddEventModal t={t} date={clickedDate} onClose={() => setShowAdd(false)} onAdd={createEvent} />}
         </div>
     );
 }

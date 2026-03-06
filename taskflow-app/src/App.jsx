@@ -25,6 +25,7 @@ import NotesPage from "./components/notes/NotesPage.jsx";
 import NotifPanel from "./components/NotifPanel.jsx";
 import TaskDrawer from "./components/TaskDrawer.jsx";
 import AssignModal from "./components/AssignModal.jsx";
+import { ToastProvider } from "./components/ui/Toast.jsx";
 
 function MainApp() {
     const [dark, setDark] = useState(true);
@@ -91,32 +92,34 @@ function MainApp() {
     return (
         <>
             <style>{FONTS}{themeCss}</style>
-            <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}
-                className="app-root">
+            <ToastProvider t={t}>
+                <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}
+                    className="app-root">
 
-                <Sidebar t={t} page={page} setPage={setPage}
-                    pages={pages} expanded={expanded} setExpanded={setExpanded}
-                    notePageId={notePageId} navigateNote={navigateNote}
-                    addNotePage={addNotePage} deleteNotePage={deleteNotePage} />
+                    <Sidebar t={t} page={page} setPage={setPage}
+                        pages={pages} expanded={expanded} setExpanded={setExpanded}
+                        notePageId={notePageId} navigateNote={navigateNote}
+                        addNotePage={addNotePage} deleteNotePage={deleteNotePage} />
 
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-                    <Topbar t={t} dark={dark} setDark={setDark} notif={notif}
-                        setNotif={setNotif} page={page} setModal={setModal} />
-                    <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
-                        {page === "dashboard" && <Dashboard t={t} setPage={setPage} setTask={setTask} />}
-                        {page === "tasks" && <Tasks t={t} setTask={setTask} />}
-                        {page === "notes" && <NotesPage t={t} dark={dark} pages={pages} notePageId={notePageId}
-                            navigateNote={navigateNote} updateNotePage={updateNotePage}
-                            addNotePage={addNotePage} deleteNotePage={deleteNotePage} />}
-                        {page === "calendar" && <Calendar t={t} />}
-                        {page === "team" && <Team t={t} />}
-                    </main>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+                        <Topbar t={t} dark={dark} setDark={setDark} notif={notif}
+                            setNotif={setNotif} page={page} setModal={setModal} />
+                        <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
+                            {page === "dashboard" && <Dashboard t={t} setPage={setPage} setTask={setTask} />}
+                            {page === "tasks" && <Tasks t={t} setTask={setTask} />}
+                            {page === "notes" && <NotesPage t={t} dark={dark} pages={pages} notePageId={notePageId}
+                                navigateNote={navigateNote} updateNotePage={updateNotePage}
+                                addNotePage={addNotePage} deleteNotePage={deleteNotePage} />}
+                            {page === "calendar" && <Calendar t={t} />}
+                            {page === "team" && <Team t={t} />}
+                        </main>
+                    </div>
+
+                    {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
+                    {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
+                    {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
                 </div>
-
-                {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
-                {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
-                {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
-            </div>
+            </ToastProvider>
         </>
     );
 }
