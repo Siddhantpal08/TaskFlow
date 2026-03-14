@@ -30,9 +30,13 @@ const allowedOrigins = process.env.CLIENT_URLS
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (e.g. mobile apps, Postman)
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin) return callback(null, true);
+
+        // Looping origin logic or regex can be used, but for dev:
+        if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
             callback(null, true);
         } else {
+            console.warn(`[CORS REJECT] Origin ${origin} not in allowed origins.`);
             callback(new Error(`CORS policy: origin ${origin} not allowed.`));
         }
     },

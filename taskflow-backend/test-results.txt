@@ -1,0 +1,295 @@
+FAIL tests/auth.test.js
+  Auth API Endpoints
+    POST /api/v1/auth/register
+      ├ù should register a new user successfully (7 ms)
+      ├ù should return 409 if email already exists (2 ms)
+    POST /api/v1/auth/login
+      ├ù should login successfully with correct credentials (13 ms)
+      ├ù should return 401 with incorrect password (6 ms)
+
+  ΓùÅ Auth API Endpoints ΓÇ║ POST /api/v1/auth/register ΓÇ║ should register a new user successfully
+
+    TypeError: app.address is not a function
+
+      20 |
+      21 |             const res = await request(app)
+    > 22 |                 .post('/api/v1/auth/register')
+         |                  ^
+      23 |                 .send({
+      24 |                     name: 'Test User',
+      25 |                     email: 'test@example.com',
+
+      at Test.serverAddress (node_modules/supertest/lib/test.js:61:22)
+      at new Test (node_modules/supertest/lib/test.js:49:14)
+      at Object.obj.<computed> [as post] (node_modules/supertest/index.js:40:18)
+      at Object.post (tests/auth.test.js:22:18)
+
+  ΓùÅ Auth API Endpoints ΓÇ║ POST /api/v1/auth/register ΓÇ║ should return 409 if email already exists
+
+    TypeError: app.address is not a function
+
+      37 |
+      38 |             const res = await request(app)
+    > 39 |                 .post('/api/v1/auth/register')
+         |                  ^
+      40 |                 .send({
+      41 |                     name: 'Test User',
+      42 |                     email: 'test@example.com',
+
+      at Test.serverAddress (node_modules/supertest/lib/test.js:61:22)
+      at new Test (node_modules/supertest/lib/test.js:49:14)
+      at Object.obj.<computed> [as post] (node_modules/supertest/index.js:40:18)
+      at Object.post (tests/auth.test.js:39:18)
+
+  ΓùÅ Auth API Endpoints ΓÇ║ POST /api/v1/auth/login ΓÇ║ should login successfully with correct credentials
+
+    TypeError: app.address is not a function
+
+      61 |
+      62 |             const res = await request(app)
+    > 63 |                 .post('/api/v1/auth/login')
+         |                  ^
+      64 |                 .send({
+      65 |                     email: 'test@example.com',
+      66 |                     password: 'password123'
+
+      at Test.serverAddress (node_modules/supertest/lib/test.js:61:22)
+      at new Test (node_modules/supertest/lib/test.js:49:14)
+      at Object.obj.<computed> [as post] (node_modules/supertest/index.js:40:18)
+      at Object.post (tests/auth.test.js:63:18)
+
+  ΓùÅ Auth API Endpoints ΓÇ║ POST /api/v1/auth/login ΓÇ║ should return 401 with incorrect password
+
+    TypeError: app.address is not a function
+
+      82 |
+      83 |             const res = await request(app)
+    > 84 |                 .post('/api/v1/auth/login')
+         |                  ^
+      85 |                 .send({
+      86 |                     email: 'test@example.com',
+      87 |                     password: 'wrongpassword'
+
+      at Test.serverAddress (node_modules/supertest/lib/test.js:61:22)
+      at new Test (node_modules/supertest/lib/test.js:49:14)
+      at Object.obj.<computed> [as post] (node_modules/supertest/index.js:40:18)
+      at Object.post (tests/auth.test.js:84:18)
+
+FAIL tests/tasks.test.js
+  Tasks API Endpoints
+    GET /api/v1/tasks
+      ├ù should fetch tasks for authenticated user (1 ms)
+      ├ù should return 401 without token
+    POST /api/v1/tasks
+      ├ù should create a task successfully
+      ├ù should return 422 for invalid body
+    PATCH /api/v1/tasks/:id/status
+      ├ù should return 409 for invalid status transition (done to active) (1 ms)
+      ├ù should allow pending to active transition (1 ms)
+
+  ΓùÅ Tasks API Endpoints ΓÇ║ GET /api/v1/tasks ΓÇ║ should fetch tasks for authenticated user
+
+    TypeError: jwt.generateToken is not a function
+
+      20 |
+      21 |     beforeAll(() => {
+    > 22 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      23 |     });
+      24 |
+      25 |     afterEach(() => {
+
+      at Object.generateToken (tests/tasks.test.js:22:25)
+
+  ΓùÅ Tasks API Endpoints ΓÇ║ GET /api/v1/tasks ΓÇ║ should return 401 without token
+
+    TypeError: jwt.generateToken is not a function
+
+      20 |
+      21 |     beforeAll(() => {
+    > 22 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      23 |     });
+      24 |
+      25 |     afterEach(() => {
+
+      at Object.generateToken (tests/tasks.test.js:22:25)
+
+  ΓùÅ Tasks API Endpoints ΓÇ║ POST /api/v1/tasks ΓÇ║ should create a task successfully
+
+    TypeError: jwt.generateToken is not a function
+
+      20 |
+      21 |     beforeAll(() => {
+    > 22 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      23 |     });
+      24 |
+      25 |     afterEach(() => {
+
+      at Object.generateToken (tests/tasks.test.js:22:25)
+
+  ΓùÅ Tasks API Endpoints ΓÇ║ POST /api/v1/tasks ΓÇ║ should return 422 for invalid body
+
+    TypeError: jwt.generateToken is not a function
+
+      20 |
+      21 |     beforeAll(() => {
+    > 22 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      23 |     });
+      24 |
+      25 |     afterEach(() => {
+
+      at Object.generateToken (tests/tasks.test.js:22:25)
+
+  ΓùÅ Tasks API Endpoints ΓÇ║ PATCH /api/v1/tasks/:id/status ΓÇ║ should return 409 for invalid status transition (done to active)
+
+    TypeError: jwt.generateToken is not a function
+
+      20 |
+      21 |     beforeAll(() => {
+    > 22 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      23 |     });
+      24 |
+      25 |     afterEach(() => {
+
+      at Object.generateToken (tests/tasks.test.js:22:25)
+
+  ΓùÅ Tasks API Endpoints ΓÇ║ PATCH /api/v1/tasks/:id/status ΓÇ║ should allow pending to active transition
+
+    TypeError: jwt.generateToken is not a function
+
+      20 |
+      21 |     beforeAll(() => {
+    > 22 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      23 |     });
+      24 |
+      25 |     afterEach(() => {
+
+      at Object.generateToken (tests/tasks.test.js:22:25)
+
+FAIL tests/calendar.test.js
+  Calendar API Endpoints
+    GET /api/v1/calendar/events
+      ├ù should fetch events and task dates for a specific month (1 ms)
+    POST /api/v1/calendar/events
+      ├ù should create an event successfully (4 ms)
+    DELETE /api/v1/calendar/events/:id
+      ├ù should return 404 if event not found or unauthorized
+      ├ù should return 200 on successful deletion (1 ms)
+
+  ΓùÅ Calendar API Endpoints ΓÇ║ GET /api/v1/calendar/events ΓÇ║ should fetch events and task dates for a specific month
+
+    TypeError: jwt.generateToken is not a function
+
+      19 |
+      20 |     beforeAll(() => {
+    > 21 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      22 |     });
+      23 |
+      24 |     afterEach(() => {
+
+      at Object.generateToken (tests/calendar.test.js:21:25)
+
+  ΓùÅ Calendar API Endpoints ΓÇ║ POST /api/v1/calendar/events ΓÇ║ should create an event successfully
+
+    TypeError: jwt.generateToken is not a function
+
+      19 |
+      20 |     beforeAll(() => {
+    > 21 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      22 |     });
+      23 |
+      24 |     afterEach(() => {
+
+      at Object.generateToken (tests/calendar.test.js:21:25)
+
+  ΓùÅ Calendar API Endpoints ΓÇ║ DELETE /api/v1/calendar/events/:id ΓÇ║ should return 404 if event not found or unauthorized
+
+    TypeError: jwt.generateToken is not a function
+
+      19 |
+      20 |     beforeAll(() => {
+    > 21 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      22 |     });
+      23 |
+      24 |     afterEach(() => {
+
+      at Object.generateToken (tests/calendar.test.js:21:25)
+
+  ΓùÅ Calendar API Endpoints ΓÇ║ DELETE /api/v1/calendar/events/:id ΓÇ║ should return 200 on successful deletion
+
+    TypeError: jwt.generateToken is not a function
+
+      19 |
+      20 |     beforeAll(() => {
+    > 21 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      22 |     });
+      23 |
+      24 |     afterEach(() => {
+
+      at Object.generateToken (tests/calendar.test.js:21:25)
+
+FAIL tests/notifications.test.js
+  Notifications API Endpoints
+    GET /api/v1/notifications
+      ├ù should list notifications and unread count
+    PATCH /api/v1/notifications/:id/read
+      ├ù should return 200 on successful mark as read (1 ms)
+    PATCH /api/v1/notifications/read-all
+      ├ù should mark all notifications as read
+
+  ΓùÅ Notifications API Endpoints ΓÇ║ GET /api/v1/notifications ΓÇ║ should list notifications and unread count
+
+    TypeError: jwt.generateToken is not a function
+
+      19 |
+      20 |     beforeAll(() => {
+    > 21 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      22 |     });
+      23 |
+      24 |     afterEach(() => {
+
+      at Object.generateToken (tests/notifications.test.js:21:25)
+
+  ΓùÅ Notifications API Endpoints ΓÇ║ PATCH /api/v1/notifications/:id/read ΓÇ║ should return 200 on successful mark as read
+
+    TypeError: jwt.generateToken is not a function
+
+      19 |
+      20 |     beforeAll(() => {
+    > 21 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      22 |     });
+      23 |
+      24 |     afterEach(() => {
+
+      at Object.generateToken (tests/notifications.test.js:21:25)
+
+  ΓùÅ Notifications API Endpoints ΓÇ║ PATCH /api/v1/notifications/read-all ΓÇ║ should mark all notifications as read
+
+    TypeError: jwt.generateToken is not a function
+
+      19 |
+      20 |     beforeAll(() => {
+    > 21 |         mockToken = jwt.generateToken({ id: 1, email: 'test@example.com' }, '1h');
+         |                         ^
+      22 |     });
+      23 |
+      24 |     afterEach(() => {
+
+      at Object.generateToken (tests/notifications.test.js:21:25)
+
+Test Suites: 4 failed, 4 total
+Tests:       17 failed, 17 total
+Snapshots:   0 total
+Time:        4.008 s
+Ran all test suites.

@@ -1,0 +1,52 @@
+
+> taskflow-backend@1.0.0 start
+> node server.js
+
+[TaskFlow] Server running on port 5000 (development)
+[0mGET / [33m404[0m 3.453 ms - 52[0m
+[0mGET /favicon.ico [33m404[0m 1.037 ms - 63[0m
+[0mGET / [33m404[0m 0.456 ms - 52[0m
+[0mGET /api/v1/users/me [33m401[0m 18.468 ms - 36[0m
+[0mGET /api/v1/users/me [33m401[0m 2.665 ms - 36[0m
+ERROR ≡ƒÆÑ: AppError: No refresh token provided.
+    at D:\Developments\College Project\taskflow-backend\src\controllers\authController.js:109:21
+    at D:\Developments\College Project\taskflow-backend\src\utils\asyncWrapper.js:2:21
+    at Layer.handle [as handle_request] (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\layer.js:95:5)
+    at D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\index.js:346:12)
+    at next (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\index.js:175:3) {
+  statusCode: 401,
+  status: 'fail',
+  isOperational: true
+}
+[0mPOST /api/v1/auth/refresh [33m401[0m 2.189 ms - 1341[0m
+ERROR ≡ƒÆÑ: AppError: No refresh token provided.
+    at D:\Developments\College Project\taskflow-backend\src\controllers\authController.js:109:21
+    at D:\Developments\College Project\taskflow-backend\src\utils\asyncWrapper.js:2:21
+    at Layer.handle [as handle_request] (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\layer.js:95:5)
+    at D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\index.js:346:12)
+    at next (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (D:\Developments\College Project\taskflow-backend\node_modules\express\lib\router\index.js:175:3) {
+  statusCode: 401,
+  status: 'fail',
+  isOperational: true
+}
+[0mPOST /api/v1/auth/refresh [33m401[0m 2.390 ms - 1341[0m
+[0mPOST /api/v1/auth/login [32m200[0m 279.261 ms - 263[0m
+[0mGET /api/v1/tasks [32m200[0m 57.995 ms - 1729[0m
+[0mGET /api/v1/team [32m200[0m 55.617 ms - 835[0m
+[0mGET /api/v1/tasks [36m304[0m 27.395 ms - -[0m
+[0mGET /api/v1/team [36m304[0m 4.925 ms - -[0m
+[0mGET /api/v1/calendar/events?year=2026&month=3 [32m200[0m 113.253 ms - 52[0m
+[0mGET /api/v1/notifications [36m304[0m 91.233 ms - -[0m
+[0mGET /api/v1/calendar/events?year=2026&month=3 [36m304[0m 5.552 ms - -[0m
+[0mGET /api/v1/notifications [36m304[0m 4.280 ms - -[0m
+[0mPOST /api/v1/auth/logout [32m200[0m 5.766 ms - 53[0m

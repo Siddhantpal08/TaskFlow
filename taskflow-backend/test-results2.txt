@@ -1,0 +1,415 @@
+[0mPOST /api/v1/auth/register [32m201[0m 402.175 ms - 255[0m
+  console.error
+    ERROR ≡ƒÆÑ: Email is already registered.
+
+    [0m [90m 18 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err)[33m;[39m
+     [90m 19 |[39m     } [36melse[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 21 |[39m     }
+     [90m 22 |[39m
+     [90m 23 |[39m     res[33m.[39mstatus(err[33m.[39mstatusCode)[33m.[39mjson({[0m
+
+      at error (src/middleware/errorHandler.js:20:17)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:21:16)
+
+[0mPOST /api/v1/auth/register [33m409[0m 26.565 ms - 58[0m
+  console.error
+    ERROR ≡ƒÆÑ: data and hash arguments required
+
+    [0m [90m 18 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err)[33m;[39m
+     [90m 19 |[39m     } [36melse[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 21 |[39m     }
+     [90m 22 |[39m
+     [90m 23 |[39m     res[33m.[39mstatus(err[33m.[39mstatusCode)[33m.[39mjson({[0m
+
+      at error (src/middleware/errorHandler.js:20:17)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+
+[0mPOST /api/v1/auth/login [31m500[0m 7.290 ms - 63[0m
+  console.error
+    ERROR ≡ƒÆÑ: data and hash arguments required
+
+    [0m [90m 18 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err)[33m;[39m
+     [90m 19 |[39m     } [36melse[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 21 |[39m     }
+     [90m 22 |[39m
+     [90m 23 |[39m     res[33m.[39mstatus(err[33m.[39mstatusCode)[33m.[39mjson({[0m
+
+      at error (src/middleware/errorHandler.js:20:17)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+
+[0mPOST /api/v1/auth/login [31m500[0m 4.124 ms - 63[0m
+FAIL tests/auth.test.js
+  Auth API Endpoints
+    POST /api/v1/auth/register
+      ├ù should register a new user successfully (658 ms)
+      ├ù should return 409 if email already exists (56 ms)
+    POST /api/v1/auth/login
+      ├ù should login successfully with correct credentials (28 ms)
+      ├ù should return 401 with incorrect password (23 ms)
+
+  ΓùÅ Auth API Endpoints ΓÇ║ POST /api/v1/auth/register ΓÇ║ should register a new user successfully
+
+    expect(received).toHaveProperty(path, value)
+
+    Matcher error: received value must not be null nor undefined
+
+    Received has value: undefined
+
+      29 |             expect(res.status).toBe(201);
+      30 |             expect(res.body.success).toBe(true);
+    > 31 |             expect(res.body.data.user).toHaveProperty('id', 1);
+         |                                        ^
+      32 |             expect(res.body.data).toHaveProperty('accessToken');
+      33 |         });
+      34 |
+
+      at Object.toHaveProperty (tests/auth.test.js:31:40)
+
+  ΓùÅ Auth API Endpoints ΓÇ║ POST /api/v1/auth/register ΓÇ║ should return 409 if email already exists
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "error"
+    Received: "fail"
+
+      45 |
+      46 |             expect(res.status).toBe(409);
+    > 47 |             expect(res.body.status).toBe('error');
+         |                                     ^
+      48 |             expect(res.body.message).toMatch(/already registered/);
+      49 |         });
+      50 |     });
+
+      at Object.toBe (tests/auth.test.js:47:37)
+
+  ΓùÅ Auth API Endpoints ΓÇ║ POST /api/v1/auth/login ΓÇ║ should login successfully with correct credentials
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      67 |                 });
+      68 |
+    > 69 |             expect(res.status).toBe(200);
+         |                                ^
+      70 |             expect(res.body.success).toBe(true);
+      71 |             expect(res.body.data).toHaveProperty('accessToken');
+      72 |         });
+
+      at Object.toBe (tests/auth.test.js:69:32)
+
+  ΓùÅ Auth API Endpoints ΓÇ║ POST /api/v1/auth/login ΓÇ║ should return 401 with incorrect password
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 500
+
+      88 |                 });
+      89 |
+    > 90 |             expect(res.status).toBe(401);
+         |                                ^
+      91 |             expect(res.body.status).toBe('error');
+      92 |         });
+      93 |     });
+
+      at Object.toBe (tests/auth.test.js:90:32)
+
+[0mGET /api/v1/tasks [32m200[0m 4.323 ms - 67[0m
+[0mGET /api/v1/tasks [33m401[0m 0.646 ms - 47[0m
+[0mPOST /api/v1/tasks [32m201[0m 3.305 ms - 52[0m
+  console.error
+    ERROR ≡ƒÆÑ: 'title' is required; 'priority' must be one of [low, medium, high]; 'assigned_to' is required
+
+    [0m [90m 18 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err)[33m;[39m
+     [90m 19 |[39m     } [36melse[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 21 |[39m     }
+     [90m 22 |[39m
+     [90m 23 |[39m     res[33m.[39mstatus(err[33m.[39mstatusCode)[33m.[39mjson({[0m
+
+      at error (src/middleware/errorHandler.js:20:17)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+
+[0mPOST /api/v1/tasks [33m422[0m 13.175 ms - 123[0m
+  console.error
+    ERROR ≡ƒÆÑ: Cannot transition from 'done' to 'active'.
+
+    [0m [90m 18 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err)[33m;[39m
+     [90m 19 |[39m     } [36melse[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 21 |[39m     }
+     [90m 22 |[39m
+     [90m 23 |[39m     res[33m.[39mstatus(err[33m.[39mstatusCode)[33m.[39mjson({[0m
+
+      at error (src/middleware/errorHandler.js:20:17)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+
+[0mPATCH /api/v1/tasks/10/status [33m409[0m 5.835 ms - 72[0m
+[0mPATCH /api/v1/tasks/10/status [32m200[0m 3.289 ms - 51[0m
+FAIL tests/tasks.test.js
+  Tasks API Endpoints
+    GET /api/v1/tasks
+      ΓêÜ should fetch tasks for authenticated user (29 ms)
+      ΓêÜ should return 401 without token (17 ms)
+    POST /api/v1/tasks
+      ΓêÜ should create a task successfully (29 ms)
+      ΓêÜ should return 422 for invalid body (33 ms)
+    PATCH /api/v1/tasks/:id/status
+      ├ù should return 409 for invalid status transition (done to active) (25 ms)
+      ΓêÜ should allow pending to active transition (23 ms)
+
+  ΓùÅ Tasks API Endpoints ΓÇ║ PATCH /api/v1/tasks/:id/status ΓÇ║ should return 409 for invalid status transition (done to active)
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /Invalid status transition/
+    Received string:  "Cannot transition from 'done' to 'active'."
+
+      89 |
+      90 |             expect(res.status).toBe(409);
+    > 91 |             expect(res.body.message).toMatch(/Invalid status transition/);
+         |                                      ^
+      92 |         });
+      93 |
+      94 |         it('should allow pending to active transition', async () => {
+
+      at Object.toMatch (tests/tasks.test.js:91:38)
+
+[0mGET /api/v1/calendar/events?year=2023&month=10 [32m200[0m 2.328 ms - 156[0m
+  console.error
+    ERROR ≡ƒÆÑ: (intermediate value) is not iterable
+
+    [0m [90m 18 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err)[33m;[39m
+     [90m 19 |[39m     } [36melse[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 21 |[39m     }
+     [90m 22 |[39m
+     [90m 23 |[39m     res[33m.[39mstatus(err[33m.[39mstatusCode)[33m.[39mjson({[0m
+
+      at error (src/middleware/errorHandler.js:20:17)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+
+[0mPOST /api/v1/calendar/events [31m500[0m 6.431 ms - 67[0m
+  console.error
+    ERROR ≡ƒÆÑ: Event not found.
+
+    [0m [90m 18 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err)[33m;[39m
+     [90m 19 |[39m     } [36melse[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m         console[33m.[39merror([32m'ERROR ≡ƒÆÑ:'[39m[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 21 |[39m     }
+     [90m 22 |[39m
+     [90m 23 |[39m     res[33m.[39mstatus(err[33m.[39mstatusCode)[33m.[39mjson({[0m
+
+      at error (src/middleware/errorHandler.js:20:17)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at Immediate.next (node_modules/express/lib/router/index.js:280:10)
+      at Immediate._onImmediate (node_modules/express/lib/router/index.js:646:15)
+
+[0mDELETE /api/v1/calendar/events/999 [33m404[0m 4.674 ms - 46[0m
+[0mDELETE /api/v1/calendar/events/5 [32m200[0m 1.671 ms - 43[0m
+FAIL tests/calendar.test.js
+  Calendar API Endpoints
+    GET /api/v1/calendar/events
+      ΓêÜ should fetch events and task dates for a specific month (23 ms)
+    POST /api/v1/calendar/events
+      ├ù should create an event successfully (33 ms)
+    DELETE /api/v1/calendar/events/:id
+      ΓêÜ should return 404 if event not found or unauthorized (19 ms)
+      ├ù should return 200 on successful deletion (15 ms)
+
+  ΓùÅ Calendar API Endpoints ΓÇ║ POST /api/v1/calendar/events ΓÇ║ should create an event successfully
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 500
+
+      59 |                 });
+      60 |
+    > 61 |             expect(res.status).toBe(201);
+         |                                ^
+      62 |             expect(res.body.success).toBe(true);
+      63 |             expect(res.body.data.id).toBe(5);
+      64 |             expect(res.body.data.title).toBe('New Event');
+
+      at Object.toBe (tests/calendar.test.js:61:32)
+
+  ΓùÅ Calendar API Endpoints ΓÇ║ DELETE /api/v1/calendar/events/:id ΓÇ║ should return 200 on successful deletion
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /deleted successfully/
+    Received string:  "Event deleted."
+
+      86 |
+      87 |             expect(res.status).toBe(200);
+    > 88 |             expect(res.body.message).toMatch(/deleted successfully/);
+         |                                      ^
+      89 |         });
+      90 |     });
+      91 | });
+
+      at Object.toMatch (tests/calendar.test.js:88:38)
+
+[0mGET /api/v1/notifications [32m200[0m 2.281 ms - 87[0m
+[0mPATCH /api/v1/notifications/1/read [32m200[0m 2.452 ms - 57[0m
+[0mPATCH /api/v1/notifications/read-all [32m200[0m 1.851 ms - 78[0m
+FAIL tests/notifications.test.js
+  Notifications API Endpoints
+    GET /api/v1/notifications
+      ├ù should list notifications and unread count (27 ms)
+    PATCH /api/v1/notifications/:id/read
+      ΓêÜ should return 200 on successful mark as read (15 ms)
+    PATCH /api/v1/notifications/read-all
+      ΓêÜ should mark all notifications as read (16 ms)
+
+  ΓùÅ Notifications API Endpoints ΓÇ║ GET /api/v1/notifications ΓÇ║ should list notifications and unread count
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: undefined
+
+      38 |             expect(res.body.success).toBe(true);
+      39 |             expect(res.body.data.notifications).toBeInstanceOf(Array);
+    > 40 |             expect(res.body.data.unreadCount).toBe(1);
+         |                                               ^
+      41 |         });
+      42 |     });
+      43 |
+
+      at Object.toBe (tests/notifications.test.js:40:47)
+
+Test Suites: 4 failed, 4 total
+Tests:       8 failed, 9 passed, 17 total
+Snapshots:   0 total
+Time:        5.461 s
+Ran all test suites.

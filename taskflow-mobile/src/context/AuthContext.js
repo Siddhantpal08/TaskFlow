@@ -38,8 +38,10 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         const res = await authApi.login(email, password);
         if (res.success) {
-            await AsyncStorage.setItem('token', res.accessToken);
-            await AsyncStorage.setItem('refreshToken', res.refreshToken);
+            await AsyncStorage.setItem('token', res.data.accessToken);
+            if (res.data.refreshToken) {
+                await AsyncStorage.setItem('refreshToken', res.data.refreshToken);
+            }
             setUser(res.data);
         }
         return res;
@@ -48,8 +50,10 @@ export const AuthProvider = ({ children }) => {
     const register = async (name, email, password) => {
         const res = await authApi.register(name, email, password);
         if (res.success) {
-            await AsyncStorage.setItem('token', res.accessToken);
-            await AsyncStorage.setItem('refreshToken', res.refreshToken);
+            await AsyncStorage.setItem('token', res.data.accessToken);
+            if (res.data.refreshToken) {
+                await AsyncStorage.setItem('refreshToken', res.data.refreshToken);
+            }
             setUser(res.data);
         }
         return res;

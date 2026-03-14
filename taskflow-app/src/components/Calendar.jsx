@@ -54,7 +54,7 @@ function AddEventModal({ t, date, onClose, onAdd }) {
 }
 
 export default function Calendar({ t }) {
-    const { events = [], taskDates = [], createEvent, deleteEvent } = useData();
+    const { events = [], taskDates = [], createEvent, deleteEvent, fetchEventsForMonth } = useData();
 
     const now = new Date();
     const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -68,14 +68,27 @@ export default function Calendar({ t }) {
     const offset = getFirstDayOffset(viewYear, viewMonth);
 
     const prevMonth = () => {
-        if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-        else setViewMonth(m => m - 1);
+        let newYear = viewYear, newMonth = viewMonth;
+        if (viewMonth === 0) { newYear = viewYear - 1; newMonth = 11; }
+        else newMonth = viewMonth - 1;
+        setViewYear(newYear);
+        setViewMonth(newMonth);
+        fetchEventsForMonth(newYear, newMonth + 1);
     };
     const nextMonth = () => {
-        if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-        else setViewMonth(m => m + 1);
+        let newYear = viewYear, newMonth = viewMonth;
+        if (viewMonth === 11) { newYear = viewYear + 1; newMonth = 0; }
+        else newMonth = viewMonth + 1;
+        setViewYear(newYear);
+        setViewMonth(newMonth);
+        fetchEventsForMonth(newYear, newMonth + 1);
     };
-    const goToday = () => { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); };
+    const goToday = () => {
+        const y = now.getFullYear(), m = now.getMonth();
+        setViewYear(y);
+        setViewMonth(m);
+        fetchEventsForMonth(y, m + 1);
+    };
 
     // Map events to day numbers for current view month
     const evMap = {};

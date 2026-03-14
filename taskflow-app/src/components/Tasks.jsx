@@ -73,34 +73,63 @@ function CreateTaskModal({ t, teamMembers, onClose, onCreate }) {
 
 export default function Tasks({ t, setTask }) {
     const { tasks = [], createTask, updateTaskStatus, deleteTask, teamMembers = [], loading } = useData();
+    const { user } = useAuth();
     const [fil, setFil] = useState("all");
+    const [search, setSearch] = useState("");
     const [showCreate, setShowCreate] = useState(false);
 
-    const tabs = ["all", "pending", "active", "done", "delegated"];
-    const count = f => f === "all" ? tasks.length : f === "delegated" ? tasks.filter(x => x.parent_task_id).length : tasks.filter(x => x.status === f).length;
-    const list = tasks.filter(tk => fil === "all" ? true : fil === "delegated" ? tk.parent_task_id : tk.status === fil);
+    const tabs = ["all", "mine", "pending", "active", "done", "delegated"];
+    const count = f => {
+        if (f === "all") return tasks.length;
+        if (f === "mine") return tasks.filter(x => x.assigned_to === user?.id).length;
+        if (f === "delegated") return tasks.filter(x => x.parent_task_id).length;
+        return tasks.filter(x => x.status === f).length;
+    };
+    const list = tasks
+        .filter(tk => {
+            if (fil === "all") return true;
+            if (fil === "mine") return tk.assigned_to === user?.id;
+            if (fil === "delegated") return tk.parent_task_id;
+            return tk.status === fil;
+        })
+        .filter(tk => !search || tk.title.toLowerCase().includes(search.toLowerCase()));
 
     return (
         <div style={{ padding: "22px 26px" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
                 {/* Filter tabs */}
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {tabs.map(f => {
                         const a = fil === f; return (
                             <button key={f} onClick={() => setFil(f)} className="pill"
                                 style={{ padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontFamily: t.disp, fontSize: 12, fontWeight: a ? 600 : 400, border: `1px solid ${a ? t.accent : t.border}`, background: a ? t.accentDim : t.card, color: a ? t.accent : t.t2, transition: "all .15s", display: "flex", alignItems: "center", gap: 6 }}>
-                                {f.charAt(0).toUpperCase() + f.slice(1)}
+                                {f === 'mine' ? 'Assigned to Me' : f.charAt(0).toUpperCase() + f.slice(1)}
                                 <span style={{ fontSize: 10, background: a ? t.accent + "28" : t.border, color: a ? t.accent : t.t3, padding: "1px 6px", borderRadius: 10 }}>{count(f)}</span>
                             </button>
                         );
                     })}
                 </div>
-                <button onClick={() => setShowCreate(true)} style={{
-                    background: t.accent, border: 'none', borderRadius: 8, padding: '8px 16px',
-                    color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                }}>+ New Task</button>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    {/* Search bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: '7px 12px' }}>
+                        <I d={IC.srch} sz={13} c={t.t3} />
+                        <input
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="Search tasks…"
+                            style={{ background: 'transparent', border: 'none', color: t.t1, fontSize: 12.5, fontFamily: t.disp, outline: 'none', width: 160 }}
+                        />
+                        {search && (
+                            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 12, padding: 0, lineHeight: 1 }}>✕</button>
+                        )}
+                    </div>
+                    <button onClick={() => setShowCreate(true)} style={{
+                        background: t.accent, border: 'none', borderRadius: 8, padding: '8px 16px',
+                        color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13,
+                        display: 'flex', alignItems: 'center', gap: 6,
+                    }}>+ New Task</button>
+                </div>
             </div>
 
             {/* Tasks table */}
@@ -109,14 +138,20 @@ export default function Tasks({ t, setTask }) {
                     <span>Task</span><span>Assigned By</span><span>Due</span><span>Priority</span><span>Status</span>
                 </div>
                 {loading && <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>Loading tasks…</div>}
-                {!loading && list.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>No tasks found.</div>}
+                {!loading && list.length === 0 && (
+                    <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>
+                        {search ? `No tasks matching "${search}".` : 'No tasks found.'}
+                    </div>
+                )}
                 {list.map(tk => (
                     <div key={tk.id} className="hvr" onClick={() => setTask(tk)}
                         style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px", padding: "12px 18px", borderBottom: `1px solid ${t.border}`, alignItems: "center", cursor: "pointer", background: "transparent", transition: "background .15s" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                            {/* Checkbox: only clickable for pending/active tasks */}
                             <div onClick={async e => {
                                 e.stopPropagation();
-                                const next = tk.status === 'done' ? 'active' : 'done';
+                                if (tk.status === 'done') return; // done is final — backend rejects reverting
+                                const next = tk.status === 'pending' ? 'active' : 'done';
                                 try {
                                     await updateTaskStatus(tk.id, next);
                                     toastSuccess(`Task marked ${next}.`);
@@ -124,7 +159,7 @@ export default function Tasks({ t, setTask }) {
                                     toastError(err.message || 'Could not update status.');
                                 }
                             }}
-                                style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${tk.status === "done" ? t.green : t.border}`, background: tk.status === "done" ? t.green + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                                style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${tk.status === "done" ? t.green : t.border}`, background: tk.status === "done" ? t.green + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: tk.status === 'done' ? 'default' : 'pointer', opacity: tk.status === 'done' ? 0.5 : 1 }}>
                                 {tk.status === "done" && <I d={IC.chk} sz={9} c={t.green} sw={3} />}
                             </div>
                             <div style={{ minWidth: 0 }}>
@@ -151,3 +186,4 @@ export default function Tasks({ t, setTask }) {
         </div>
     );
 }
+

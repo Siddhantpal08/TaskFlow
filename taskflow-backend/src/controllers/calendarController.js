@@ -20,6 +20,10 @@ const validateBody = (schema, body) => {
         const messages = error.details.map((d) => d.message.replace(/"/g, "'")).join('; ');
         throw { statusCode: 422, message: messages, status: 'fail' };
     }
+    if (value.event_date) {
+        // Ensure event_date is strictly YYYY-MM-DD for MySQL DATE column
+        value.event_date = new Date(value.event_date).toISOString().split('T')[0];
+    }
     return value;
 };
 

@@ -27,10 +27,11 @@ export function DataProvider({ children }) {
     useEffect(() => {
         if (!user || !token) { setLoading(false); return; }
 
+        const now = new Date();
         setLoading(true);
         Promise.all([
             tasksApi.list(),
-            eventsApi.list(),
+            eventsApi.list(now.getFullYear(), now.getMonth() + 1),
             teamApi.getMembers(),
             notificationsApi.list(),
         ]).then(([t, e, tm, n]) => {
@@ -124,13 +125,28 @@ export function DataProvider({ children }) {
     // ─── Event mutations ───────────────────────────────────────────────────────
     const createEvent = async (data) => {
         const res = await eventsApi.create(data);
-        setEvents(prev => [res.data, ...prev]);
+        setEvents(prev => [...prev, res.data]);
         return res.data;
     };
 
     const deleteEvent = async (id) => {
         await eventsApi.delete(id);
         setEvents(prev => prev.filter(e => e.id !== id));
+    };
+
+    /**
+     * Fetch events + task due dates for a specific month.
+     * Called by Calendar when the user navigates months.
+     */
+    const fetchEventsForMonth = async (year, month) => {
+        try {
+            const res = await eventsApi.list(year, month);
+            const calData = res.data || {};
+            setEvents(Array.isArray(calData) ? calData : (calData.events || []));
+            setTaskDates(calData.taskDates || []);
+        } catch (err) {
+            console.error('Failed to fetch events for month:', err);
+        }
     };
 
     // ─── Notification mutations ────────────────────────────────────────────────
@@ -151,7 +167,7 @@ export function DataProvider({ children }) {
             tasks, events, taskDates, teamMembers, notifications, onlineUsers,
             loading, unreadCount,
             createTask, updateTaskStatus, updateTask, delegateTask, deleteTask,
-            createEvent, deleteEvent,
+            createEvent, deleteEvent, fetchEventsForMonth,
             markNotifRead, markAllNotifRead,
         }}>
             {children}

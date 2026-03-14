@@ -67,7 +67,7 @@ export function AuthProvider({ children }) {
     const verifyReset = (email, otp, newPassword) => authApi.verifyPasswordReset(email, otp, newPassword);
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout, requestReset, verifyReset }}>
+        <AuthContext.Provider value={{ user, setUser, token, loading, login, register, logout, requestReset, verifyReset }}>
             {children}
         </AuthContext.Provider>
     );

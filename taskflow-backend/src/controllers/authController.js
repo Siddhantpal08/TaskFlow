@@ -46,7 +46,7 @@ const register = asyncWrapper(async (req, res, next) => {
 
     res.status(201).json({
         success: true,
-        data: { id: insertId, name, email, avatar_initials, accessToken },
+        data: { id: insertId, name, email, avatar_initials, accessToken, refreshToken },
     });
 });
 
@@ -91,6 +91,7 @@ const login = asyncWrapper(async (req, res, next) => {
             email: user.email,
             avatar_initials: user.avatar_initials,
             accessToken,
+            refreshToken,
         },
     });
 });
@@ -139,7 +140,7 @@ const refresh = asyncWrapper(async (req, res, next) => {
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({ success: true, accessToken });
+    res.status(200).json({ success: true, accessToken, refreshToken: newRefreshToken });
 });
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
