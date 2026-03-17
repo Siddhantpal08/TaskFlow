@@ -1,13 +1,18 @@
 const mysql = require('mysql2/promise');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
+    host:     process.env.DB_HOST || 'localhost',
+    port:     parseInt(process.env.DB_PORT || '3306', 10),
+    user:     process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'taskflow',
+    // Aiven (and most cloud DBs) require SSL — disabled locally
+    ssl: isProduction ? { rejectUnauthorized: false } : undefined,
     waitForConnections: true,
-    connectionLimit: 20,
-    queueLimit: 0
+    connectionLimit: 10,
+    queueLimit: 0,
 });
 
 module.exports = pool;

@@ -1,0 +1,412 @@
+# TaskFlow — Complete Deployment Plan
+
+> **Stack Summary**
+> | Layer | Technology | Deploy Target |
+> |---|---|---|
+> | Backend | Node.js · Express · MySQL · Socket.IO | **Render** (free tier) |
+> | Web Frontend | React 18 · Vite | **Vercel** (free tier) |
+> | Mobile App | React Native · Expo SDK 52 | **Expo Go** / **EAS Build** |
+> | Database | MySQL 8 | **Aiven** (free tier) |
+> | Email | Mailtrap SDK | Mailtrap cloud |
+
+---
+
+## Phase 1 — Pre-Deployment Checklist
+
+Before anything is deployed, make sure all of the following are true locally.
+
+### 1.1 — Verify the Backend Runs Locally
+
+```bash
+cd "d:\Developments\College Project\taskflow-backend"
+npm install
+npm run migrate        # runs DB migrations
+npm start              # should print: [TaskFlow] Server running on port 5000
+```
+
+Open `http://localhost:5000/api/health` (or any existing route) and confirm you get a valid JSON response.
+
+### 1.2 — Verify the Frontend Runs Locally
+
+```bash
+cd "d:\Developments\College Project\taskflow-app"
+npm install
+npm run dev            # should open on http://localhost:5173
+```
+
+Log in, open the Dashboard, and confirm tasks, notifications, and real-time updates work.
+
+### 1.3 — Verify the Mobile App Runs Locally
+
+```bash
+cd "d:\Developments\College Project\taskflow-mobile"
+npm install
+npx expo start         # scan QR with Expo Go app on your phone
+```
+
+Log in and confirm all screens load without errors.
+
+### 1.4 — Run the Test Suite
+
+```bash
+cd "d:\Developments\College Project\taskflow-backend"
+npm test               # must show 0 failing tests before you deploy
+```
+
+> [!CAUTION]
+> **Do NOT deploy if any tests are failing.** Fix them first — a broken test means broken production behaviour.
+
+### 1.5 — Clean Up Sensitive Files
+
+- Make sure **[.env](file:///d:/Developments/College%20Project/taskflow-backend/.env) is listed in [.gitignore](file:///d:/Developments/College%20Project/.gitignore)** — never commit it.
+- Make sure [backend-log.txt](file:///d:/Developments/College%20Project/taskflow-backend/backend-log.txt), [crash.log](file:///d:/Developments/College%20Project/taskflow-backend/crash.log), and `test-results*.txt` are also gitignored.
+
+---
+
+## Phase 2 — Database Deployment (Aiven MySQL)
+
+The backend needs a cloud MySQL database before it can be deployed.
+
+### Step 1 — Create a Free Aiven Account
+
+1. Go to [https://aiven.io](https://aiven.io) → **Sign up** (free tier gives you one MySQL service).
+2. Create a new **MySQL** service → choose the **Free** plan → pick the closest region to your users.
+3. Wait for the service status to become **Running** (≈ 2–3 minutes).
+
+### Step 2 — Get Your Connection Details
+
+From the Aiven Console → your MySQL service → **Connection Information**, copy:
+
+| Variable | Where to Find |
+|---|---|
+| `DB_HOST` | Host field (e.g. `mysql-xyz.aivencloud.com`) |
+| `DB_USER` | User (usually `avnadmin`) |
+| `DB_PASSWORD` | Password (click the eye icon) |
+| `DB_NAME` | Default DB name (rename to `taskflow` in the console) |
+| `DB_PORT` | Port (usually `27659` — **not 3306**) |
+| `SSL_CA` | Download the CA Certificate file |
+
+> [!IMPORTANT]
+> Aiven MySQL uses a **non-standard port** and requires an **SSL Certificate**. You must pass both in your backend connection config.
+
+### Step 3 — Update Your Backend DB Connection
+
+Open `d:\Developments\College Project\taskflow-backend\src\utils\db.js` (or wherever the pool is created) and ensure it supports SSL:
+
+```js
+const pool = mysql.createPool({
+  host:     process.env.DB_HOST,
+  port:     process.env.DB_PORT || 3306,
+  user:     process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: { rejectUnauthorized: false },   // ← add this for Aiven
+  waitForConnections: true,
+  connectionLimit: 10,
+});
+```
+
+### Step 4 — Run Migrations Against the Cloud Database
+
+Temporarily add the cloud credentials to your local [.env](file:///d:/Developments/College%20Project/taskflow-backend/.env) (change them back after), then run:
+
+```bash
+cd "d:\Developments\College Project\taskflow-backend"
+npm run migrate
+npm run seed           # optional — only if you need seed data
+```
+
+Verify the tables exist by connecting with a MySQL client (TablePlus, DBeaver, or `mysql` CLI).
+
+---
+
+## Phase 3 — Backend Deployment (Render)
+
+### Step 1 — Push Code to GitHub
+
+If you haven't pushed yet:
+
+```bash
+cd "d:\Developments\College Project"
+git add .
+git commit -m "chore: prepare for production deployment"
+git push origin main
+```
+
+> [!WARNING]
+> Ensure [.env](file:///d:/Developments/College%20Project/taskflow-backend/.env) is **NOT** in the commit. Verify with `git status` before pushing.
+
+### Step 2 — Create a Render Account & New Web Service
+
+1. Go to [https://render.com](https://render.com) → **Sign Up** (use your GitHub account for easy integration).
+2. Click **New +** → **Web Service**.
+3. Connect your GitHub repository `Siddhantpal08/TaskFlow`.
+4. Configure the service:
+
+| Setting | Value |
+|---|---|
+| **Name** | `taskflow-backend` |
+| **Root Directory** | `taskflow-backend` |
+| **Runtime** | `Node` |
+| **Build Command** | `npm install` |
+| **Start Command** | `npm start` |
+| **Plan** | Free |
+
+### Step 3 — Set Environment Variables on Render
+
+In your Render service → **Environment** tab → Add the following variables one by one:
+
+```
+PORT=10000                        ← Render assigns its own port; set this to 10000
+NODE_ENV=production
+DB_HOST=<your-aiven-host>
+DB_PORT=<your-aiven-port>
+DB_USER=<your-aiven-user>
+DB_PASSWORD=<your-aiven-password>
+DB_NAME=taskflow
+JWT_SECRET=<a-long-random-string-min-32-chars>
+JWT_REFRESH_SECRET=<another-long-random-string>
+MAILTRAP_API_KEY=<your-mailtrap-token>
+MAIL_FROM=hello@demomailtrap.com
+CLIENT_URLS=https://taskflow-app.vercel.app,https://your-expo-tunnel-url
+```
+
+> [!NOTE]
+> Generate strong secrets with: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
+
+### Step 4 — Deploy the Backend
+
+1. Click **Deploy** (Render auto-builds from your GitHub repo).
+2. Watch the build logs — it typically takes 2–4 minutes.
+3. Once deployed, you'll get a URL like: `https://taskflow-backend.onrender.com`
+
+### Step 5 — Verify Backend is Live
+
+```bash
+curl https://taskflow-backend.onrender.com/api/health
+# OR open the URL in your browser
+```
+
+You should receive a `200 OK` JSON response. If you get a 503, check the Render logs.
+
+> [!NOTE]
+> **Render free tier sleeps after 15 minutes of inactivity.** The first request after a sleep takes ~30 seconds. This is normal for a college project demo — upgrade to the Starter plan ($7/month) for always-on behaviour.
+
+---
+
+## Phase 4 — Web Frontend Deployment (Vercel)
+
+### Step 1 — Update the API Base URL
+
+Before deploying the frontend, update the API URL to point to your live Render backend.
+
+Find the file where you set the base API URL (likely `taskflow-app/src/api/` or a `.env` file) and update it:
+
+Create `d:\Developments\College Project\taskflow-app\.env.production`:
+
+```
+VITE_API_URL=https://taskflow-backend.onrender.com/api
+VITE_SOCKET_URL=https://taskflow-backend.onrender.com
+```
+
+Make sure your API calls use `import.meta.env.VITE_API_URL` as the base URL.  
+Make sure your Socket.IO client uses `import.meta.env.VITE_SOCKET_URL`.
+
+### Step 2 — Test the Production Build Locally
+
+```bash
+cd "d:\Developments\College Project\taskflow-app"
+npm run build          # creates the /dist folder
+npm run preview        # serves /dist locally — test this before deploying
+```
+
+Open `http://localhost:4173` and verify the app works with the Render backend.
+
+### Step 3 — Create a Vercel Account & Deploy
+
+1. Go to [https://vercel.com](https://vercel.com) → Sign Up with GitHub.
+2. Click **Add New → Project** → import `Siddhantpal08/TaskFlow`.
+3. Configure the project:
+
+| Setting | Value |
+|---|---|
+| **Root Directory** | `taskflow-app` |
+| **Framework Preset** | Vite |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `dist` |
+
+### Step 4 — Set Environment Variables on Vercel
+
+In your Vercel project → **Settings → Environment Variables**, add:
+
+```
+VITE_API_URL=https://taskflow-backend.onrender.com/api
+VITE_SOCKET_URL=https://taskflow-backend.onrender.com
+```
+
+### Step 5 — Deploy & Get Your URL
+
+1. Click **Deploy**. Vercel builds and deploys in ~1 minute.
+2. You'll receive a URL like: `https://taskflow-app.vercel.app`
+
+### Step 6 — Update CORS on the Backend
+
+Go back to Render → Environment Variables → update `CLIENT_URLS`:
+
+```
+CLIENT_URLS=https://taskflow-app.vercel.app
+```
+
+Then trigger a **Manual Deploy** on Render (so the new CORS config takes effect).
+
+### Step 7 — Verify the Web App
+
+1. Open `https://taskflow-app.vercel.app` in your browser.
+2. Register a new account (confirm email OTP works via Mailtrap).
+3. Log in → verify Dashboard loads tasks.
+4. Open two browser tabs → verify real-time Socket.IO updates work (assign a task in one tab, see it appear in the other).
+
+---
+
+## Phase 5 — Mobile App Deployment (Expo)
+
+The mobile app has two options: **Quick Share (Expo Go)** for demo purposes, or **Full Native Build (EAS)** for production APK/IPA.
+
+### Option A — Quick Share via Expo Go (Recommended for College Demo)
+
+This lets anyone with the **Expo Go** app scan a QR code and run your app instantly — no app store submission needed.
+
+#### Step 1 — Update the API URL in Mobile App
+
+Find where the mobile app defines its API base URL (likely `taskflow-mobile/src/api/` or `App.js`) and update it to the Render backend:
+
+```js
+const API_BASE = 'https://taskflow-backend.onrender.com/api';
+const SOCKET_URL = 'https://taskflow-backend.onrender.com';
+```
+
+#### Step 2 — Publish to Expo
+
+```bash
+cd "d:\Developments\College Project\taskflow-mobile"
+npm install
+npx expo login          # log in with your Expo account (create one at expo.dev if needed)
+npx expo publish        # publishes to Expo's CDN — creates a shareable link
+```
+
+> [!NOTE]
+> After publishing, you'll get a URL like `exp://exp.host/@your-username/taskflow-mobile`.  
+> Anyone can open this in **Expo Go** on Android or iOS.
+
+#### Step 3 — Share the App
+
+Copy the published URL from the terminal and share it. Recipients:
+1. Install **Expo Go** from the Play Store / App Store.
+2. Open Expo Go → **Enter URL manually** → paste the URL.
+
+---
+
+### Option B — Full Native APK Build (EAS Build)
+
+For a real Android APK that can be installed directly on any phone (no Expo Go needed).
+
+#### Step 1 — Install EAS CLI
+
+```bash
+npm install -g eas-cli
+eas login              # log in with your Expo account
+```
+
+#### Step 2 — Configure EAS
+
+```bash
+cd "d:\Developments\College Project\taskflow-mobile"
+eas build:configure    # creates eas.json automatically
+```
+
+#### Step 3 — Build the APK
+
+```bash
+eas build -p android --profile preview
+```
+
+This submits the build to Expo's cloud infrastructure. It takes 5–15 minutes. When done, you'll get a download link for the `.apk` file.
+
+#### Step 4 — Install the APK
+
+Download the APK → transfer to your Android phone → enable **Install from Unknown Sources** in settings → install.
+
+---
+
+## Phase 6 — Post-Deployment Verification
+
+Run through this checklist after every component is deployed:
+
+| Check | How to Verify |
+|---|---|
+| Backend health | `GET https://taskflow-backend.onrender.com/api/health` → 200 OK |
+| User registration | Register a new account → receive OTP email via Mailtrap |
+| Login & JWT | Log in → check that a JWT cookie/token is set |
+| Task CRUD | Create, edit, delete a task → verify in the DB via Aiven console |
+| Notifications | Assign a task to a user → verify they receive a notification |
+| Real-time (Socket.IO) | Open two browser sessions → create a task in one → see it appear in the other live |
+| Mobile connectivity | Log in on Expo Go → navigate all screens without API errors |
+| CORS | Open browser DevTools → confirm no CORS errors in the Console |
+| Rate limiting | Hit the API 100+ times rapidly → confirm you get `429 Too Many Requests` |
+
+---
+
+## Phase 7 — Troubleshooting Common Issues
+
+### ❌ Backend 503 on Render
+
+- **Cause**: Free tier is sleeping.
+- **Fix**: Wait 30 seconds for the cold start, then retry. Or upgrade to Starter plan.
+
+### ❌ CORS Error in Browser Console
+
+- **Cause**: `CLIENT_URLS` on Render doesn't include your Vercel URL.
+- **Fix**: Update `CLIENT_URLS` on Render → redeploy backend.
+
+### ❌ DB Connection Refused / SSL Error
+
+- **Cause**: Missing `ssl: { rejectUnauthorized: false }` in the pool config, or wrong Aiven port.
+- **Fix**: Add the SSL option and double-check `DB_PORT` (Aiven uses a custom port, not 3306).
+
+### ❌ Vite Build Error — `import.meta.env` is undefined
+
+- **Cause**: Environment variables not set on Vercel, or they don't start with `VITE_`.
+- **Fix**: All frontend env vars **must** start with `VITE_`. Re-add them on Vercel → redeploy.
+
+### ❌ Socket.IO Not Connecting on Mobile
+
+- **Cause**: Mobile app still pointing to `localhost` instead of the Render URL.
+- **Fix**: Update `SOCKET_URL` in the mobile app source → republish with `npx expo publish`.
+
+### ❌ JWT Token Invalid / 401 Unauthorized
+
+- **Cause**: `JWT_SECRET` on Render is different from what was used to sign existing tokens.
+- **Fix**: Make sure you set `JWT_SECRET` once and never change it. Users will need to log in again if it changes.
+
+### ❌ Mailtrap Email Not Sending
+
+- **Cause**: `MAILTRAP_API_KEY` is wrong or the `MAIL_FROM` domain is not verified.
+- **Fix**: Copy the API key from Mailtrap → Sending Domains → verify `demomailtrap.com` is allowed.
+
+---
+
+## Summary — Deployment Order
+
+```
+1. ✅ Run all tests locally (npm test)
+2. ✅ Deploy MySQL database to Aiven
+3. ✅ Run migrations against Aiven DB
+4. ✅ Push code to GitHub
+5. ✅ Deploy backend to Render + set env vars
+6. ✅ Verify backend is live (health check)
+7. ✅ Update web frontend API URL env vars
+8. ✅ Deploy frontend to Vercel
+9. ✅ Update CORS on Render with Vercel URL
+10. ✅ Update mobile app API URL → publish to Expo
+11. ✅ Run full post-deployment verification checklist
+```
