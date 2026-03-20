@@ -1,6 +1,8 @@
 import { api } from './client.js';
 
 export const teamApi = {
-    // Get all team members (users who share tasks with current user)
-    getMembers: () => api.get('/team'),
+    getMembers: () => api.get('/team/members'),
+    createTeam: (name) => api.post('/team', { name }),
+    joinTeam: (code) => api.post('/team/join', { code }),
+    getMyTeams: () => api.get('/team'),
 };

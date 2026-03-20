@@ -1,9 +1,22 @@
 const taskModel = require('../models/taskModel');
 const { AppError } = require('../middleware/errorHandler');
 
+// Helper to format JavaScript Date or ISO string to MySQL DATETIME (YYYY-MM-DD HH:MM:SS)
+function formatToMySQLDate(dateInput) {
+    if (!dateInput) return null;
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return null;
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 // ─── Create Task ──────────────────────────────────────────────────────────────
 
 const createTask = async (creatorId, data) => {
+    // Ensure due_date is in MySQL DATETIME format if provided
+    if (data.due_date) {
+        data.due_date = formatToMySQLDate(data.due_date);
+    }
     const taskId = await taskModel.createTask({
         ...data,
         assigned_by: creatorId,
@@ -39,7 +52,8 @@ const updateTask = async (taskId, userId, fields) => {
         title: fields.title ?? task.title,
         description: fields.description ?? task.description,
         priority: fields.priority ?? task.priority,
-        due_date: fields.due_date ?? task.due_date,
+        // Format due_date if a new value is provided
+        due_date: fields.due_date ? formatToMySQLDate(fields.due_date) : task.due_date,
     });
 
     return taskModel.getTaskById(taskId);

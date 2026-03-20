@@ -1,0 +1,42 @@
+ΓÅ│ Connecting to Database for Migration...
+Γ£à Connected to database 'defaultdb'.
+ΓÅ│ Executing migration script: 001_initial_schema.sql...
+Γ£à 001_initial_schema.sql executed successfully.
+ΓÅ│ Executing migration script: 002_teams_and_avatars.sql...
+Γ¥î Migration failed: Error: Duplicate column name 'avatar_url'
+    at PromiseConnection.query (D:\Developments\College Project\taskflow-backend\node_modules\mysql2\lib\promise\connection.js:29:22)
+    at runMigrations (D:\Developments\College Project\taskflow-backend\src\utils\migrate.js:32:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'ER_DUP_FIELDNAME',
+  errno: 1060,
+  sql: '-- 002_teams_and_avatars.sql\r\n' +
+    '\r\n' +
+    '-- 1. Modify users table\r\n' +
+    'ALTER TABLE users\r\n' +
+    'ADD COLUMN avatar_url VARCHAR(255) DEFAULT NULL,\r\n' +
+    'ADD COLUMN is_email_verified BOOLEAN DEFAULT FALSE,\r\n' +
+    'ADD COLUMN google_id VARCHAR(255) DEFAULT NULL;\r\n' +
+    '\r\n' +
+    '-- 2. Create teams table\r\n' +
+    'CREATE TABLE teams (\r\n' +
+    '  team_id INT PRIMARY KEY AUTO_INCREMENT,\r\n' +
+    '  name VARCHAR(255) NOT NULL,\r\n' +
+    '  join_code VARCHAR(20) UNIQUE NOT NULL,\r\n' +
+    '  created_by INT NOT NULL,\r\n' +
+    '  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n' +
+    '  FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE\r\n' +
+    ');\r\n' +
+    '\r\n' +
+    '-- 3. Create team_members table\r\n' +
+    'CREATE TABLE team_members (\r\n' +
+    '  team_id INT NOT NULL,\r\n' +
+    '  user_id INT NOT NULL,\r\n' +
+    "  role ENUM('admin', 'member') DEFAULT 'member',\r\n" +
+    '  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n' +
+    '  PRIMARY KEY (team_id, user_id),\r\n' +
+    '  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,\r\n' +
+    '  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE\r\n' +
+    ');\r\n',
+  sqlState: '42S21',
+  sqlMessage: "Duplicate column name 'avatar_url'"
+}

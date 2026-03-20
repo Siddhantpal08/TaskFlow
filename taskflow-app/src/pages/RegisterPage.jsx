@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DARK } from '../data/themes.js';
+import zxcvbn from 'zxcvbn';
 
 const t = DARK;
 
@@ -68,7 +69,15 @@ export default function RegisterPage({ onRegister, onGoLogin }) {
         e.preventDefault();
         setError('');
         if (password !== confirm) { setError('Passwords do not match.'); return; }
-        if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+        // Stricter validation: length and character variety
+        const hasUpper = /[A-Z]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        if (password.length < 8 || !(hasUpper && hasLower && hasNumber && hasSpecial)) {
+            setError('Password must be at least 8 characters and include upper, lower, number, and special character.');
+            return;
+        }
         setLoading(true);
         try {
             await onRegister(name, email, password);
@@ -127,15 +136,23 @@ export default function RegisterPage({ onRegister, onGoLogin }) {
                         placeholder="Min. 6 characters" focusKey="pass" focused={focused} setFocused={setFocused}>
                         {password.length > 0 && (
                             <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-                                {[1, 2, 3, 4].map(i => (
-                                    <div key={i} style={{
-                                        flex: 1, height: 3, borderRadius: 3,
-                                        background: password.length >= i * 2
-                                            ? (password.length >= 10 ? t.green : password.length >= 6 ? t.amber : t.red)
-                                            : t.border,
-                                        transition: 'background .3s',
-                                    }} />
-                                ))}
+                                {[1, 2, 3, 4].map(i => {
+                                    const score = zxcvbn(password).score;
+                                    const filled = i <= score + 1;
+                                    let bg = t.border;
+                                    if (filled) {
+                                        if (score <= 1) bg = t.red;
+                                        else if (score === 2) bg = t.amber;
+                                        else bg = t.green;
+                                    }
+                                    return (
+                                        <div key={i} style={{
+                                            flex: 1, height: 3, borderRadius: 3,
+                                            background: bg,
+                                            transition: 'background .3s',
+                                        }} />
+                                    );
+                                })}
                             </div>
                         )}
                     </Field>

@@ -59,8 +59,7 @@ function ProfileModal({ t, user, onClose, onSave }) {
     );
 }
 
-export default function Topbar({ t, dark, setDark, notif, setNotif, page, setModal }) {
-    const [q, setQ] = useState("");
+export default function Topbar({ t, dark, setDark, notif, setNotif, page, setModal, searchQuery, setSearchQuery }) {
     const [showProfile, setShowProfile] = useState(false);
     const { user, setUser, logout } = useAuth();
     const { unreadCount } = useData();
@@ -83,7 +82,7 @@ export default function Topbar({ t, dark, setDark, notif, setNotif, page, setMod
                     gap: 9, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 9, padding: "7px 13px"
                 }} className="topbar-search">
                     <I d={IC.srch} sz={14} c={t.t3} />
-                    <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…"
+                    <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search…"
                         style={{ flex: 1, background: "transparent", border: "none", color: t.t1, fontSize: 12.5, fontFamily: t.disp }} />
                     <span style={{ fontSize: 9, color: t.t3, fontFamily: t.mono, background: t.card, padding: "2px 6px", borderRadius: 4 }}>⌘K</span>
                 </div>

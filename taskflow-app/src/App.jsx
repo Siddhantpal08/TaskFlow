@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FONTS, DARK, LIGHT } from "./data/themes.js";
 import { INIT_PAGES, mkId, mkBlock, EMOJIS } from "./data/notes.js";
 import "./styles/global.css";
@@ -33,16 +33,27 @@ function MainApp() {
     const [notif, setNotif] = useState(false);
     const [task, setTask] = useState(null);
     const [modal, setModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Notes state
-    const [pages, setPages] = useState(INIT_PAGES);
+    const [pages, setPages] = useState(() => {
+        try {
+            const saved = localStorage.getItem('tf_notes_pages');
+            return saved ? JSON.parse(saved) : INIT_PAGES;
+        } catch { return INIT_PAGES; }
+    });
     const [notePageId, setNotePageId] = useState("np1");
     const [expanded, setExpanded] = useState({ root: true, np1: true });
+
+    useEffect(() => {
+        localStorage.setItem('tf_notes_pages', JSON.stringify(pages));
+    }, [pages]);
 
     const t = dark ? DARK : LIGHT;
 
     const themeCss = `
     :root {
+      color-scheme: ${dark ? 'dark' : 'light'};
       --accent:    ${t.accent};
       --accentDim: ${t.accentDim};
       --accentGlow:${t.accentGlow};
@@ -103,13 +114,15 @@ function MainApp() {
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                         <Topbar t={t} dark={dark} setDark={setDark} notif={notif}
-                            setNotif={setNotif} page={page} setModal={setModal} />
+                            setNotif={setNotif} page={page} setModal={setModal}
+                            searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
                         <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
                             {page === "dashboard" && <Dashboard t={t} setPage={setPage} setTask={setTask} />}
-                            {page === "tasks" && <Tasks t={t} setTask={setTask} />}
+                            {page === "tasks" && <Tasks t={t} setTask={setTask} searchQuery={searchQuery} />}
                             {page === "notes" && <NotesPage t={t} dark={dark} pages={pages} notePageId={notePageId}
                                 navigateNote={navigateNote} updateNotePage={updateNotePage}
-                                addNotePage={addNotePage} deleteNotePage={deleteNotePage} />}
+                                addNotePage={addNotePage} deleteNotePage={deleteNotePage}
+                                searchQuery={searchQuery} />}
                             {page === "calendar" && <Calendar t={t} />}
                             {page === "team" && <Team t={t} />}
                         </main>

@@ -1,11 +1,41 @@
 import { useState } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { Av } from "./ui/Av.jsx";
-import { USERS } from "../data/data.js";
+import { useData } from "../context/DataContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { toastError, toastSuccess } from "./ui/Toast.jsx";
 
 export default function AssignModal({ t, onClose }) {
-    const [selUser, setSelUser] = useState(null);
+    const { teamMembers, createTask } = useData();
+    const { user } = useAuth();
+
+    const [title, setTitle] = useState("");
+    const [desc, setDesc] = useState("");
+    const [due, setDue] = useState("");
     const [pri, setPri] = useState("medium");
+    const [selUser, setSelUser] = useState(null);
+    const [saving, setSaving] = useState(false);
+
+    const handleCreate = async () => {
+        if (!title.trim()) return toastError("Title is required.");
+        if (!selUser) return toastError("Please select a team member to assign.");
+        setSaving(true);
+        try {
+            await createTask({
+                title,
+                description: desc,
+                priority: pri,
+                due_date: due || null,
+                assigned_to: selUser
+            });
+            toastSuccess("Task created successfully!");
+            onClose();
+        } catch (e) {
+            toastError(e.message || "Failed to create task.");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <>
@@ -27,12 +57,12 @@ export default function AssignModal({ t, onClose }) {
                 <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
                     <div>
                         <label style={{ fontSize: 10, color: t.t3, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>Title</label>
-                        <input placeholder="e.g. Set up authentication module…"
+                        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Set up authentication module…"
                             style={{ width: "100%", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "9px 13px", color: t.t1, fontSize: 13, fontFamily: t.disp }} />
                     </div>
                     <div>
                         <label style={{ fontSize: 10, color: t.t3, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>Description</label>
-                        <textarea rows={3} placeholder="Describe the task…"
+                        <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="Describe the task…"
                             style={{ width: "100%", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "9px 13px", color: t.t1, fontSize: 12.5, fontFamily: t.mono, resize: "none" }} />
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -49,24 +79,28 @@ export default function AssignModal({ t, onClose }) {
                         </div>
                         <div>
                             <label style={{ fontSize: 10, color: t.t3, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>Due Date</label>
-                            <input type="date" style={{ width: "100%", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "7px 11px", color: t.t1, fontSize: 12, fontFamily: t.mono }} />
+                            <input type="date" value={due} onChange={e => setDue(e.target.value)} style={{ width: "100%", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "7px 11px", color: t.t1, fontSize: 12, fontFamily: t.mono }} />
                         </div>
                     </div>
                     <div>
                         <label style={{ fontSize: 10, color: t.t3, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>Assign To</label>
-                        <div style={{ display: "flex", gap: 8 }}>
-                            {USERS.filter(u => u.id !== 1).map(u => (
-                                <button key={u.id} onClick={() => setSelUser(u.id)}
-                                    style={{ flex: 1, padding: "10px 5px", borderRadius: 9, cursor: "pointer", border: `1px solid ${selUser === u.id ? u.color : t.border}`, background: selUser === u.id ? u.color + "14" : t.inset, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, transition: "all .15s" }}>
-                                    <Av u={u} sz={28} />
-                                    <span style={{ fontSize: 10, color: t.t1, fontFamily: t.disp }}>{u.name.split(" ")[0]}</span>
-                                </button>
-                            ))}
+                        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+                            {teamMembers.map(u => {
+                                const activeC = t.accent;
+                                return (
+                                    <button key={u.id} onClick={() => setSelUser(u.id)}
+                                        style={{ flexShrink: 0, width: 70, padding: "10px 5px", borderRadius: 9, cursor: "pointer", border: `1px solid ${selUser === u.id ? activeC : t.border}`, background: selUser === u.id ? activeC + "14" : t.inset, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, transition: "all .15s" }}>
+                                        <Av u={u} sz={28} />
+                                        <span style={{ fontSize: 10, color: t.t1, fontFamily: t.disp, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>{u.name.split(" ")[0]}</span>
+                                    </button>
+                                )
+                            })}
+                            {teamMembers.length === 0 && <span style={{ fontSize: 12, color: t.t3 }}>No team members available.</span>}
                         </div>
                     </div>
-                    <button className="hvrB"
+                    <button onClick={handleCreate} disabled={saving} className="hvrB"
                         style={{ width: "100%", padding: "11px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: t.disp, fontSize: 13.5, fontWeight: 800, background: `linear-gradient(135deg,${t.accent},#009688)`, color: "#000", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: t.accentGlow, transition: "all .18s" }}>
-                        <I d={IC.send} sz={15} c="#000" sw={2} />Assign Task
+                        <I d={IC.send} sz={15} c="#000" sw={2} />{saving ? "Creating…" : "Assign Task"}
                     </button>
                 </div>
             </div>

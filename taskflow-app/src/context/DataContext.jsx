@@ -43,10 +43,17 @@ export function DataProvider({ children }) {
             setTeamMembers(tm.data || []);
             // Notifications returns { data: { notifications, unreadCount } }
             setNotifications(n.data?.notifications || n.data || []);
-
+            setNotifications(n.data?.notifications || n.data || []);
         }).catch(console.error)
             .finally(() => setLoading(false));
     }, [user, token]);
+
+    const refreshTeams = async () => {
+        try {
+            const { data } = await teamApi.getMembers();
+            setTeamMembers(data || []);
+        } catch (e) { console.error(e); }
+    };
 
     // ─── Socket.IO real-time sync ──────────────────────────────────────────────
     useEffect(() => {
@@ -95,7 +102,7 @@ export function DataProvider({ children }) {
     // ─── Task mutations ────────────────────────────────────────────────────────
     const createTask = async (data) => {
         const res = await tasksApi.create(data);
-        setTasks(prev => [res.data, ...prev]);
+        setTasks(prev => prev.some(t => t.id === res.data.id) ? prev : [res.data, ...prev]);
         return res.data;
     };
 
@@ -113,7 +120,7 @@ export function DataProvider({ children }) {
 
     const delegateTask = async (id, assigned_to) => {
         const res = await tasksApi.delegate(id, assigned_to);
-        setTasks(prev => [res.data, ...prev]);
+        setTasks(prev => prev.some(t => t.id === res.data.id) ? prev : [res.data, ...prev]);
         return res.data;
     };
 
@@ -165,7 +172,7 @@ export function DataProvider({ children }) {
     return (
         <DataContext.Provider value={{
             tasks, events, taskDates, teamMembers, notifications, onlineUsers,
-            loading, unreadCount,
+            loading, unreadCount, refreshTeams,
             createTask, updateTaskStatus, updateTask, delegateTask, deleteTask,
             createEvent, deleteEvent, fetchEventsForMonth,
             markNotifRead, markAllNotifRead,

@@ -71,11 +71,10 @@ function CreateTaskModal({ t, teamMembers, onClose, onCreate }) {
     );
 }
 
-export default function Tasks({ t, setTask }) {
+export default function Tasks({ t, setTask, searchQuery }) {
     const { tasks = [], createTask, updateTaskStatus, deleteTask, teamMembers = [], loading } = useData();
     const { user } = useAuth();
     const [fil, setFil] = useState("all");
-    const [search, setSearch] = useState("");
     const [showCreate, setShowCreate] = useState(false);
 
     const tabs = ["all", "mine", "pending", "active", "done", "delegated"];
@@ -92,7 +91,7 @@ export default function Tasks({ t, setTask }) {
             if (fil === "delegated") return tk.parent_task_id;
             return tk.status === fil;
         })
-        .filter(tk => !search || tk.title.toLowerCase().includes(search.toLowerCase()));
+        .filter(tk => !searchQuery || tk.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
         <div style={{ padding: "22px 26px" }}>
@@ -111,19 +110,6 @@ export default function Tasks({ t, setTask }) {
                     })}
                 </div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    {/* Search bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: '7px 12px' }}>
-                        <I d={IC.srch} sz={13} c={t.t3} />
-                        <input
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Search tasks…"
-                            style={{ background: 'transparent', border: 'none', color: t.t1, fontSize: 12.5, fontFamily: t.disp, outline: 'none', width: 160 }}
-                        />
-                        {search && (
-                            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 12, padding: 0, lineHeight: 1 }}>✕</button>
-                        )}
-                    </div>
                     <button onClick={() => setShowCreate(true)} style={{
                         background: t.accent, border: 'none', borderRadius: 8, padding: '8px 16px',
                         color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13,
@@ -140,7 +126,7 @@ export default function Tasks({ t, setTask }) {
                 {loading && <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>Loading tasks…</div>}
                 {!loading && list.length === 0 && (
                     <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>
-                        {search ? `No tasks matching "${search}".` : 'No tasks found.'}
+                        {searchQuery ? `No tasks matching "${searchQuery}".` : 'No tasks found.'}
                     </div>
                 )}
                 {list.map(tk => (

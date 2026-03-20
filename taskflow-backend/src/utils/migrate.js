@@ -15,19 +15,23 @@ async function runMigrations() {
             user: process.env.DB_USER || 'root',
             password: process.env.DB_PASSWORD || '',
             database: dbName,          // connect directly — Aiven doesn't allow CREATE DATABASE
-            ssl: isProduction ? { rejectUnauthorized: false } : undefined,
+            ssl: { rejectUnauthorized: false }, // Aiven requires SSL
             multipleStatements: true,  // required to run multiple SQL queries
         });
 
         console.log(`✅ Connected to database '${dbName}'.`);
 
-        // Read the SQL script
-        const sqlPath = path.join(__dirname, '../../migrations/001_initial_schema.sql');
-        const sqlScript = fs.readFileSync(sqlPath, 'utf8');
+        // Read the SQL scripts from migrations directory
+        const migrationsDir = path.join(__dirname, '../../migrations');
+        const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
 
-        // Execute migrations
-        console.log('⏳ Executing migration script...');
-        await connection.query(sqlScript);
+        for (const file of files) {
+            console.log(`⏳ Executing migration script: ${file}...`);
+            const sqlPath = path.join(migrationsDir, file);
+            const sqlScript = fs.readFileSync(sqlPath, 'utf8');
+            await connection.query(sqlScript);
+            console.log(`✅ ${file} executed successfully.`);
+        }
 
         console.log('🚀 Migrations executed successfully! All tables created.');
         await connection.end();

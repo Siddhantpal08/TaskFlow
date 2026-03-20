@@ -19,6 +19,11 @@ export default function SlashMenu({ t, filter, pos, onSelect, onClose }) {
         return () => window.removeEventListener("keydown", h);
     }, [sel, filtered, onSelect, onClose]);
 
+    useEffect(() => {
+        const el = document.getElementById(`slash-item-${sel}`);
+        if (el) el.scrollIntoView({ block: "nearest" });
+    }, [sel]);
+
     return (
         <>
             <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
@@ -29,7 +34,7 @@ export default function SlashMenu({ t, filter, pos, onSelect, onClose }) {
             }}>
                 <div style={{ padding: "5px 10px", fontSize: 9.5, color: t.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: `1px solid ${t.border}`, fontFamily: t.mono }}>Block types</div>
                 {filtered.map((bt, i) => (
-                    <div key={bt.type} onClick={() => onSelect(bt.type)}
+                    <div key={bt.type} id={`slash-item-${i}`} onClick={() => onSelect(bt.type)}
                         style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 10px", cursor: "pointer", background: i === sel ? t.accentDim : "transparent", transition: "background .1s" }}
                         onMouseEnter={() => setSel(i)}>
                         <div style={{ width: 26, height: 26, borderRadius: 6, background: t.surf, border: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, color: t.accent, fontFamily: t.mono, flexShrink: 0 }}>

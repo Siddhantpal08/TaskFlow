@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { I, IC } from "../ui/Icon.jsx";
 import BlockHandle from "./BlockHandle.jsx";
 
@@ -6,6 +6,12 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
     const ref = useRef();
     const [hov, setHov] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    useEffect(() => {
+        if (ref.current && ref.current.innerText !== blk.content && blk.type !== "link" && blk.type !== "code") {
+            ref.current.innerText = blk.content || "";
+        }
+    }, [blk.content, blk.type]);
 
     const handleKey = e => {
         if (e.key === "Enter" && blk.type !== "code") { e.preventDefault(); onAddAfter("p"); }
@@ -62,7 +68,6 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="Add a callout…" onInput={handleInput} onKeyDown={handleKey}
                     style={{ flex: 1, fontSize: 13.5, color: t.calloutText, lineHeight: 1.65, fontFamily: t.disp, wordBreak: "break-word" }}>
-                    {blk.content}
                 </div>
             </div>
         </div>
@@ -78,7 +83,6 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="Add a quote…" onInput={handleInput} onKeyDown={handleKey}
                     style={{ flex: 1, fontSize: 15, color: t.quoteText, lineHeight: 1.7, fontFamily: "'Lora',serif", fontStyle: "italic", padding: "4px 16px", wordBreak: "break-word" }}>
-                    {blk.content}
                 </div>
             </div>
         </div>
@@ -97,8 +101,23 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="To-do…" onInput={handleInput} onKeyDown={handleKey}
                     style={{ flex: 1, fontSize: 14, lineHeight: 1.65, wordBreak: "break-word", color: blk.checked ? t.noteMuted : t.noteText, fontFamily: t.disp, textDecoration: blk.checked ? "line-through" : "none", transition: "all .2s" }}>
-                    {blk.content}
                 </div>
+            </div>
+        </div>
+    );
+
+    // ── LINK ──
+    if (blk.type === "link") return (
+        <div className="blkr" style={{ position: "relative", margin: "4px 0" }}
+            onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 14px", borderRadius: 8, background: t.card, border: `1px solid ${t.border}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <I d={IC.lnk} sz={16} c={t.accent} />
+                    <input value={blk.label || ""} onChange={e => onUpdate({ label: e.target.value })} placeholder="Link text…" style={{ flex: 1, background: "transparent", border: "none", color: t.t1, fontSize: 13, fontWeight: 600, outline: "none" }} />
+                    {blk.url && <button onClick={() => window.open(blk.url, "_blank")} style={{ background: t.accentDim, border: "none", color: t.accent, padding: "4px 8px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: t.disp, fontWeight: 700 }}>Open</button>}
+                </div>
+                <input value={blk.url || ""} onChange={e => onUpdate({ url: e.target.value })} placeholder="https://..." style={{ background: t.inset, border: `1px solid ${t.border}`, color: t.t2, fontSize: 11, padding: "6px 10px", borderRadius: 6, outline: "none", fontFamily: t.mono }} />
             </div>
         </div>
     );
@@ -120,7 +139,6 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
                 data-ph={blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "Write something, or '/' for commands…"}
                 onInput={handleInput} onKeyDown={handleKey}
                 style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10 }}>
-                {blk.content}
             </div>
         </div>
     );

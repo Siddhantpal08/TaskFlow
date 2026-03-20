@@ -13,6 +13,7 @@ export const BLOCK_TYPES = [
     { type: "callout", icon: "💡", label: "Callout", desc: "Info callout box" },
     { type: "code", icon: "</>", label: "Code", desc: "Code block" },
     { type: "divider", icon: "—", label: "Divider", desc: "Horizontal line" },
+    { type: "link", icon: "🔗", label: "Link", desc: "Clickable URL" },
 ];
 
 export const INIT_PAGES = {

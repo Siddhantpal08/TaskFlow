@@ -45,7 +45,10 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const crumbs = [];
     let cur = notePageId;
     while (cur && pages[cur]) { crumbs.unshift(pages[cur]); cur = pages[cur].parentId; }
-    const subPages = (pg.childIds || []).map(id => pages[id]).filter(Boolean);
+    const subPages = (pg.childIds || [])
+        .map(id => pages[id])
+        .filter(Boolean)
+        .filter(sp => !searchQuery || sp.title?.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
         <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
@@ -161,11 +164,17 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
                         {/* Add sub-page CTA */}
                         <button onClick={() => addNotePage(notePageId)}
-                            style={{ marginTop: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 14px", borderRadius: 9, border: `1px dashed ${t.noteBorder}`, background: "transparent", cursor: "pointer", color: t.noteMuted, fontSize: 12.5, fontFamily: t.disp, width: "100%", transition: "all .15s" }}
-                            onMouseEnter={e => { e.currentTarget.style.color = t.noteText; e.currentTarget.style.borderColor = t.accent + "55"; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = t.noteMuted; e.currentTarget.style.borderColor = t.noteBorder; }}>
-                            <I d={IC.plus} sz={13} c="currentColor" />
-                            Add a sub-page inside "{pg.title || "this page"}"
+                            style={{
+                                marginTop: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                                padding: "18px 24px", borderRadius: 12, border: "none", cursor: "pointer",
+                                background: `linear-gradient(135deg, ${t.accent}22, ${t.purple || '#B083FF'}22)`,
+                                color: t.accent, fontSize: 15, fontWeight: 700, fontFamily: t.disp, width: "100%",
+                                transition: "all .2s", boxShadow: t.shadow
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = t.accentGlow; }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = t.shadow; }}>
+                            <I d={IC.plus} sz={18} c="currentColor" sw={2.5} />
+                            Create New Note Inside "{pg.title || "this page"}"
                         </button>
                     </div>
                 </div>
