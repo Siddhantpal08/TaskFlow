@@ -157,8 +157,8 @@ export default function ForgotPasswordPage({ onRequest, onVerify, onGoLogin }) {
                             <div style={{ fontSize: 13, color: t.t2 }}>Enter your email and we'll send a 6-digit OTP.</div>
                         </div>
                         <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>EMAIL</label>
-                            <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                            <label htmlFor="forgot-email" style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>EMAIL</label>
+                            <input id="forgot-email" name="email" autoComplete="email" type="email" required value={email} onChange={e => setEmail(e.target.value)}
                                 onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
                                 placeholder="you@example.com"
                                 style={{
@@ -183,15 +183,15 @@ export default function ForgotPasswordPage({ onRequest, onVerify, onGoLogin }) {
                         </div>
                         <OtpInput value={otp} onChange={setOtp} />
                         <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>NEW PASSWORD</label>
-                            <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                            <label htmlFor="reset-new-pass" style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>NEW PASSWORD</label>
+                            <input id="reset-new-pass" name="newPassword" autoComplete="new-password" type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)}
                                 onFocus={() => setFocused('np')} onBlur={() => setFocused('')}
                                 placeholder="Min. 6 characters"
                                 style={{ ...inputStyle, borderColor: focused === 'np' ? t.accent : t.border, boxShadow: focused === 'np' ? `0 0 0 3px ${t.accent}20` : 'none' }} />
                         </div>
                         <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>CONFIRM PASSWORD</label>
-                            <input type="password" required value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
+                            <label htmlFor="reset-confirm-pass" style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>CONFIRM PASSWORD</label>
+                            <input id="reset-confirm-pass" name="confirmPassword" autoComplete="new-password" type="password" required value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
                                 onFocus={() => setFocused('cp')} onBlur={() => setFocused('')}
                                 placeholder="Repeat new password"
                                 style={{ ...inputStyle, borderColor: focused === 'cp' ? t.accent : t.border, boxShadow: focused === 'cp' ? `0 0 0 3px ${t.accent}20` : 'none' }} />

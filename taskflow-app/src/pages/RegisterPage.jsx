@@ -35,10 +35,11 @@ const btnStyle = {
 function Field({ label, type, value, onChange, placeholder, focusKey, focused, setFocused, children }) {
     return (
         <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>
+            <label htmlFor={focusKey} style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>
                 {label}
             </label>
             <input
+                id={focusKey} name={focusKey} autoComplete={type === 'password' ? (focusKey === 'confirm' || focusKey === 'pass' ? 'new-password' : 'current-password') : (type === 'email' ? 'email' : 'name')}
                 type={type} required value={value}
                 onChange={e => onChange(e.target.value)}
                 onFocus={() => setFocused(focusKey)} onBlur={() => setFocused('')}

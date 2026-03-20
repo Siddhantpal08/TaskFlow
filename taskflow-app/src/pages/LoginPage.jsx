@@ -92,10 +92,11 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgot }) {
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>
+                        <label htmlFor="login-email" style={{ fontSize: 12, fontWeight: 600, color: t.t2, display: 'block', marginBottom: 6 }}>
                             EMAIL
                         </label>
                         <input
+                            id="login-email" name="email" autoComplete="email"
                             type="email" required value={email}
                             onChange={e => setEmail(e.target.value)}
                             onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
@@ -110,13 +111,14 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgot }) {
 
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: t.t2 }}>PASSWORD</label>
+                            <label htmlFor="login-pass" style={{ fontSize: 12, fontWeight: 600, color: t.t2 }}>PASSWORD</label>
                             <button type="button" onClick={onGoForgot} style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
                                 fontSize: 11, color: t.accent, fontFamily: t.disp,
                             }}>Forgot password?</button>
                         </div>
                         <input
+                            id="login-pass" name="password" autoComplete="current-password"
                             type="password" required value={password}
                             onChange={e => setPassword(e.target.value)}
                             onFocus={() => setFocused('pass')} onBlur={() => setFocused('')}
