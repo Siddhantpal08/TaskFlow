@@ -49,13 +49,31 @@ export function AuthProvider({ children }) {
         return userData;
     };
 
-    const register = async (name, email, password) => {
-        const res = await authApi.register(name, email, password);
+    const googleLogin = async (credential) => {
+        const res = await authApi.googleLogin(credential);
         const { accessToken, ...userData } = res.data;
         localStorage.setItem('tf_token', accessToken);
         setToken(accessToken);
         setUser(userData);
         return userData;
+    };
+
+    const register = async (name, email, password) => {
+        const res = await authApi.register(name, email, password);
+        return res.data; // Now returns { message, email } instead of tokens
+    };
+
+    const verifyEmail = async (email, otp) => {
+        const res = await authApi.verifyEmail(email, otp);
+        const { accessToken, ...userData } = res.data;
+        localStorage.setItem('tf_token', accessToken);
+        setToken(accessToken);
+        setUser(userData);
+        return userData;
+    };
+
+    const resendOtp = async (email) => {
+        return authApi.resendOtp(email);
     };
 
     const logout = async () => {
@@ -67,7 +85,7 @@ export function AuthProvider({ children }) {
     const verifyReset = (email, otp, newPassword) => authApi.verifyPasswordReset(email, otp, newPassword);
 
     return (
-        <AuthContext.Provider value={{ user, setUser, token, loading, login, register, logout, requestReset, verifyReset }}>
+        <AuthContext.Provider value={{ user, setUser, token, loading, login, googleLogin, register, verifyEmail, resendOtp, logout, requestReset, verifyReset }}>
             {children}
         </AuthContext.Provider>
     );

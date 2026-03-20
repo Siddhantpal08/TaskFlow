@@ -1,7 +1,10 @@
 const express = require('express');
 const {
     register,
+    verifyEmail,
+    resendOtp,
     login,
+    googleLogin,
     refresh,
     logout,
     requestPasswordReset,
@@ -40,7 +43,10 @@ const resetVerifySchema = Joi.object({
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 router.post('/register', validate(registerSchema), register);
+router.post('/verify-email', verifyEmail);
+router.post('/resend-otp', resendOtp);
 router.post('/login', authLimiter, validate(loginSchema), login);
+router.post('/google', googleLogin);
 router.post('/refresh', refresh);
 router.post('/logout', logout); // optionally authenticate for online-status update
 router.post('/reset-password', authLimiter, validate(resetRequestSchema), requestPasswordReset);

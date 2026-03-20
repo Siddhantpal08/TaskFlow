@@ -1,0 +1,43 @@
+# TaskFlow Development Walkthrough
+
+I have completed all the objectives requested for the TaskFlow web application and backend! 
+
+Here is a comprehensive summary of all the bug fixes, new features, and architectural improvements made during our session:
+
+## 🚀 Key Features Implemented
+
+### 1. Advanced Authentication (OTP & Google Auth)
+- **OTP Email Verification**: The registration flow has been completely rewritten to support a multi-step sequence. When signing up, a 6-digit OTP is securely dispatched to the user's email via **Mailtrap**. The account remains strictly unverified and inaccessible until the correct code is validated on the new OTP Verification screen.
+- **Google OAuth Integration**: A "Sign in with Google" button was injected into both the Login and Registration screens using `@react-oauth/google`. The backend (`google-auth-library`) dynamically provisions accounts or updates existing profiles on the fly upon secure token decryption.
+
+### 2. Teams & Colleague Architecture
+- **Real Team Invites**: Say goodbye to randomized 'dummy names' assigned to tasks! I successfully wired a robust Team association model in the MySQL Database (`teams` & `team_members` tables). 
+- **Team Dashboard**: A new frontend UI ([TeamPage.jsx](file:///d:/Developments/College%20Project/taskflow-app/src/components/TeamPage.jsx)) allows you to seamlessly create a new workspace/team, or join an existing colleague's team using a 6-digit Join Code.
+- **Assign Modal Integration**: Tasks can now only be securely delegated to exact, real members of teams you belong to, fixing the previous disjointed experience.
+
+### 3. Unified Global Search
+- **Cross-Component Filtering**: The Topbar search box has been globally hoisted to dynamically control **both** the Tasks list and Notes blocks depending on which page you are currently viewing, making navigation blazingly fast.
+
+### 4. Advanced "Notes" Editor Improvements
+- **Block Synchronization**: Checkboxes inside your Notes now flawlessly persist across browser refreshes via the `LocalStorage API`.
+- **UX & Stability Fixes**: The extremely frustrating text cursor "jump back" defect in the `contentEditable` div layout has been structurally solved. Similarly, pressing the Up/Down arrow keys freely scrolls you through the interactive `/` commands without mouse assistance.
+- **Link Blocks & Big Button**: Designed a new "Link" block format for pasting external URLs, and added an eye-catching, big actionable button for creating new Note canvases instantly.
+
+### 5. UI Resilience & Bug Squashing
+- **Due Date Calendar Crashes**: The [taskService.js](file:///d:/Developments/College%20Project/taskflow-backend/src/services/taskService.js) no longer chokes on '500 Internal Server Errors' when saving Javascript's ISO timestamp variants into strictly typed MySQL DB columns.
+- **Calendar Visibility**: Applied a localized `color-scheme: dark;` rule to the `<input type="date">` UI so it explicitly switches the native HTML5 calendar icon to crisp white instead of camouflaging it invisible into the dark void.
+- **Socket.io Collisions**: Exterminated a visual frontend mutation anomaly where duplicate task cards would rapidly flash upon hitting 'Create', caused by aggressive race conditions against real-time socket updates.
+- **Password Evaluator Resiliency**: Hardened the registration constraints (prohibiting rudimentary sequences like `123456`), and repaired the flexbox layout container to guarantee the 4th strength indicator segment renders gracefully on mobile resolutions.
+
+---
+
+## 🛠️ How to Verify
+
+1. **Boot standard development environments**
+   - Start your Backend (`npm run dev` in `taskflow-backend`)
+   - Start your Web Frontend (`npm run dev` in `taskflow-app`)
+2. **Review Mobile Layout Constraints**: Optionally resize your screen dramatically sideways to observe the password gauge snapping responsively inside bounds!
+3. **Register an Account**: Explore the new two-step Registration UI loop, fetch an email from your configured node mailer interceptor (Mailtrap), input it, and admire the successful creation sequence!
+4. **Google Sign-In**: Assuming your standard browser allows pop-ups, attempt logging in with Google on the landing screen!
+
+Enjoy your super-charged TaskFlow platform! Let me know if further tweaks are requested!

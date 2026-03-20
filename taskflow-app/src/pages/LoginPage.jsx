@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { DARK } from '../data/themes.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { GoogleLogin } from '@react-oauth/google';
 
 const t = DARK;
 
@@ -33,6 +35,7 @@ const btnStyle = {
 };
 
 export default function LoginPage({ onLogin, onGoRegister, onGoForgot }) {
+    const { googleLogin } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -144,6 +147,31 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgot }) {
                         {loading ? 'Signing in…' : 'Sign In →'}
                     </button>
                 </form>
+
+                <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ flex: 1, height: 1, background: t.border }} />
+                    <span style={{ fontSize: 11, color: t.t3, fontFamily: t.mono }}>OR</span>
+                    <div style={{ flex: 1, height: 1, background: t.border }} />
+                </div>
+
+                <div style={{ marginTop: 22, display: 'flex', justifyContent: 'center' }}>
+                    <GoogleLogin
+                        onSuccess={async (cred) => {
+                            setLoading(true);
+                            try {
+                                await googleLogin(cred.credential);
+                            } catch (e) {
+                                setError(e.message || 'Google verification failed.');
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                        onError={() => setError('Google OAuth pop-up closed or failed')}
+                        theme="filled_black"
+                        shape="pill"
+                        size="large"
+                    />
+                </div>
 
                 <div style={{ textAlign: 'center', marginTop: 22, fontSize: 13, color: t.t2 }}>
                     Don't have an account?{' '}

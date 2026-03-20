@@ -64,6 +64,14 @@ const updateUserProfile = async (userId, { name, avatar_initials }) => {
     );
 };
 
+const verifyUserEmail = async (userId) => {
+    await db.query('UPDATE users SET is_email_verified = 1 WHERE id = ?', [userId]);
+};
+
+const updateGoogleProfile = async (userId, googleId, avatarUrl) => {
+    await db.query('UPDATE users SET google_id = ?, avatar_url = ? WHERE id = ?', [googleId, avatarUrl, userId]);
+};
+
 module.exports = {
     createUser,
     getUserByEmail,
@@ -75,4 +83,6 @@ module.exports = {
     findRefreshToken,
     deleteRefreshToken,
     deleteAllRefreshTokensForUser,
+    verifyUserEmail,
+    updateGoogleProfile,
 };

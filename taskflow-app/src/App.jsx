@@ -18,7 +18,7 @@ import Topbar from "./components/Topbar.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import Tasks from "./components/Tasks.jsx";
 import Calendar from "./components/Calendar.jsx";
-import Team from "./components/Team.jsx";
+import TeamPage from "./components/TeamPage.jsx";
 import NotesPage from "./components/notes/NotesPage.jsx";
 
 // Overlays
@@ -124,7 +124,7 @@ function MainApp() {
                                 addNotePage={addNotePage} deleteNotePage={deleteNotePage}
                                 searchQuery={searchQuery} />}
                             {page === "calendar" && <Calendar t={t} />}
-                            {page === "team" && <Team t={t} />}
+                            {page === "team" && <TeamPage t={t} />}
                         </main>
                     </div>
 

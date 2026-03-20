@@ -5,6 +5,9 @@ const { AppError } = require('../middleware/errorHandler');
 const userModel = require('../models/userModel');
 const { createOtp, verifyOtp } = require('../utils/otpStore');
 const { sendOtpEmail } = require('../utils/mailer');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 
@@ -33,9 +36,33 @@ const register = asyncWrapper(async (req, res, next) => {
 
     const insertId = await userModel.createUser(name, email, hashedPassword, avatar_initials);
 
-    // Auto-login on register
-    const { accessToken, refreshToken } = generateTokens(insertId);
-    await userModel.saveRefreshToken(insertId, refreshToken);
+    const otp = createOtp(email);
+    await sendOtpEmail(email, otp);
+
+    res.status(201).json({
+        success: true,
+        data: { message: "Account created. Please verify your email.", email },
+    });
+});
+
+/**
+ * POST /api/v1/auth/verify-email
+ * Body: { email, otp }
+ */
+const verifyEmail = asyncWrapper(async (req, res, next) => {
+    const { email, otp } = req.body;
+    if (!email || !otp) return next(new AppError('Email and OTP are required.', 400));
+
+    const result = verifyOtp(email, otp);
+    if (!result.valid) return next(new AppError(result.reason, 400));
+
+    const user = await userModel.getUserByEmail(email);
+    if (!user) return next(new AppError('User not found.', 404));
+
+    await userModel.verifyUserEmail(user.id);
+
+    const { accessToken, refreshToken } = generateTokens(user.id);
+    await userModel.saveRefreshToken(user.id, refreshToken);
 
     res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
@@ -44,10 +71,83 @@ const register = asyncWrapper(async (req, res, next) => {
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(201).json({
+    res.status(200).json({
         success: true,
-        data: { id: insertId, name, email, avatar_initials, accessToken, refreshToken },
+        data: { id: user.id, name: user.name, email: user.email, avatar_initials: user.avatar_initials, accessToken, refreshToken },
     });
+});
+
+/**
+ * POST /api/v1/auth/google
+ * Body: { credential }
+ */
+const googleLogin = asyncWrapper(async (req, res, next) => {
+    const { credential } = req.body;
+    if (!credential) return next(new AppError('Google credential is required', 400));
+
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const { email, name, sub: google_id, picture: avatar_url, email_verified } = payload;
+
+        if (!email_verified) return next(new AppError('Google email not verified', 400));
+
+        let user = await userModel.getUserByEmail(email);
+        let userId;
+
+        if (user) {
+            userId = user.id;
+            await userModel.updateGoogleProfile(userId, google_id, avatar_url);
+            if (!user.is_email_verified) {
+                await userModel.verifyUserEmail(userId);
+            }
+        } else {
+            const avatar_initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+            const dummyPassword = await bcrypt.hash(Math.random().toString(36).slice(-10), 10);
+            userId = await userModel.createUser(name, email, dummyPassword, avatar_initials);
+            await userModel.updateGoogleProfile(userId, google_id, avatar_url);
+            await userModel.verifyUserEmail(userId);
+        }
+
+        const { accessToken, refreshToken } = generateTokens(userId);
+        await userModel.saveRefreshToken(userId, refreshToken);
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        const finalUser = await userModel.getUserById(userId);
+
+        res.status(200).json({
+            success: true,
+            data: { ...finalUser, accessToken, refreshToken },
+        });
+    } catch (error) {
+        console.error('Google Auth Error:', error);
+        return next(new AppError('Invalid Google credential', 401));
+    }
+});
+
+/**
+ * POST /api/v1/auth/resend-otp
+ * Body: { email }
+ */
+const resendOtp = asyncWrapper(async (req, res, next) => {
+    const { email } = req.body;
+    const user = await userModel.getUserByEmail(email);
+    if (!user) return res.status(200).json({ success: true, message: "If registered, an OTP will be sent." });
+    if (user.is_email_verified) return next(new AppError('Email is already verified.', 400));
+
+    const otp = createOtp(email);
+    await sendOtpEmail(email, otp);
+
+    res.status(200).json({ success: true, data: { message: "OTP sent." } });
 });
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -63,6 +163,10 @@ const login = asyncWrapper(async (req, res, next) => {
     // Generic message to prevent email enumeration
     if (!user) {
         return next(new AppError('Invalid email or password.', 401));
+    }
+
+    if (!user.is_email_verified) {
+        return next(new AppError('Please verify your email to log in.', 403));
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -237,4 +341,4 @@ const verifyPasswordReset = asyncWrapper(async (req, res, next) => {
     });
 });
 
-module.exports = { register, login, refresh, logout, requestPasswordReset, verifyPasswordReset };
+module.exports = { register, verifyEmail, resendOtp, googleLogin, login, refresh, logout, requestPasswordReset, verifyPasswordReset };

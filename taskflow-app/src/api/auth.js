@@ -10,8 +10,17 @@ export const authApi = {
     logout: () =>
         api.post('/auth/logout', {}),
 
+    googleLogin: (credential) =>
+        api.post('/auth/google', { credential }),
+
     refresh: () =>
         api.post('/auth/refresh', {}),
+
+    verifyEmail: (email, otp) =>
+        api.post('/auth/verify-email', { email, otp }),
+
+    resendOtp: (email) =>
+        api.post('/auth/resend-otp', { email }),
 
     requestPasswordReset: (email) =>
         api.post('/auth/reset-password', { email }),
