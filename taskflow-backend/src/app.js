@@ -21,6 +21,7 @@ const userRoutes = require('./routes/userRoutes');
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 const app = express();
+app.set('trust proxy', 1); // Required for express-rate-limit when behind Render's reverse proxy
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = process.env.CLIENT_URLS
