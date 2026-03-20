@@ -1,3 +1,18 @@
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
+
+NProgress.configure({ showSpinner: false, speed: 400, minimum: 0.1 });
+
+let activeRequests = 0;
+function startRequest() {
+    if (activeRequests === 0) NProgress.start();
+    activeRequests++;
+}
+function stopRequest() {
+    activeRequests = Math.max(0, activeRequests - 1);
+    if (activeRequests === 0) NProgress.done();
+}
+
 /**
  * Central API fetch utility.
  * - Attaches Authorization header from localStorage token
@@ -18,36 +33,42 @@ export function configureClient({ getToken, setToken, onLogout }) {
 }
 
 async function doFetch(path, options = {}, retry = true) {
-    const token = _getToken();
-    const headers = {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-    };
+    if (retry) startRequest();
 
-    const res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' });
+    try {
+        const token = _getToken();
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(options.headers || {}),
+        };
 
-    if (res.status === 401 && retry) {
-        // Attempt silent token refresh
-        const refreshRes = await fetch(`${BASE}/auth/refresh`, {
-            method: 'POST',
-            credentials: 'include',
-        });
-        if (refreshRes.ok) {
-            const { accessToken } = await refreshRes.json();
-            _setToken(accessToken);
-            return doFetch(path, options, false); // one retry
-        } else {
-            _onLogout();
-            throw { message: 'Session expired. Please log in again.' };
+        const res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' });
+
+        if (res.status === 401 && retry) {
+            // Attempt silent token refresh
+            const refreshRes = await fetch(`${BASE}/auth/refresh`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+            if (refreshRes.ok) {
+                const { accessToken } = await refreshRes.json();
+                _setToken(accessToken);
+                return await doFetch(path, options, false); // one retry
+            } else {
+                _onLogout();
+                throw { message: 'Session expired. Please log in again.' };
+            }
         }
-    }
 
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-        throw json.error || json || { message: 'Request failed' };
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw json.error || json || { message: 'Request failed' };
+        }
+        return json;
+    } finally {
+        if (retry) stopRequest();
     }
-    return json;
 }
 
 export const api = {
