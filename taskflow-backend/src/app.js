@@ -38,8 +38,13 @@ app.use(cors({
         // Allow requests with no origin (e.g. mobile apps, Postman)
         if (!origin) return callback(null, true);
 
-        // Looping origin logic or regex can be used, but for dev:
-        if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        // Looping origin logic or regex can be used, but for dev and Vercel previews:
+        if (
+            allowedOrigins.includes(origin) ||
+            origin.startsWith('http://localhost') ||
+            origin.startsWith('http://127.0.0.1') ||
+            origin.endsWith('.vercel.app')
+        ) {
             callback(null, true);
         } else {
             console.warn(`[CORS REJECT] Origin ${origin} not in allowed origins.`);
