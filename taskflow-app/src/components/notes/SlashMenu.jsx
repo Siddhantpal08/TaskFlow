@@ -1,22 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BLOCK_TYPES } from "../../data/notes.js";
 
 export default function SlashMenu({ t, filter, pos, onSelect, onClose }) {
     const [sel, setSel] = useState(0);
+    const menuRef = useRef();
+    const MENU_W = 248;
+    const MENU_H = 320;
+
     const filtered = BLOCK_TYPES.filter(b =>
         !filter || b.label.toLowerCase().includes(filter.toLowerCase()) ||
         b.type.toLowerCase().includes(filter.toLowerCase())
     );
 
+    // Compute screen-aware position
+    const left = Math.min(pos.x, window.innerWidth - MENU_W - 8);
+    const flipUp = pos.y + MENU_H > window.innerHeight - 16;
+    const top = flipUp ? pos.y - MENU_H - 8 : pos.y;
+
+    useEffect(() => setSel(0), [filter]);
+
     useEffect(() => {
         const h = e => {
-            if (e.key === "Escape") onClose();
+            if (e.key === "Escape" || e.key === "Delete" || e.key === "Backspace") onClose();
             if (e.key === "ArrowDown") { e.preventDefault(); setSel(s => Math.min(s + 1, filtered.length - 1)); }
             if (e.key === "ArrowUp") { e.preventDefault(); setSel(s => Math.max(s - 1, 0)); }
             if (e.key === "Enter" && filtered[sel]) { e.preventDefault(); onSelect(filtered[sel].type); }
         };
-        window.addEventListener("keydown", h);
-        return () => window.removeEventListener("keydown", h);
+        window.addEventListener("keydown", h, true);
+        return () => window.removeEventListener("keydown", h, true);
     }, [sel, filtered, onSelect, onClose]);
 
     useEffect(() => {
@@ -27,12 +38,16 @@ export default function SlashMenu({ t, filter, pos, onSelect, onClose }) {
     return (
         <>
             <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
-            <div className="slideDown" style={{
-                position: "fixed", left: Math.min(pos.x, window.innerWidth - 250),
-                top: pos.y, zIndex: 999, background: t.card, border: `1px solid ${t.border}`,
-                borderRadius: 10, boxShadow: t.shadow, width: 240, overflow: "hidden", maxHeight: 320, overflowY: "auto"
+            <div ref={menuRef} className="slideDown" style={{
+                position: "fixed", left, top, zIndex: 999,
+                background: t.card, border: `1px solid ${t.border}`,
+                borderRadius: 10, boxShadow: t.shadow, width: MENU_W,
+                overflow: "hidden", maxHeight: MENU_H, overflowY: "auto"
             }}>
-                <div style={{ padding: "5px 10px", fontSize: 9.5, color: t.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: `1px solid ${t.border}`, fontFamily: t.mono }}>Block types</div>
+                <div style={{ padding: "6px 10px 5px", fontSize: 9.5, color: t.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: `1px solid ${t.border}`, fontFamily: t.mono, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Block types</span>
+                    <span style={{ fontSize: 9, opacity: 0.5 }}>↑↓ to navigate · Enter to select</span>
+                </div>
                 {filtered.map((bt, i) => (
                     <div key={bt.type} id={`slash-item-${i}`} onClick={() => onSelect(bt.type)}
                         style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 10px", cursor: "pointer", background: i === sel ? t.accentDim : "transparent", transition: "background .1s" }}

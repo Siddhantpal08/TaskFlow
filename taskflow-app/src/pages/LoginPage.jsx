@@ -265,7 +265,7 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgot }) {
                 )}
 
                 <div style={{ textAlign: 'center', marginTop: 16, fontFamily: t.mono, fontSize: 9, color: t.t3 }}>
-                    BCA VI · 2024–25 · TaskFlow v1.0
+                    TaskFlow v1.0 · Smart Task Management
                 </div>
             </div>
         </div>

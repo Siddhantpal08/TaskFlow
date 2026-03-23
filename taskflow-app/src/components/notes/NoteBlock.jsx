@@ -2,10 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { I, IC } from "../ui/Icon.jsx";
 import BlockHandle from "./BlockHandle.jsx";
 
-export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose }) {
+export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose, onOpenSlash }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    const openSlashMenu = () => {
+        const rect = ref.current?.getBoundingClientRect();
+        if (rect) onSlash(rect, "");
+    };
 
     useEffect(() => {
         if (ref.current && ref.current.innerText !== blk.content && blk.type !== "link" && blk.type !== "code") {
@@ -135,10 +140,25 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         <div className="blkr" style={{ position: "relative" }}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
             <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            {/* Commands button — visible on hover */}
+            {hov && blk.type === 'p' && (
+                <button
+                    onClick={openSlashMenu}
+                    style={{
+                        position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+                        background: t.card, border: `1px solid ${t.border}`, borderRadius: 6,
+                        padding: '2px 7px', fontSize: 10, color: t.t3, cursor: 'pointer',
+                        fontFamily: t.mono, display: 'flex', alignItems: 'center', gap: 4,
+                        whiteSpace: 'nowrap', zIndex: 2,
+                    }}
+                    title="Insert block (or type / to open)">
+                    / Commands
+                </button>
+            )}
             <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                 data-ph={blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "Write something, or '/' for commands…"}
                 onInput={handleInput} onKeyDown={handleKey}
-                style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10 }}>
+                style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10, paddingRight: hov && blk.type === 'p' ? 90 : 0 }}>
             </div>
         </div>
     );

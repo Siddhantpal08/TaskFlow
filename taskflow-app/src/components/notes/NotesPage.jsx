@@ -4,7 +4,7 @@ import { EMOJIS, mkBlock } from "../../data/notes.js";
 import NoteBlock from "./NoteBlock.jsx";
 import SlashMenu from "./SlashMenu.jsx";
 
-export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage }) {
+export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage, searchQuery = "" }) {
     const pg = pages[notePageId];
     if (!pg) return null;
 

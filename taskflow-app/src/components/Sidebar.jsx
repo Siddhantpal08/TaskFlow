@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { I, IC } from "./ui/Icon.jsx";
-import { Av } from "./ui/Av.jsx";
-import { USERS } from "../data/data.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import NoteTreeItem from "./NoteTreeItem.jsx";
 
 export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded,
     notePageId, navigateNote, addNotePage, deleteNotePage }) {
+    const { user, logout } = useAuth();
 
     const nav = [
         { id: "dashboard", label: "Dashboard", ic: IC.dash },
@@ -18,38 +18,39 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
 
     return (
         <div style={{
-            width: 220, background: t.nav, borderRight: `1px solid ${t.border}`,
+            width: 230, background: t.nav, borderRight: `1px solid ${t.border}`,
             display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden"
         }}>
-            {/* Logo */}
+            {/* Logo — clickable → Dashboard */}
             <div style={{ padding: "18px 16px 14px", borderBottom: `1px solid ${t.border}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
+                <div onClick={() => setPage("dashboard")}
+                    style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16, cursor: "pointer" }}>
                     <div style={{
-                        width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+                        width: 34, height: 34, borderRadius: 9, flexShrink: 0,
                         background: `linear-gradient(135deg,${t.accent},#009688)`,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         boxShadow: t.accentGlow
                     }}>
-                        <I d={IC.lnk} sz={15} c="#000" sw={2.4} />
+                        <I d={IC.lnk} sz={16} c="#000" sw={2.4} />
                     </div>
-                    <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.5px", color: t.t1 }}>
+                    <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.5px", color: t.t1 }}>
                         Task<span style={{ color: t.accent }}>Flow</span>
                     </span>
                 </div>
                 {/* Main nav */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {nav.map(n => {
                         const a = page === n.id;
                         return (
                             <button key={n.id} onClick={() => setPage(n.id)} className="pill"
                                 style={{
-                                    display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+                                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
                                     borderRadius: 8, border: "none", cursor: "pointer", textAlign: "left",
-                                    fontFamily: t.disp, fontSize: 13, fontWeight: a ? 600 : 400,
+                                    fontFamily: t.disp, fontSize: 14, fontWeight: a ? 600 : 400,
                                     background: a ? t.accentDim : "transparent", color: a ? t.accent : t.t2,
                                     borderLeft: `2px solid ${a ? t.accent : "transparent"}`, transition: "all .15s"
                                 }}>
-                                <I d={n.ic} sz={14} c={a ? t.accent : t.t3} sw={a ? 2.2 : 1.8} />{n.label}
+                                <I d={n.ic} sz={16} c={a ? t.accent : t.t3} sw={a ? 2.2 : 1.8} />{n.label}
                             </button>
                         );
                     })}
@@ -65,13 +66,13 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                     <span style={{ fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px" }}>Notes</span>
                     <button onClick={() => addNotePage("root")} title="New page"
                         style={{
-                            width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center",
-                            border: "none", background: "transparent", cursor: "pointer", color: t.t3,
-                            borderRadius: 4, transition: "all .15s"
+                            width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center",
+                            border: `1px solid ${t.border}`, background: t.accentDim, cursor: "pointer",
+                            borderRadius: 5, transition: "all .15s", color: t.accent,
                         }}
-                        onMouseEnter={e => e.currentTarget.style.color = t.accent}
-                        onMouseLeave={e => e.currentTarget.style.color = t.t3}>
-                        <I d={IC.plus} sz={13} c="currentColor" />
+                        onMouseEnter={e => { e.currentTarget.style.background = t.accent; e.currentTarget.style.color = "#000"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = t.accentDim; e.currentTarget.style.color = t.accent; }}>
+                        <I d={IC.plus} sz={14} c="currentColor" />
                     </button>
                 </div>
                 {rootPage?.childIds?.map(id => (
@@ -84,16 +85,32 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
 
             {/* User */}
             <div style={{ padding: "10px 12px", borderTop: `1px solid ${t.border}` }}>
-                <div style={{
-                    padding: "8px", borderRadius: 9, background: t.card,
-                    border: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 9
-                }}>
-                    <Av u={USERS[0]} sz={30} />
+                <div
+                    onClick={() => setPage("profile")}
+                    style={{
+                        padding: "8px", borderRadius: 9, background: t.card,
+                        border: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 9,
+                        cursor: "pointer", transition: "border-color .15s"
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = t.accent + "66"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = t.border}
+                >
+                    <div style={{
+                        width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                        background: `linear-gradient(135deg, ${t.accent}40, ${t.purple || '#B083FF'}40)`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 12, fontWeight: 700, color: t.accent,
+                        border: `1.5px solid ${t.accent}44`
+                    }}>{user?.avatar_initials || "?"}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: t.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Siddhant Pal</div>
-                        <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono }}>BCA VI</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: t.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.name || "User"}</div>
+                        <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email || ""}</div>
                     </div>
-                    <I d={IC.out} sz={13} c={t.t3} />
+                    <button onClick={e => { e.stopPropagation(); logout(); }}
+                        title="Logout"
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 5, color: t.t3, fontSize: 16, flexShrink: 0, transition: "color .15s" }}
+                        onMouseEnter={e => e.currentTarget.style.color = "#FF3D5A"}
+                        onMouseLeave={e => e.currentTarget.style.color = t.t3}>⏻</button>
                 </div>
             </div>
         </div>

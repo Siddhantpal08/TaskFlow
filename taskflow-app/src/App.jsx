@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { FONTS, DARK, LIGHT } from "./data/themes.js";
 import { INIT_PAGES, mkId, mkBlock, EMOJIS } from "./data/notes.js";
+import { I, IC } from "./components/ui/Icon.jsx";
 import "./styles/global.css";
 
 // Auth
@@ -9,6 +10,7 @@ import { DataProvider } from "./context/DataContext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 
 // Layout
 import Sidebar from "./components/Sidebar.jsx";
@@ -110,7 +112,8 @@ function MainApp() {
                     <Sidebar t={t} page={page} setPage={setPage}
                         pages={pages} expanded={expanded} setExpanded={setExpanded}
                         notePageId={notePageId} navigateNote={navigateNote}
-                        addNotePage={addNotePage} deleteNotePage={deleteNotePage} />
+                        addNotePage={addNotePage} deleteNotePage={deleteNotePage}
+                        className="sidebar-desktop" />
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                         <Topbar t={t} dark={dark} setDark={setDark} notif={notif}
@@ -125,12 +128,30 @@ function MainApp() {
                                 searchQuery={searchQuery} />}
                             {page === "calendar" && <Calendar t={t} />}
                             {page === "team" && <TeamPage t={t} />}
+                            {page === "profile" && <ProfilePage t={t} onGoBack={() => setPage("dashboard")} />}
                         </main>
                     </div>
 
                     {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
                     {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
                     {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
+
+                    {/* Mobile bottom nav */}
+                    <nav className="mobile-nav">
+                        {[
+                            { id: "dashboard", label: "Home", icon: IC.dash },
+                            { id: "tasks", label: "Tasks", icon: IC.task },
+                            { id: "notes", label: "Notes", icon: IC.note },
+                            { id: "calendar", label: "Cal", icon: IC.cal },
+                            { id: "team", label: "Team", icon: IC.team },
+                        ].map(n => (
+                            <button key={n.id} onClick={() => setPage(n.id)}
+                                className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>
+                                <I d={n.icon} sz={20} c={page === n.id ? t.accent : t.t3} sw={page === n.id ? 2.2 : 1.7} />
+                                <span style={{ color: page === n.id ? t.accent : t.t3 }}>{n.label}</span>
+                            </button>
+                        ))}
+                    </nav>
                 </div>
             </ToastProvider>
         </>

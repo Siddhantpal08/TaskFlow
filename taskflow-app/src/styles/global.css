@@ -83,12 +83,17 @@ textarea:focus {
 
 /* ── Mobile Responsive ── */
 @media (max-width: 768px) {
-  /* Sidebar hidden on mobile — handled by JS class toggle */
-  .app-root > *:first-child {
+  /* Hide sidebar completely on mobile */
+  .sidebar-desktop {
     display: none !important;
   }
 
-  /* Topbar: hide search and some buttons */
+  /* Add bottom padding to main content so bottom nav doesn't cover it */
+  .app-root main {
+    padding-bottom: 64px !important;
+  }
+
+  /* Topbar: hide search bar, show condensed */
   .topbar-search { display: none !important; }
   .topbar-title div:last-child { display: none; }
 
@@ -114,11 +119,50 @@ textarea:focus {
   .cal-sidebar {
     width: 100% !important;
   }
+}
 
-  /* Tasks table: hide some columns */
-  .tasks-table-header,
-  .tasks-table-row {
-    grid-template-columns: 1fr 80px 88px !important;
+/* ── Bottom Nav Bar (mobile only) ── */
+.mobile-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--nav, #0A1525);
+    border-top: 1px solid var(--border, #1C2940);
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    z-index: 900;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 10px;
+    transition: background 0.15s;
+    flex: 1;
+  }
+
+  .mobile-nav-btn span {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .mobile-nav-btn.active {
+    background: var(--accentDim, rgba(0,229,204,0.1));
   }
 }
 
@@ -138,4 +182,3 @@ textarea:focus {
     padding: 14px 16px !important;
   }
 }
-
