@@ -40,6 +40,54 @@ const joinTeam = async (userId, joinCode) => {
     return team;
 };
 
+const leaveTeam = async (userId, teamId) => {
+    // Check if user is an admin. If they are the ONLY admin, they shouldn't just leave, 
+    // but for now, the user requested an approval to leave. So only members request leave.
+    const [member] = await db.query(`SELECT role FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
+    if (!member.length) throw new Error('Not a member of this team');
+
+    if (member[0].role === 'admin') {
+        // Admins can just leave or delete the team if no one is left
+        await db.query(`DELETE FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
+        const [remaining] = await db.query(`SELECT COUNT(*) as count FROM team_members WHERE team_id = ?`, [teamId]);
+        if (remaining[0].count === 0) {
+            await db.query(`DELETE FROM teams WHERE team_id = ?`, [teamId]);
+        }
+    } else {
+        // Members must request to leave
+        const [existingReq] = await db.query(`SELECT id FROM team_leave_requests WHERE user_id = ? AND team_id = ? AND status = 'pending'`, [userId, teamId]);
+        if (existingReq.length > 0) throw new Error('A leave request is already pending.');
+
+        await db.query(`INSERT INTO team_leave_requests (team_id, user_id, status) VALUES (?, ?, 'pending')`, [teamId, userId]);
+    }
+};
+
+const getLeaveRequests = async (teamId) => {
+    const [rows] = await db.query(
+        `SELECT r.id, r.user_id, r.status, r.created_at, u.name, u.email, u.avatar_initials
+         FROM team_leave_requests r
+         JOIN users u ON u.id = r.user_id
+         WHERE r.team_id = ? AND r.status = 'pending'
+         ORDER BY r.created_at DESC`, [teamId]
+    );
+    return rows;
+};
+
+const approveLeaveRequest = async (requestId) => {
+    const [reqRow] = await db.query(`SELECT team_id, user_id FROM team_leave_requests WHERE id = ?`, [requestId]);
+    if (!reqRow.length) throw new Error('Request not found');
+
+    // Update request status
+    await db.query(`UPDATE team_leave_requests SET status = 'approved' WHERE id = ?`, [requestId]);
+
+    // Remove from team_members
+    await db.query(`DELETE FROM team_members WHERE team_id = ? AND user_id = ?`, [reqRow[0].team_id, reqRow[0].user_id]);
+};
+
+const rejectLeaveRequest = async (requestId) => {
+    await db.query(`UPDATE team_leave_requests SET status = 'rejected' WHERE id = ?`, [requestId]);
+};
+
 const getUserTeams = async (userId) => {
     const [rows] = await db.query(
         `SELECT t.team_id AS id, t.name, t.join_code, tm.role, tm.joined_at
@@ -47,6 +95,17 @@ const getUserTeams = async (userId) => {
          JOIN team_members tm ON t.team_id = tm.team_id
          WHERE tm.user_id = ?
          ORDER BY t.created_at DESC`, [userId]
+    );
+    return rows;
+};
+
+const getMembersOfTeam = async (teamId) => {
+    const [rows] = await db.query(
+        `SELECT u.id, u.name, u.email, u.avatar_initials, u.avatar_url, tm.role, tm.joined_at
+         FROM users u
+         JOIN team_members tm ON u.id = tm.user_id
+         WHERE tm.team_id = ?
+         ORDER BY FIELD(tm.role, 'admin', 'member'), u.name ASC`, [teamId]
     );
     return rows;
 };
@@ -116,4 +175,4 @@ const getUserActivity = async (userId) => {
     return { created, assigned, delegations };
 };
 
-module.exports = { createTeam, joinTeam, getUserTeams, getTeamMembers, getUserActivity };
+module.exports = { createTeam, joinTeam, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getUserTeams, getTeamMembers, getMembersOfTeam, getUserActivity };

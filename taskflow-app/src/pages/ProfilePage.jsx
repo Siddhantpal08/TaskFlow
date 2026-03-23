@@ -12,6 +12,15 @@ export default function ProfilePage({ t, onGoBack }) {
     const fileRef = useRef();
     const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || null);
 
+    // Image Zoom Modal
+    const [imgModal, setImgModal] = useState(false);
+
+    // Password Change Flow
+    const [passModal, setPassModal] = useState(false);
+    const [passLoading, setPassLoading] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+
     const inp = {
         width: '100%', background: t.inset || '#0C1420', border: `1px solid ${t.border}`,
         borderRadius: 10, padding: '11px 14px', color: t.t1, fontSize: 14,
@@ -47,6 +56,37 @@ export default function ProfilePage({ t, onGoBack }) {
         }
     };
 
+    const startPasswordChange = async () => {
+        setPassLoading(true);
+        try {
+            const { authApi } = await import('../api/auth.js');
+            await authApi.forgotPassword(user.email);
+            toastSuccess('OTP sent to your email.');
+            setPassModal(true);
+        } catch (err) {
+            toastError(err.message || 'Failed to send OTP.');
+        } finally {
+            setPassLoading(false);
+        }
+    };
+
+    const submitPasswordChange = async (e) => {
+        e.preventDefault();
+        setPassLoading(true);
+        try {
+            const { authApi } = await import('../api/auth.js');
+            await authApi.resetPassword(user.email, otp, newPassword);
+            toastSuccess('Password changed successfully! You may need to log in again.');
+            setPassModal(false);
+            setOtp('');
+            setNewPassword('');
+        } catch (err) {
+            toastError(err.message || 'Failed to change password.');
+        } finally {
+            setPassLoading(false);
+        }
+    };
+
     const fieldStyle = (key) => ({
         ...inp,
         borderColor: focused === key ? t.accent : t.border,
@@ -68,12 +108,13 @@ export default function ProfilePage({ t, onGoBack }) {
                 {/* Avatar section */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 32, padding: 20, background: t.card, border: `1px solid ${t.border}`, borderRadius: 14 }}>
                     <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <div style={{
+                        <div onClick={() => avatarPreview && setImgModal(true)} style={{
                             width: 72, height: 72, borderRadius: '50%',
                             background: avatarPreview ? 'transparent' : `linear-gradient(135deg, ${t.accent}40, ${t.purple || '#B083FF'}40)`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 22, fontWeight: 700, color: t.accent,
                             border: `2.5px solid ${t.accent}44`, overflow: 'hidden',
+                            cursor: avatarPreview ? 'zoom-in' : 'default'
                         }}>
                             {avatarPreview
                                 ? <img src={avatarPreview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -135,7 +176,55 @@ export default function ProfilePage({ t, onGoBack }) {
                         </button>
                     </div>
                 </form>
+
+                {/* Security Section */}
+                <div style={{ marginTop: 40, paddingTop: 32, borderTop: `1px solid ${t.border}` }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, marginBottom: 8 }}>Security</div>
+                    <div style={{ fontSize: 13, color: t.t2, marginBottom: 16 }}>Update your password using a secure OTP sent to your email.</div>
+                    <button type="button" onClick={startPasswordChange} disabled={passLoading}
+                        style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: '10px 18px', color: t.t1, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
+                        {passLoading ? 'Requesting...' : 'Change Password'}
+                    </button>
+                </div>
             </div>
+
+            {/* Avatar Zoom Modal */}
+            {imgModal && avatarPreview && (
+                <div onClick={() => setImgModal(false)} className="popIn" style={{ position: 'fixed', inset: 0, background: '#000000dd', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+                    <img src={avatarPreview} alt="Avatar Large" onClick={e => e.stopPropagation()} style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain', borderRadius: 12, boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} />
+                </div>
+            )}
+
+            {/* Password Change OTP Modal */}
+            {passModal && (
+                <div onClick={e => e.target === e.currentTarget && setPassModal(false)} style={{
+                    position: 'fixed', inset: 0, background: '#00000088', zIndex: 9999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <div className="popIn" style={{
+                        background: t.card, border: `1px solid ${t.border}`, borderRadius: 16,
+                        padding: '24px', width: 340, boxShadow: t.shadow,
+                    }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: t.t1, marginBottom: 18 }}>Change Password</div>
+                        <form onSubmit={submitPasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: 11, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>OTP (SENT TO EMAIL)</label>
+                                <input required value={otp} onChange={e => setOtp(e.target.value)} placeholder="6-digit code" style={inp} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: 11, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>NEW PASSWORD</label>
+                                <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Minimum 6 characters" style={inp} minLength={6} />
+                            </div>
+                            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+                                <button type="button" onClick={() => setPassModal(false)} style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 16px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>Cancel</button>
+                                <button type="submit" disabled={passLoading} style={{ background: t.accent, border: 'none', borderRadius: 8, padding: '8px 18px', color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                    {passLoading ? 'Updating...' : 'Update Password'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -4,8 +4,22 @@ import { useAuth } from "../context/AuthContext.jsx";
 import NoteTreeItem from "./NoteTreeItem.jsx";
 
 export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded,
-    notePageId, navigateNote, addNotePage, deleteNotePage }) {
+    notePageId, navigateNote, addNotePage, deleteNotePage, className }) {
     const { user, logout } = useAuth();
+    const [width, setWidth] = useState(230);
+
+    const handleMouseDown = (e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startW = width;
+        const onMouseMove = (ev) => setWidth(Math.max(200, Math.min(ev.clientX - startX + startW, 450)));
+        const onMouseUp = () => {
+            window.removeEventListener("mousemove", onMouseMove);
+            window.removeEventListener("mouseup", onMouseUp);
+        };
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+    };
 
     const nav = [
         { id: "dashboard", label: "Dashboard", ic: IC.dash },
@@ -17,10 +31,20 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
     const toggleExp = (id, e) => { e.stopPropagation(); setExpanded(p => ({ ...p, [id]: !p[id] })); };
 
     return (
-        <div style={{
-            width: 230, background: t.nav, borderRight: `1px solid ${t.border}`,
-            display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden"
+        <div className={className} style={{
+            width, background: t.nav, borderRight: `1px solid ${t.border}`,
+            display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden", position: "relative"
         }}>
+            {/* Resizer Handle */}
+            <div
+                onMouseDown={handleMouseDown}
+                style={{
+                    position: "absolute", right: 0, top: 0, bottom: 0, width: 4, cursor: "col-resize", zIndex: 10
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = t.accent + "44"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            />
+
             {/* Logo — clickable → Dashboard */}
             <div style={{ padding: "18px 16px 14px", borderBottom: `1px solid ${t.border}` }}>
                 <div onClick={() => setPage("dashboard")}

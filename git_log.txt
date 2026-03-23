@@ -1,0 +1,5 @@
+c9ff141 chore: add `run_migration.js` to .gitignore
+f5cad80 feat: Introduce comprehensive task and team management, including email notifications, approval workflows, and associated UI components.
+57fa6d0 feat: Implement core UI components and pages, including dashboard, login, sidebar, team, and notes features.
+a4042f2 feat: add utility to send OTP emails using Brevo's HTTP API.
+8e6e85b feat: Add login page with email/password, Google OAuth, and OTP verification, along with initial backend setup for authentication and email services.

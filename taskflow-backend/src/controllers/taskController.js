@@ -3,6 +3,7 @@ const taskService = require('../services/taskService');
 const taskModel = require('../models/taskModel');
 const { emitToUser } = require('../utils/socket');
 const notificationService = require('../services/notificationService');
+const { sendTaskAssignedEmail } = require('../utils/mailer');
 const Joi = require('joi');
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
@@ -20,10 +21,11 @@ const updateTaskSchema = Joi.object({
     description: Joi.string().max(5000).allow('', null).optional(),
     priority: Joi.string().valid('low', 'medium', 'high').optional(),
     due_date: Joi.string().isoDate().allow(null, '').optional(),
+    assigned_to: Joi.number().integer().positive().optional(),
 });
 
 const updateStatusSchema = Joi.object({
-    status: Joi.string().valid('pending', 'active', 'done').required(),
+    status: Joi.string().valid('pending', 'active', 'pending_approval', 'done').required(),
 });
 
 const delegateSchema = Joi.object({
@@ -72,6 +74,11 @@ const createTask = asyncWrapper(async (req, res) => {
             `You have been assigned a new task: "${task.title}"`,
             task.id
         );
+        const userModel = require('../models/userModel');
+        const assignee = await userModel.getUserById(data.assigned_to);
+        if (assignee && assignee.email) {
+            await sendTaskAssignedEmail(assignee.email, task.title, req.user.name);
+        }
     }
 
     // Emit real-time event to assignee
@@ -133,6 +140,11 @@ const delegateTask = asyncWrapper(async (req, res) => {
         `A task has been delegated to you: "${childTask.title}"`,
         childTask.id
     );
+    const userModel = require('../models/userModel');
+    const assignee = await userModel.getUserById(data.assigned_to);
+    if (assignee && assignee.email) {
+        await sendTaskAssignedEmail(assignee.email, childTask.title, req.user.name);
+    }
 
     emitToUser(String(data.assigned_to), 'task:delegated', childTask);
 

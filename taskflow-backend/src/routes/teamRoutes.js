@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
-const { createTeam, joinTeam, getMyTeams, getMembers, getMemberActivity } = require('../controllers/teamController');
+const { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity } = require('../controllers/teamController');
 
 const router = express.Router();
 
@@ -12,6 +12,17 @@ router.post('/join', joinTeam);
 
 // List user's teams
 router.get('/', getMyTeams);
+
+// Get specific team members
+router.get('/:id/members', getTeamDetails);
+
+// Leave a team
+router.delete('/:id/leave', leaveTeam);
+
+// Leave Requests
+router.get('/:id/leave-requests', getLeaveRequests);
+router.post('/leave-requests/:id/approve', approveLeaveRequest);
+router.post('/leave-requests/:id/reject', rejectLeaveRequest);
 
 // List members shared with user
 router.get('/members', getMembers);

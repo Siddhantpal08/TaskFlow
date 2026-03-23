@@ -30,7 +30,7 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     const [task, setTask] = useState(initialTask);
     const [editing, setEditing] = useState(false);
     const [delegating, setDelegating] = useState(false);
-    const [form, setForm] = useState({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '' });
+    const [form, setForm] = useState({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '', assigned_to: task.assigned_to, status: task.status });
     const [delegateTo, setDelegateTo] = useState('');
     const [saving, setSaving] = useState(false);
 
@@ -59,7 +59,13 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
         if (!form.title.trim()) return toastError('Title cannot be empty.');
         try {
             setSaving(true);
-            const updated = await updateTask(task.id, { ...form, due_date: form.due_date || null });
+            let updated = await updateTask(task.id, { ...form, due_date: form.due_date || null });
+
+            // Because status has its own endpoint and linear transitions, we trigger it only if changed explicitly
+            if (form.status !== task.status && canStatus) {
+                updated = await updateTaskStatus(task.id, form.status);
+            }
+
             setTask(updated);
             setEditing(false);
             toastSuccess('Task updated.');
@@ -95,8 +101,8 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
         } finally { setSaving(false); }
     };
 
-    const statusLbl = { pending: 'Pending', active: 'In Progress', done: 'Done' };
-    const nextLbl = { pending: 'Mark In Progress', active: 'Mark Done', done: null };
+    const statusLbl = { pending: 'Pending', active: 'In Progress', pending_approval: 'Pending Approval', done: 'Done' };
+    const nextLbl = { pending: 'Mark In Progress', active: 'Mark Done', pending_approval: null, done: null };
 
     return (
         <>
@@ -142,11 +148,23 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                                 </select>
                                 <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} style={INP(t)} />
                             </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: parseInt(e.target.value) || f.assigned_to }))} style={INP(t)} disabled={!canEdit}>
+                                    <option value={task.assigned_to}>{task.assigned_to_name}</option>
+                                    {teamMembers.map(m => m.id !== task.assigned_to && <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+                                <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={INP(t)} disabled={!canStatus}>
+                                    <option value="pending">Pending</option>
+                                    <option value="active">Active/In Progress</option>
+                                    <option value="pending_approval">Pending Approval</option>
+                                    <option value="done">Done</option>
+                                </select>
+                            </div>
                             <div style={{ display: 'flex', gap: 8 }}>
                                 <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: t.accent, color: '#000', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
                                     {saving ? 'Saving…' : 'Save Changes'}
                                 </button>
-                                <button onClick={() => { setEditing(false); setForm({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '' }); }} style={{ padding: '9px 14px', borderRadius: 8, border: `1px solid ${t.border}`, background: 'none', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                <button onClick={() => { setEditing(false); setForm({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '', assigned_to: task.assigned_to, status: task.status }); }} style={{ padding: '9px 14px', borderRadius: 8, border: `1px solid ${t.border}`, background: 'none', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
                                     Cancel
                                 </button>
                             </div>
@@ -177,6 +195,25 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                             <button onClick={handleStatusCycle} disabled={saving} style={{ padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, background: `linear-gradient(135deg,${t.green},#009950)`, color: '#000' }}>
                                 {saving ? 'Updating…' : nextLbl[task.status]}
                             </button>
+                        )}
+
+                        {task.status === 'pending_approval' && (
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                {isCreator ? (
+                                    <>
+                                        <button onClick={() => updateTaskStatus(task.id, 'done').then(setTask)} disabled={saving} style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, background: `linear-gradient(135deg,${t.green},#009950)`, color: '#000' }}>
+                                            Approve Status
+                                        </button>
+                                        <button onClick={() => updateTaskStatus(task.id, 'active').then(setTask)} disabled={saving} style={{ padding: '10px 14px', borderRadius: 9, border: `1px solid ${t.border}`, background: 'none', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700 }}>
+                                            Reject
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button disabled style={{ flex: 1, padding: '10px', borderRadius: 9, border: `1px solid ${t.orange}44`, background: `${t.orange}12`, color: t.orange, fontFamily: t.disp, fontSize: 13, fontWeight: 700 }}>
+                                        Waiting for Assigner Approval...
+                                    </button>
+                                )}
+                            </div>
                         )}
 
                         {isAssignee && task.status !== 'done' && !delegating && (

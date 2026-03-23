@@ -50,5 +50,53 @@ const sendOtpEmail = async (to, otp) => {
     }
 };
 
-module.exports = { sendOtpEmail };
+/**
+ * Send an email notification when a task is assigned to a user
+ */
+const sendTaskAssignedEmail = async (toEmail, taskTitle, assignerName) => {
+    if (!process.env.BREVO_API_KEY) {
+        console.warn('\n[MAIL WARNING]: BREVO_API_KEY is not set. Task Email NOT sent.');
+        return;
+    }
+
+    try {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'api-key': process.env.BREVO_API_KEY,
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                sender: { name: 'TaskFlow', email: 'taskflowappbysidd@gmail.com' },
+                to: [{ email: toEmail }],
+                subject: `New Task Assigned: ${taskTitle}`,
+                htmlContent: `
+                    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #00E5CC;">New Task Assigned</h2>
+                        <p style="font-size: 16px; color: #333;">Hello,</p>
+                        <p style="font-size: 15px; color: #444;">
+                            <strong>${assignerName || 'Someone'}</strong> has assigned a new task to you on TaskFlow:
+                        </p>
+                        <div style="font-size: 18px; font-weight: bold; color: #00E5CC; padding: 16px; background: #f1f5f9; border-radius: 8px; margin: 16px 0;">
+                            "${taskTitle}"
+                        </div>
+                        <p style="color: #64748b; font-size: 14px;">
+                            Log into your dashboard to view the details and start working.
+                        </p>
+                    </div>
+                `
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`Brevo HTTP Error sending task email:`, errorData);
+        }
+    } catch (error) {
+        console.error('[Task Email Error]:', error);
+    }
+};
+
+module.exports = { sendOtpEmail, sendTaskAssignedEmail };
 

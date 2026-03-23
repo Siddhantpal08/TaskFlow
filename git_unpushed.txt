@@ -1,0 +1,2 @@
+c9ff141 chore: add `run_migration.js` to .gitignore
+f5cad80 feat: Introduce comprehensive task and team management, including email notifications, approval workflows, and associated UI components.

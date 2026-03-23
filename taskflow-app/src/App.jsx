@@ -117,7 +117,7 @@ function MainApp() {
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                         <Topbar t={t} dark={dark} setDark={setDark} notif={notif}
-                            setNotif={setNotif} page={page} setModal={setModal}
+                            setNotif={setNotif} page={page} setPage={setPage} setModal={setModal}
                             searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
                         <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
                             {page === "dashboard" && <Dashboard t={t} setPage={setPage} setTask={setTask} />}

@@ -54,6 +54,7 @@ const updateTask = async (taskId, userId, fields) => {
         priority: fields.priority ?? task.priority,
         // Format due_date if a new value is provided
         due_date: fields.due_date ? formatToMySQLDate(fields.due_date) : task.due_date,
+        assigned_to: fields.assigned_to ?? task.assigned_to,
     });
 
     return taskModel.getTaskById(taskId);
@@ -64,7 +65,7 @@ const updateTask = async (taskId, userId, fields) => {
 /**
  * Only the assignee can change status.
  * Cannot mark Done if any active sub-task (delegated) is not yet Done.
- * Transition: pending → active → done (strict order enforced).
+ * Transition: pending → active → pending_approval → done.
  */
 const updateStatus = async (taskId, userId, newStatus) => {
     const task = await taskModel.getTaskById(taskId);
@@ -75,26 +76,38 @@ const updateStatus = async (taskId, userId, newStatus) => {
         throw new AppError('Only the task creator or assignee can update task status.', 403);
     }
 
-    // Enforce linear status transitions
-    const transitions = { pending: ['active'], active: ['done', 'pending'], done: [] };
-    if (!transitions[task.status]?.includes(newStatus)) {
-        throw new AppError(`Cannot transition from '${task.status}' to '${newStatus}'.`, 409);
+    let finalStatus = newStatus;
+
+    // If assignee marks as done, but they are not the assigner, it requires approval
+    if (newStatus === 'done' && task.assigned_by !== userId && task.assigned_to === userId) {
+        finalStatus = 'pending_approval';
     }
 
-    // Block marking Done if pending sub-tasks exist
-    if (newStatus === 'done') {
+    // Enforce linear status transitions
+    const transitions = {
+        pending: ['active'],
+        active: ['done', 'pending', 'pending_approval'],
+        pending_approval: ['done', 'active'], // Assigner can approve to 'done' or reject to 'active'
+        done: ['active'] // Assigner might want to reopen
+    };
+    if (!transitions[task.status]?.includes(finalStatus)) {
+        throw new AppError(`Cannot transition from '${task.status}' to '${finalStatus}'.`, 409);
+    }
+
+    // Block marking Done or pending_approval if pending sub-tasks exist
+    if (finalStatus === 'done' || finalStatus === 'pending_approval') {
         const subTasks = await taskModel.getSubTasks(taskId);
         const blocking = subTasks.filter((s) => s.status !== 'done');
         if (blocking.length > 0) {
             const titles = blocking.map((s) => `"${s.title}"`).join(', ');
             throw new AppError(
-                `Cannot mark as done. Blocking sub-tasks: ${titles}`,
+                `Cannot mark as completion. Blocking sub-tasks: ${titles}`,
                 409
             );
         }
     }
 
-    await taskModel.updateStatus(taskId, newStatus);
+    await taskModel.updateStatus(taskId, finalStatus);
     return taskModel.getTaskById(taskId);
 };
 

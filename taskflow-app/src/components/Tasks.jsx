@@ -5,70 +5,11 @@ import { PriTag, StTag } from "./ui/Tag.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { toastError, toastSuccess } from "./ui/Toast.jsx";
+import CreateTaskModal from "./CreateTaskModal.jsx";
 
 function fmtDate(d) {
     if (!d) return "—";
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-// Quick create task modal
-function CreateTaskModal({ t, teamMembers, onClose, onCreate }) {
-    const { user } = useAuth();
-    const [title, setTitle] = useState('');
-    const [desc, setDesc] = useState('');
-    const [priority, setPriority] = useState('medium');
-    const [assigned_to, setAssignedTo] = useState(String(user?.id || ''));
-    const [due_date, setDueDate] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState('');
-
-    const inp = { background: '#0C1420', border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px 12px', color: t.t1, fontSize: 13, fontFamily: t.disp, width: '100%', outline: 'none' };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault(); setErr(''); setLoading(true);
-        try {
-            await onCreate({ title, description: desc, priority, assigned_to: parseInt(assigned_to), due_date: due_date || undefined });
-            onClose();
-        } catch (e) { setErr(e.message || 'Failed to create task.'); }
-        finally { setLoading(false); }
-    };
-
-    return (
-        <div onClick={e => e.target === e.currentTarget && onClose()} style={{
-            position: 'fixed', inset: 0, background: '#00000088', zIndex: 999,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-            <div className="popIn" style={{
-                background: t.card, border: `1px solid ${t.border}`, borderRadius: 16,
-                padding: '24px', width: 440, boxShadow: t.shadow,
-            }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: t.t1, marginBottom: 18 }}>New Task</div>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title…" style={inp} />
-                    <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description (optional)" rows={2}
-                        style={{ ...inp, resize: 'vertical' }} />
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <select value={priority} onChange={e => setPriority(e.target.value)} style={{ ...inp }}>
-                            <option value="low">Low Priority</option>
-                            <option value="medium">Medium Priority</option>
-                            <option value="high">High Priority</option>
-                        </select>
-                        <select value={assigned_to} onChange={e => setAssignedTo(e.target.value)} style={{ ...inp }}>
-                            {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                        </select>
-                    </div>
-                    <input type="date" value={due_date} onChange={e => setDueDate(e.target.value)} style={{ ...inp }} />
-                    {err && <div style={{ color: t.red, fontSize: 12 }}>{err}</div>}
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-                        <button type="button" onClick={onClose} style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 16px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>Cancel</button>
-                        <button type="submit" disabled={loading} style={{ background: t.accent, border: 'none', borderRadius: 8, padding: '8px 18px', color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
-                            {loading ? 'Creating…' : 'Create Task'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
 }
 
 export default function Tasks({ t, setTask, searchQuery }) {
@@ -77,7 +18,7 @@ export default function Tasks({ t, setTask, searchQuery }) {
     const [fil, setFil] = useState("all");
     const [showCreate, setShowCreate] = useState(false);
 
-    const tabs = ["all", "mine", "pending", "active", "done", "delegated"];
+    const tabs = ["all", "mine", "pending", "active", "pending_approval", "done", "delegated"];
     const count = f => {
         if (f === "all") return tasks.length;
         if (f === "mine") return tasks.filter(x => x.assigned_to === user?.id).length;
@@ -103,7 +44,7 @@ export default function Tasks({ t, setTask, searchQuery }) {
                         const a = fil === f; return (
                             <button key={f} onClick={() => setFil(f)} className="pill"
                                 style={{ padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontFamily: t.disp, fontSize: 12, fontWeight: a ? 600 : 400, border: `1px solid ${a ? t.accent : t.border}`, background: a ? t.accentDim : t.card, color: a ? t.accent : t.t2, transition: "all .15s", display: "flex", alignItems: "center", gap: 6 }}>
-                                {f === 'mine' ? 'Assigned to Me' : f.charAt(0).toUpperCase() + f.slice(1)}
+                                {f === 'mine' ? 'Assigned to Me' : f === 'pending_approval' ? 'Needs Approval' : f.charAt(0).toUpperCase() + f.slice(1)}
                                 <span style={{ fontSize: 10, background: a ? t.accent + "28" : t.border, color: a ? t.accent : t.t3, padding: "1px 6px", borderRadius: 10 }}>{count(f)}</span>
                             </button>
                         );
@@ -136,7 +77,7 @@ export default function Tasks({ t, setTask, searchQuery }) {
                             {/* Checkbox: only clickable for pending/active tasks */}
                             <div onClick={async e => {
                                 e.stopPropagation();
-                                if (tk.status === 'done') return; // done is final — backend rejects reverting
+                                if (tk.status === 'done' || tk.status === 'pending_approval') return; // backend handles revert/approve
                                 const next = tk.status === 'pending' ? 'active' : 'done';
                                 try {
                                     await updateTaskStatus(tk.id, next);
@@ -145,8 +86,9 @@ export default function Tasks({ t, setTask, searchQuery }) {
                                     toastError(err.message || 'Could not update status.');
                                 }
                             }}
-                                style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${tk.status === "done" ? t.green : t.border}`, background: tk.status === "done" ? t.green + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: tk.status === 'done' ? 'default' : 'pointer', opacity: tk.status === 'done' ? 0.5 : 1 }}>
+                                style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${tk.status === "done" ? t.green : tk.status === "pending_approval" ? t.orange : t.border}`, background: tk.status === "done" ? t.green + "20" : tk.status === "pending_approval" ? t.orange + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: (tk.status === 'done' || tk.status === 'pending_approval') ? 'default' : 'pointer', opacity: (tk.status === 'done' || tk.status === 'pending_approval') ? 0.5 : 1 }}>
                                 {tk.status === "done" && <I d={IC.chk} sz={9} c={t.green} sw={3} />}
+                                {tk.status === "pending_approval" && <span style={{ fontSize: 10, color: t.orange, fontWeight: 800 }}>?</span>}
                             </div>
                             <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: 13, fontWeight: 500, color: t.t1, textDecoration: tk.status === "done" ? "line-through" : "none", opacity: tk.status === "done" ? 0.45 : 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

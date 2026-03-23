@@ -140,6 +140,28 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         <div className="blkr" style={{ position: "relative" }}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
             <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+
+            {/* Quick Type Convert Toolbar Workspace */}
+            {hov && (blk.type === 'p' || blk.type === 'h1' || blk.type === 'h2' || blk.type === 'h3') && (
+                <div style={{
+                    position: 'absolute', right: blk.type === 'p' ? 95 : 0, top: '50%', transform: 'translateY(-50%)',
+                    display: 'flex', gap: 4, zIndex: 2, background: t.card, border: `1px solid ${t.border}`,
+                    borderRadius: 6, padding: '2px 4px'
+                }}>
+                    {['h1', 'h2', 'h3', 'p'].map(bt => (
+                        <button key={bt} onClick={() => onUpdate({ type: bt, content: ref.current?.innerText })}
+                            title={`Convert to ${bt.toUpperCase()}`}
+                            style={{
+                                background: blk.type === bt ? t.accentDim : 'transparent', border: 'none',
+                                color: blk.type === bt ? t.accent : t.t3, fontSize: 10, fontFamily: t.mono, cursor: 'pointer',
+                                padding: '2px 5px', borderRadius: 4, textTransform: 'uppercase', transition: 'all .1s'
+                            }}>
+                            {bt}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {/* Commands button — visible on hover */}
             {hov && blk.type === 'p' && (
                 <button
@@ -158,7 +180,7 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
             <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                 data-ph={blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "Write something, or '/' for commands…"}
                 onInput={handleInput} onKeyDown={handleKey}
-                style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10, paddingRight: hov && blk.type === 'p' ? 90 : 0 }}>
+                style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10, paddingRight: hov && blk.type === 'p' ? 180 : 90 }}>
             </div>
         </div>
     );

@@ -96,10 +96,10 @@ const getTasksDueSoon = async (userId, withinHours = 48) => {
 // ─── Update ───────────────────────────────────────────────────────────────────
 
 const updateTask = async (id, fields) => {
-    const { title, description, priority, due_date } = fields;
+    const { title, description, priority, due_date, assigned_to } = fields;
     await db.query(
-        `UPDATE tasks SET title = ?, description = ?, priority = ?, due_date = ? WHERE id = ?`,
-        [title, description || null, priority, due_date || null, id]
+        `UPDATE tasks SET title = ?, description = ?, priority = ?, due_date = ?, assigned_to = ? WHERE id = ?`,
+        [title, description || null, priority, due_date || null, assigned_to, id]
     );
 };
 

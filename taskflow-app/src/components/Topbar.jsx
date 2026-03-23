@@ -2,66 +2,9 @@ import { useState } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
-import { authApi } from "../api/auth.js";
 
-function ProfileModal({ t, user, onClose, onSave }) {
-    const [name, setName] = useState(user?.name || '');
-    const [initials, setInitials] = useState(user?.avatar_initials || '');
-    const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState('');
-
-    const inp = { background: '#0C1420', border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px 12px', color: t.t1, fontSize: 13, fontFamily: t.disp, width: '100%', outline: 'none' };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault(); setErr(''); setLoading(true);
-        try {
-            // we patch the user data directly
-            import('../api/client.js').then(async ({ api }) => {
-                const res = await api.patch('/users/me', { name, avatar_initials: initials.toUpperCase() });
-                onSave(res.data);
-                onClose();
-            }).catch(e => {
-                setErr(e.message || 'Failed to update profile.');
-                setLoading(false);
-            });
-        } catch (e) { setErr(e.message || 'Failed to update profile.'); setLoading(false); }
-    };
-
-    return (
-        <div onClick={e => e.target === e.currentTarget && onClose()} style={{
-            position: 'fixed', inset: 0, background: '#00000088', zIndex: 9999,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-            <div className="popIn" style={{
-                background: t.card, border: `1px solid ${t.border}`, borderRadius: 16,
-                padding: '24px', width: 340, boxShadow: t.shadow,
-            }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: t.t1, marginBottom: 18 }}>Edit Profile</div>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div>
-                        <label style={{ display: 'block', fontSize: 11, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>NAME</label>
-                        <input required value={name} onChange={e => setName(e.target.value)} placeholder="Full Name" style={inp} />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: 11, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>INITIALS (MAX 2)</label>
-                        <input value={initials} onChange={e => setInitials(e.target.value.substring(0, 2))} placeholder="Initials (e.g. SP)" style={inp} />
-                    </div>
-                    {err && <div style={{ color: t.red, fontSize: 12 }}>{err}</div>}
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-                        <button type="button" onClick={onClose} style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 16px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>Cancel</button>
-                        <button type="submit" disabled={loading} style={{ background: t.accent, border: 'none', borderRadius: 8, padding: '8px 18px', color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
-                            {loading ? 'Saving…' : 'Save'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
-
-export default function Topbar({ t, dark, setDark, notif, setNotif, page, setModal, searchQuery, setSearchQuery }) {
-    const [showProfile, setShowProfile] = useState(false);
-    const { user, setUser, logout } = useAuth();
+export default function Topbar({ t, dark, setDark, notif, setNotif, page, setPage, setModal, searchQuery, setSearchQuery }) {
+    const { user, logout } = useAuth();
     const { unreadCount } = useData();
     const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team" };
 
@@ -111,7 +54,7 @@ export default function Topbar({ t, dark, setDark, notif, setNotif, page, setMod
                 {user && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div
-                            onClick={() => setShowProfile(true)}
+                            onClick={() => setPage('profile')}
                             title="Edit Profile"
                             className="hvr"
                             style={{
@@ -128,7 +71,6 @@ export default function Topbar({ t, dark, setDark, notif, setNotif, page, setMod
                     </div>
                 )}
             </div>
-            {showProfile && user && <ProfileModal t={t} user={user} onClose={() => setShowProfile(false)} onSave={u => setUser(u)} />}
         </>
     );
 }
