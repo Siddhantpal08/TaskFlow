@@ -35,10 +35,18 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const insertSlashType = type => {
         if (slash === null) return;
         const nb = [...blocks];
-        nb[slash.idx] = { ...nb[slash.idx], content: nb[slash.idx].content.replace(/\/[^\n]*$/, "") };
-        const b = mkBlock(type, ""); nb.splice(slash.idx + 1, 0, b); save(nb);
-        setSlash(null);
-        setTimeout(() => document.getElementById("blk-" + (slash.idx + 1))?.focus(), 30);
+        const currentContent = nb[slash.idx].content;
+
+        if (currentContent.trim() === "") {
+            nb[slash.idx] = { ...nb[slash.idx], type, content: "" };
+            save(nb);
+            setSlash(null);
+            setTimeout(() => document.getElementById("blk-" + slash.idx)?.focus(), 30);
+        } else {
+            const b = mkBlock(type, ""); nb.splice(slash.idx + 1, 0, b); save(nb);
+            setSlash(null);
+            setTimeout(() => document.getElementById("blk-" + (slash.idx + 1))?.focus(), 30);
+        }
     };
 
     // Breadcrumb
@@ -93,7 +101,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 {pg.emoji || "📄"}
                             </button>
                             {emojiOpen && (
-                                <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, zIndex: 60, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10, boxShadow: t.shadow, display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 3, width: 230 }}
+                                <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, zIndex: 60, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10, boxShadow: t.shadow, display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 3, width: 230, maxHeight: 280, overflowY: "auto" }}
                                     onClick={e => e.stopPropagation()}>
                                     {EMOJIS.map(em => (
                                         <button key={em} onClick={() => { updateNotePage(notePageId, { emoji: em }); setEmojiOpen(false); }}

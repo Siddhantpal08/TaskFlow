@@ -43,7 +43,13 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
                             <option value="high">High Priority</option>
                         </select>
                         <select value={assigned_to} onChange={e => setAssignedTo(e.target.value)} style={{ ...inp }}>
-                            {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                            {teamMembers
+                                .filter(m => {
+                                    // Make sure current user is an admin to see admins, else hide admins
+                                    const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
+                                    return amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id);
+                                })
+                                .map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                         </select>
                     </div>
                     <input type="date" value={due_date} onChange={e => setDueDate(e.target.value)} style={{ ...inp }} />

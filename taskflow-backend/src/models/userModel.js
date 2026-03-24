@@ -57,10 +57,10 @@ const deleteAllRefreshTokensForUser = async (userId) => {
     await db.query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
 };
 
-const updateUserProfile = async (userId, { name, avatar_initials }) => {
+const updateUserProfile = async (userId, { name, avatar_initials, bio, avatar_url }) => {
     await db.query(
-        'UPDATE users SET name = ?, avatar_initials = ? WHERE id = ?',
-        [name, avatar_initials, userId]
+        'UPDATE users SET name = ?, avatar_initials = ?, bio = ?, avatar_url = ? WHERE id = ?',
+        [name, avatar_initials, bio || null, avatar_url || null, userId]
     );
 };
 

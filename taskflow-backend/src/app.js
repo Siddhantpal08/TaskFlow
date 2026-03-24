@@ -9,6 +9,7 @@ const { Server } = require('socket.io');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 const { initSocket } = require('./utils/socket');
+const { startReminderJob } = require('./utils/eventReminderJob');
 
 // ─── Import Routes ────────────────────────────────────────────────────────────
 const authRoutes = require('./routes/authRoutes');
@@ -174,5 +175,8 @@ const io = new Server(server, {
 });
 
 initSocket(io);
+
+// Start background cron jobs
+startReminderJob();
 
 module.exports = { app, server };

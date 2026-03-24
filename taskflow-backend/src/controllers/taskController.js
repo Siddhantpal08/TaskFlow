@@ -3,7 +3,7 @@ const taskService = require('../services/taskService');
 const taskModel = require('../models/taskModel');
 const { emitToUser } = require('../utils/socket');
 const notificationService = require('../services/notificationService');
-const { sendTaskAssignedEmail } = require('../utils/mailer');
+const mailer = require('../utils/mailer');
 const Joi = require('joi');
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ const updateTaskSchema = Joi.object({
 });
 
 const updateStatusSchema = Joi.object({
-    status: Joi.string().valid('pending', 'active', 'pending_approval', 'done').required(),
+    status: Joi.string().valid('pending', 'active', 'pending_approval', 'done', 'refused').required(),
 });
 
 const delegateSchema = Joi.object({
@@ -77,7 +77,7 @@ const createTask = asyncWrapper(async (req, res) => {
         const userModel = require('../models/userModel');
         const assignee = await userModel.getUserById(data.assigned_to);
         if (assignee && assignee.email) {
-            await sendTaskAssignedEmail(assignee.email, task.title, req.user.name);
+            await mailer.sendTaskAssignedEmail(assignee.email, task.title, req.user.name);
         }
     }
 
@@ -117,9 +117,35 @@ const updateStatus = asyncWrapper(async (req, res) => {
             `Task "${task.title}" status changed to ${data.status}.`,
             task.id
         );
+
+        const userModel = require('../models/userModel');
+        const assigner = await userModel.getUserById(task.assigned_by);
+
+        if (assigner && assigner.email) {
+            if (data.status === 'refused') {
+                await mailer.sendTaskRefusedEmail(assigner.email, task.title, req.user.name);
+            } else if (data.status === 'pending_approval') {
+                await mailer.sendTaskPendingApprovalEmail(assigner.email, task.title, req.user.name);
+            }
+        }
+    }
+
+    // If the assigner changes status of a pending_approval task
+    if (task.assigned_by === req.user.id && task.assigned_to !== req.user.id) {
+        const userModel = require('../models/userModel');
+        const assignee = await userModel.getUserById(task.assigned_to);
+
+        if (assignee && assignee.email) {
+            if (data.status === 'done') {
+                await mailer.sendTaskApprovedEmail(assignee.email, task.title);
+            } else if (data.status === 'active') {
+                await mailer.sendTaskRejectedEmail(assignee.email, task.title);
+            }
+        }
     }
 
     emitToUser(String(task.assigned_by), 'task:updated', task);
+    emitToUser(String(task.assigned_to), 'task:updated', task);
 
     res.status(200).json({ success: true, data: task });
 });
@@ -143,7 +169,7 @@ const delegateTask = asyncWrapper(async (req, res) => {
     const userModel = require('../models/userModel');
     const assignee = await userModel.getUserById(data.assigned_to);
     if (assignee && assignee.email) {
-        await sendTaskAssignedEmail(assignee.email, childTask.title, req.user.name);
+        await mailer.sendTaskAssignedEmail(assignee.email, childTask.title, req.user.name);
     }
 
     emitToUser(String(data.assigned_to), 'task:delegated', childTask);

@@ -173,6 +173,19 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
                                 <div style={{ height: 3, background: t.border, borderRadius: 2 }}>
                                     <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, background: `linear-gradient(to right,#009688,${t.accent})`, transition: "width .6s" }} />
                                 </div>
+                                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'left' }}>
+                                    {myTasks.filter(tk => tk.status !== 'done').slice(0, 2).map(tk => (
+                                        <div key={tk.id} style={{ fontSize: 10, color: t.t2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: `${t.border}88`, padding: '4px 6px', borderRadius: 4, fontFamily: t.mono }}>
+                                            • {tk.title}
+                                        </div>
+                                    ))}
+                                    {myTasks.filter(tk => tk.status !== 'done').length > 2 && (
+                                        <div style={{ fontSize: 9, color: t.t3, paddingLeft: 6, fontFamily: t.mono }}>+{myTasks.filter(tk => tk.status !== 'done').length - 2} more pending...</div>
+                                    )}
+                                    {myTasks.filter(tk => tk.status !== 'done').length === 0 && myTasks.length > 0 && (
+                                        <div style={{ fontSize: 9, color: t.green, paddingLeft: 6, fontFamily: t.mono }}>All tasks cleared!</div>
+                                    )}
+                                </div>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 12 }}>
                                 <div className={isOnline ? 'glw' : ''} style={{ width: 6, height: 6, borderRadius: "50%", background: isOnline ? t.green : t.border }} />

@@ -98,5 +98,82 @@ const sendTaskAssignedEmail = async (toEmail, taskTitle, assignerName) => {
     }
 };
 
-module.exports = { sendOtpEmail, sendTaskAssignedEmail };
+const sendTaskRefusedEmail = async (toEmail, taskTitle, assigneeName) => {
+    if (!process.env.BREVO_API_KEY) return;
+    try {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST', headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                sender: { name: 'TaskFlow', email: 'taskflowappbysidd@gmail.com' }, to: [{ email: toEmail }],
+                subject: `Task Refused: ${taskTitle}`,
+                htmlContent: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;"><h2 style="color: #FF5252;">Task Refused</h2><p><strong>${assigneeName}</strong> has refused the task "<strong>${taskTitle}</strong>". Log in to reassign or modify.</p></div>`
+            })
+        });
+    } catch (e) { console.error(e); }
+};
 
+const sendTaskApprovedEmail = async (toEmail, taskTitle) => {
+    if (!process.env.BREVO_API_KEY) return;
+    try {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST', headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                sender: { name: 'TaskFlow', email: 'taskflowappbysidd@gmail.com' }, to: [{ email: toEmail }],
+                subject: `Task Approved: ${taskTitle}`,
+                htmlContent: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;"><h2 style="color: #28c840;">Task Approved</h2><p>Your completion of "<strong>${taskTitle}</strong>" has been approved and marked as done. Great job!</p></div>`
+            })
+        });
+    } catch (e) { console.error(e); }
+};
+
+const sendTaskRejectedEmail = async (toEmail, taskTitle) => {
+    if (!process.env.BREVO_API_KEY) return;
+    try {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST', headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                sender: { name: 'TaskFlow', email: 'taskflowappbysidd@gmail.com' }, to: [{ email: toEmail }],
+                subject: `Task Completion Rejected: ${taskTitle}`,
+                htmlContent: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;"><h2 style="color: #FF5252;">Task Rejected</h2><p>Your completion of "<strong>${taskTitle}</strong>" has been rejected. The task is active again. Please review feedback in the app.</p></div>`
+            })
+        });
+    } catch (e) { console.error(e); }
+};
+
+const sendTaskPendingApprovalEmail = async (toEmail, taskTitle, assigneeName) => {
+    if (!process.env.BREVO_API_KEY) return;
+    try {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST', headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                sender: { name: 'TaskFlow', email: 'taskflowappbysidd@gmail.com' }, to: [{ email: toEmail }],
+                subject: `Approval Required: ${taskTitle}`,
+                htmlContent: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;"><h2 style="color: #FF9800;">Pending Approval</h2><p><strong>${assigneeName}</strong> has marked "<strong>${taskTitle}</strong>" as done. Please log in to approve or reject their work.</p></div>`
+            })
+        });
+    } catch (e) { console.error(e); }
+};
+
+const sendEventReminderEmail = async (toEmail, eventTitle, eventDate, eventTime) => {
+    if (!process.env.BREVO_API_KEY) return;
+    try {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST', headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                sender: { name: 'TaskFlow', email: 'taskflowappbysidd@gmail.com' }, to: [{ email: toEmail }],
+                subject: `Reminder: ${eventTitle} is tomorrow!`,
+                htmlContent: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;"><h2 style="color: #00E5CC;">Event Reminder</h2><p>This is a reminder for your upcoming event:</p><div style="font-size: 18px; font-weight: bold; color: #00E5CC; padding: 16px; background: #f1f5f9; border-radius: 8px; margin: 16px 0;">"${eventTitle}"</div><p>Date: ${eventDate}<br>Time: ${eventTime || 'All Day'}</p></div>`
+            })
+        });
+    } catch (e) { console.error(e); }
+};
+
+module.exports = {
+    sendOtpEmail,
+    sendTaskAssignedEmail,
+    sendTaskRefusedEmail,
+    sendTaskApprovedEmail,
+    sendTaskRejectedEmail,
+    sendTaskPendingApprovalEmail,
+    sendEventReminderEmail
+};

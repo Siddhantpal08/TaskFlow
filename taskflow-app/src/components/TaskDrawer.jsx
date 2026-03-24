@@ -151,13 +151,17 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                 <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: parseInt(e.target.value) || f.assigned_to }))} style={INP(t)} disabled={!canEdit}>
                                     <option value={task.assigned_to}>{task.assigned_to_name}</option>
-                                    {teamMembers.map(m => m.id !== task.assigned_to && <option key={m.id} value={m.id}>{m.name}</option>)}
+                                    {teamMembers.filter(m => {
+                                        const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
+                                        return m.id !== task.assigned_to && (amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id));
+                                    }).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                 </select>
                                 <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={INP(t)} disabled={!canStatus}>
                                     <option value="pending">Pending</option>
                                     <option value="active">Active/In Progress</option>
                                     <option value="pending_approval">Pending Approval</option>
                                     <option value="done">Done</option>
+                                    <option value="refused">Refused</option>
                                 </select>
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -216,9 +220,15 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                             </div>
                         )}
 
-                        {isAssignee && task.status !== 'done' && !delegating && (
+                        {isAssignee && task.status !== 'done' && task.status !== 'refused' && !delegating && (
                             <button onClick={() => setDelegating(true)} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.amber}44`, background: `${t.amber}12`, color: t.amber }}>
                                 Delegate Task ↗
+                            </button>
+                        )}
+
+                        {isAssignee && !isCreator && (task.status === 'pending' || task.status === 'active') && (
+                            <button onClick={() => updateTaskStatus(task.id, 'refused').then(setTask)} disabled={saving} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red }}>
+                                {saving ? 'Refusing…' : 'Refuse Task'}
                             </button>
                         )}
 
@@ -226,7 +236,10 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 <select value={delegateTo} onChange={e => setDelegateTo(e.target.value)} style={INP(t)}>
                                     <option value="">Select team member…</option>
-                                    {teamMembers.filter(m => m.id !== user?.id).map(m => (
+                                    {teamMembers.filter(m => {
+                                        const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
+                                        return m.id !== user?.id && (amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id));
+                                    }).map(m => (
                                         <option key={m.id} value={m.id}>{m.name}</option>
                                     ))}
                                 </select>

@@ -85,10 +85,11 @@ const updateStatus = async (taskId, userId, newStatus) => {
 
     // Enforce linear status transitions
     const transitions = {
-        pending: ['active'],
-        active: ['done', 'pending', 'pending_approval'],
+        pending: ['active', 'refused'],
+        active: ['done', 'pending', 'pending_approval', 'refused'],
         pending_approval: ['done', 'active'], // Assigner can approve to 'done' or reject to 'active'
-        done: ['active'] // Assigner might want to reopen
+        done: ['active'], // Assigner might want to reopen
+        refused: ['active', 'pending', 'done'] // Assigner can reassign/reopen
     };
     if (!transitions[task.status]?.includes(finalStatus)) {
         throw new AppError(`Cannot transition from '${task.status}' to '${finalStatus}'.`, 409);
@@ -131,9 +132,9 @@ const delegateTask = async (taskId, delegatorId, newAssigneeId) => {
         throw new AppError('Cannot delegate a task to yourself.', 400);
     }
 
-    // Cannot delegate a completed task
-    if (task.status === 'done') {
-        throw new AppError('Cannot delegate a completed task.', 409);
+    // Cannot delegate a completed or refused task
+    if (task.status === 'done' || task.status === 'refused') {
+        throw new AppError(`Cannot delegate a ${task.status} task.`, 409);
     }
 
     const childTaskId = await taskModel.delegateTask(taskId, newAssigneeId, taskId);

@@ -13,27 +13,31 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
     };
 
     useEffect(() => {
-        if (ref.current && ref.current.innerText !== blk.content && blk.type !== "link" && blk.type !== "code") {
+        if (ref.current && document.activeElement !== ref.current && ref.current.innerText !== blk.content && blk.type !== "link" && blk.type !== "code") {
             ref.current.innerText = blk.content || "";
         }
     }, [blk.content, blk.type]);
 
     const handleKey = e => {
-        if (e.key === "Enter" && blk.type !== "code") { e.preventDefault(); onAddAfter("p"); }
-        if (e.key === "Backspace" && (e.currentTarget.innerText === "" || blk.content === "")) {
-            e.preventDefault(); onDelete();
+        if (e.key === "/") {
+            e.preventDefault();
+            openSlashMenu();
+            return;
+        }
+        if (e.key === "Enter" && blk.type !== "code") {
+            e.preventDefault();
+            onAddAfter(blk.type === "todo" ? "todo" : "p");
+        }
+        if (e.key === "Backspace" && ref.current?.innerText.trim() === "") {
+            e.preventDefault();
+            onDelete();
         }
     };
 
     const handleInput = e => {
         const txt = e.currentTarget.innerText || "";
         onUpdate({ content: txt });
-        const li = txt.lastIndexOf("/");
-        if (li !== -1) {
-            const filter = txt.slice(li + 1);
-            const rect = ref.current?.getBoundingClientRect();
-            onSlash(rect, filter);
-        } else { onSlashClose(); }
+        onSlashClose();
     };
 
     // ── DIVIDER ──

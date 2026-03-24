@@ -10,8 +10,10 @@ const createEventSchema = Joi.object({
     title: Joi.string().min(1).max(255).required(),
     description: Joi.string().max(2000).allow('', null).optional(),
     event_date: Joi.string().isoDate().required(),
+    end_date: Joi.string().isoDate().allow(null, '').optional(),
     event_time: Joi.string().pattern(/^\d{2}:\d{2}(:\d{2})?$/).allow(null, '').optional(),
     priority: Joi.string().valid('low', 'medium', 'high').default('low'),
+    recurrence: Joi.string().valid('none', 'weekly', 'monthly').default('none'),
 });
 
 const validateBody = (schema, body) => {
@@ -20,10 +22,8 @@ const validateBody = (schema, body) => {
         const messages = error.details.map((d) => d.message.replace(/"/g, "'")).join('; ');
         throw { statusCode: 422, message: messages, status: 'fail' };
     }
-    if (value.event_date) {
-        // Ensure event_date is strictly YYYY-MM-DD for MySQL DATE column
-        value.event_date = new Date(value.event_date).toISOString().split('T')[0];
-    }
+    if (value.event_date) value.event_date = new Date(value.event_date).toISOString().split('T')[0];
+    if (value.end_date) value.end_date = new Date(value.end_date).toISOString().split('T')[0];
     return value;
 };
 

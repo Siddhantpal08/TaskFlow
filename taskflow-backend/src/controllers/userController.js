@@ -9,6 +9,8 @@ const Joi = require('joi');
 const updateProfileSchema = Joi.object({
     name: Joi.string().min(2).max(100).optional(),
     avatar_initials: Joi.string().max(2).optional(),
+    bio: Joi.string().max(1000).allow('', null).optional(),
+    avatar_url: Joi.string().allow('', null).optional(),
 });
 
 const validateBody = (schema, body) => {
@@ -77,10 +79,12 @@ const updateMe = asyncWrapper(async (req, res) => {
     const data = validateBody(updateProfileSchema, req.body);
     const user = await userModel.getUserById(req.user.id);
 
-    if (data.name) {
+    if (data.name !== undefined || data.bio !== undefined || data.avatar_url !== undefined) {
         await userModel.updateUserProfile(req.user.id, {
-            name: data.name,
+            name: data.name || user.name,
             avatar_initials: data.avatar_initials || user.avatar_initials,
+            bio: data.bio !== undefined ? data.bio : user.bio,
+            avatar_url: data.avatar_url !== undefined ? data.avatar_url : user.avatar_url,
         });
     }
 

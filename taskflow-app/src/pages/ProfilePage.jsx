@@ -44,8 +44,8 @@ export default function ProfilePage({ t, onGoBack }) {
         try {
             const { api } = await import('../api/client.js');
             const payload = { name, avatar_initials: initials.toUpperCase().slice(0, 2) };
-            if (bio) payload.bio = bio;
-            if (avatarPreview && avatarPreview !== user?.avatar_url) payload.avatar_url = avatarPreview;
+            payload.bio = bio;
+            payload.avatar_url = avatarPreview;
             const res = await api.patch('/users/me', payload);
             setUser(res.data);
             toastSuccess('Profile updated!');

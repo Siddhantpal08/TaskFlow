@@ -2,11 +2,11 @@ const db = require('../utils/db');
 
 // ─── Events ───────────────────────────────────────────────────────────────────
 
-const createEvent = async (userId, { title, description, event_date, event_time, priority }) => {
+const createEvent = async (userId, { title, description, event_date, end_date, event_time, priority, recurrence }) => {
     const [result] = await db.query(
-        `INSERT INTO events (user_id, title, description, event_date, event_time, priority)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [userId, title, description || null, event_date, event_time || null, priority || 'low']
+        `INSERT INTO events (user_id, title, description, event_date, end_date, event_time, priority, recurrence)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, title, description || null, event_date, end_date || null, event_time || null, priority || 'low', recurrence || 'none']
     );
     return getEventById(result.insertId, userId);
 };
@@ -25,11 +25,18 @@ const getEventById = async (id, userId) => {
  */
 const getEventsForMonth = async (userId, year, month) => {
     // Events
+    // To include multi-day events, we'll fetch events where the given month/year falls between event_date and end_date (or just event_date if end_date doesn't exist)
     const [events] = await db.query(
         `SELECT * FROM events
-         WHERE user_id = ? AND YEAR(event_date) = ? AND MONTH(event_date) = ?
+         WHERE user_id = ? 
+           AND (
+             (YEAR(event_date) = ? AND MONTH(event_date) = ?) OR
+             (end_date IS NOT NULL AND YEAR(end_date) = ? AND MONTH(end_date) = ?) OR
+             (end_date IS NOT NULL AND event_date <= LAST_DAY(CONCAT(?, '-', LPAD(?, 2, '0'), '-01')) AND end_date >= CONCAT(?, '-', LPAD(?, 2, '0'), '-01')) OR
+             (recurrence != 'none')
+           )
          ORDER BY event_date ASC, event_time ASC`,
-        [userId, year, month]
+        [userId, year, month, year, month, year, month, year, month]
     );
 
     // Task due dates in the same month (tasks visible to user)
@@ -45,11 +52,11 @@ const getEventsForMonth = async (userId, year, month) => {
     return { events, taskDates };
 };
 
-const updateEvent = async (id, userId, { title, description, event_date, event_time, priority }) => {
+const updateEvent = async (id, userId, { title, description, event_date, end_date, event_time, priority, recurrence }) => {
     await db.query(
-        `UPDATE events SET title = ?, description = ?, event_date = ?, event_time = ?, priority = ?
+        `UPDATE events SET title = ?, description = ?, event_date = ?, end_date = ?, event_time = ?, priority = ?, recurrence = ?
          WHERE id = ? AND user_id = ?`,
-        [title, description || null, event_date, event_time || null, priority || 'low', id, userId]
+        [title, description || null, event_date, end_date || null, event_time || null, priority || 'low', recurrence || 'none', id, userId]
     );
     return getEventById(id, userId);
 };
