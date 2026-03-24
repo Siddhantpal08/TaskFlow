@@ -17,7 +17,7 @@ const getUserByEmail = async (email) => {
 
 const getUserById = async (id) => {
     const [rows] = await db.query(
-        'SELECT id, name, email, avatar_initials, is_online, created_at FROM users WHERE id = ?',
+        'SELECT id, name, email, avatar_initials, role, bio, avatar_url, is_online, created_at FROM users WHERE id = ?',
         [id]
     );
     return rows[0] || null;

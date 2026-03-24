@@ -34,7 +34,8 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     const [delegateTo, setDelegateTo] = useState('');
     const [saving, setSaving] = useState(false);
 
-    const isCreator = user?.id === task.assigned_by;
+    const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
+    const isCreator = user?.id === task.assigned_by || amIAdmin;
     const isAssignee = user?.id === task.assigned_to;
     const canEdit = isCreator;
     const canStatus = isCreator || isAssignee;
@@ -76,7 +77,7 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
 
     // ── Delete ──────────────────────────────────────────────────────────────────
     const handleDelete = async () => {
-        if (!isCreator) return toastError('Only the creator can delete this task.');
+        if (!isCreator && task.status !== 'done') return toastError('Only the creator can delete this task unless it is done.');
         if (!window.confirm('Delete this task?')) return;
         try {
             await deleteTask(task.id);
@@ -237,7 +238,6 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                                 <select value={delegateTo} onChange={e => setDelegateTo(e.target.value)} style={INP(t)}>
                                     <option value="">Select team member…</option>
                                     {teamMembers.filter(m => {
-                                        const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
                                         return m.id !== user?.id && (amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id));
                                     }).map(m => (
                                         <option key={m.id} value={m.id}>{m.name}</option>

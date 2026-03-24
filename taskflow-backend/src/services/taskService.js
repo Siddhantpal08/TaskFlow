@@ -147,9 +147,10 @@ const deleteTask = async (taskId, userId) => {
     const task = await taskModel.getTaskById(taskId);
     if (!task) throw new AppError('Task not found.', 404);
 
-    // Only creator can delete
-    if (task.assigned_by !== userId) {
-        throw new AppError('Only the task creator can delete this task.', 403);
+    // Creator can delete, anyone can delete if task is done
+    // Also we will allow team admins to delete, but for simplicity, we'll allow assignee to delete done tasks
+    if (task.assigned_by !== userId && task.status !== 'done') {
+        throw new AppError('Only the task creator can delete this task unless it is completed.', 403);
     }
 
     await taskModel.deleteTask(taskId);

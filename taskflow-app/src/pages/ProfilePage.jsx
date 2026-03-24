@@ -9,6 +9,7 @@ export default function ProfilePage({ t, onGoBack }) {
     const [bio, setBio] = useState(user?.bio || '');
     const [loading, setLoading] = useState(false);
     const [focused, setFocused] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
     const fileRef = useRef();
     const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || null);
 
@@ -48,6 +49,7 @@ export default function ProfilePage({ t, onGoBack }) {
             payload.avatar_url = avatarPreview;
             const res = await api.patch('/users/me', payload);
             setUser(res.data);
+            setIsEditing(false);
             toastSuccess('Profile updated!');
         } catch (err) {
             toastError(err.message || 'Failed to save profile.');
@@ -102,8 +104,17 @@ export default function ProfilePage({ t, onGoBack }) {
                     ← Back
                 </button>
 
-                <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, marginBottom: 4 }}>Profile</div>
-                <div style={{ fontSize: 13, color: t.t2, marginBottom: 32 }}>Manage your personal information and preferences.</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+                    <div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, marginBottom: 4 }}>Profile</div>
+                        <div style={{ fontSize: 13, color: t.t2 }}>Manage your personal information and preferences.</div>
+                    </div>
+                    {!isEditing && (
+                        <button onClick={() => setIsEditing(true)} style={{ background: t.accentDim, color: t.accent, border: `1px solid ${t.accent}44`, borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: t.disp, fontWeight: 600 }}>
+                            Edit Profile
+                        </button>
+                    )}
+                </div>
 
                 {/* Avatar section */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 32, padding: 20, background: t.card, border: `1px solid ${t.border}`, borderRadius: 14 }}>
@@ -120,22 +131,26 @@ export default function ProfilePage({ t, onGoBack }) {
                                 ? <img src={avatarPreview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 : (initials || user?.avatar_initials || '?')}
                         </div>
-                        <button onClick={() => fileRef.current?.click()}
-                            style={{
-                                position: 'absolute', bottom: 0, right: 0,
-                                width: 22, height: 22, borderRadius: '50%', background: t.accent,
-                                border: `2px solid ${t.bg}`, display: 'flex', alignItems: 'center',
-                                justifyContent: 'center', cursor: 'pointer', fontSize: 12,
-                            }}>✏️</button>
+                        {isEditing && (
+                            <button onClick={() => fileRef.current?.click()}
+                                style={{
+                                    position: 'absolute', bottom: 0, right: 0,
+                                    width: 22, height: 22, borderRadius: '50%', background: t.accent,
+                                    border: `2px solid ${t.bg}`, display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', cursor: 'pointer', fontSize: 12,
+                                }}>✏️</button>
+                        )}
                         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
                     </div>
                     <div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: t.t1 }}>{user?.name}</div>
                         <div style={{ fontSize: 12, color: t.t3, fontFamily: t.mono, marginTop: 2 }}>{user?.email}</div>
-                        <button onClick={() => fileRef.current?.click()}
-                            style={{ marginTop: 8, background: t.accentDim, color: t.accent, border: `1px solid ${t.accent}44`, borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: t.disp, fontWeight: 600 }}>
-                            Change Photo
-                        </button>
+                        {isEditing && (
+                            <button onClick={() => fileRef.current?.click()}
+                                style={{ marginTop: 8, background: t.accentDim, color: t.accent, border: `1px solid ${t.accent}44`, borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: t.disp, fontWeight: 600 }}>
+                                Change Photo
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -145,7 +160,7 @@ export default function ProfilePage({ t, onGoBack }) {
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.t3, marginBottom: 6, letterSpacing: '0.5px' }}>FULL NAME</label>
                         <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name"
                             onFocus={() => setFocused('name')} onBlur={() => setFocused('')}
-                            style={fieldStyle('name')} required />
+                            style={fieldStyle('name')} required disabled={!isEditing} />
                     </div>
 
                     <div>
@@ -153,28 +168,30 @@ export default function ProfilePage({ t, onGoBack }) {
                         <input value={initials} onChange={e => setInitials(e.target.value.toUpperCase().slice(0, 2))}
                             placeholder="e.g. SP"
                             onFocus={() => setFocused('initials')} onBlur={() => setFocused('')}
-                            style={fieldStyle('initials')} />
+                            style={fieldStyle('initials')} disabled={!isEditing} />
                     </div>
 
                     <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.t3, marginBottom: 6, letterSpacing: '0.5px' }}>BIO / DESCRIPTION</label>
                         <textarea value={bio} onChange={e => setBio(e.target.value)}
-                            placeholder="A short description about yourself…"
+                            placeholder={isEditing ? "A short description about yourself…" : ""}
                             onFocus={() => setFocused('bio')} onBlur={() => setFocused('')}
                             rows={3}
-                            style={{ ...fieldStyle('bio'), resize: 'vertical', lineHeight: 1.6 }} />
+                            style={{ ...fieldStyle('bio'), resize: isEditing ? 'vertical' : 'none', lineHeight: 1.6 }} disabled={!isEditing} />
                     </div>
 
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-                        <button type="button" onClick={onGoBack}
-                            style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 10, padding: '10px 20px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 14 }}>
-                            Cancel
-                        </button>
-                        <button type="submit" disabled={loading}
-                            style={{ background: `linear-gradient(135deg, ${t.accent}, #009688)`, border: 'none', borderRadius: 10, padding: '10px 24px', color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 14, opacity: loading ? 0.7 : 1, transition: 'opacity .2s' }}>
-                            {loading ? 'Saving…' : 'Save Changes'}
-                        </button>
-                    </div>
+                    {isEditing && (
+                        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+                            <button type="button" onClick={() => setIsEditing(false)}
+                                style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 10, padding: '10px 20px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 14 }}>
+                                Cancel
+                            </button>
+                            <button type="submit" disabled={loading}
+                                style={{ background: `linear-gradient(135deg, ${t.accent}, #009688)`, border: 'none', borderRadius: 10, padding: '10px 24px', color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 14, opacity: loading ? 0.7 : 1, transition: 'opacity .2s' }}>
+                                {loading ? 'Saving…' : 'Save Changes'}
+                            </button>
+                        </div>
+                    )}
                 </form>
 
                 {/* Security Section */}

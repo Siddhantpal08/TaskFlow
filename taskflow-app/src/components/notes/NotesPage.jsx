@@ -26,10 +26,42 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         setTimeout(() => document.getElementById("blk-" + (afterIdx + 1))?.focus(), 30);
     };
     const updBlk = (idx, ch) => { const nb = [...blocks]; nb[idx] = { ...nb[idx], ...ch }; save(nb); };
+    const focusAtEnd = (id) => {
+        setTimeout(() => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.focus();
+            if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                range.collapse(false);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }, 30);
+    };
+
+    const focusAtStart = (id) => {
+        setTimeout(() => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.focus();
+            if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                range.collapse(true);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }, 30);
+    };
+
     const delBlk = idx => {
         if (blocks.length <= 1) { updBlk(0, { content: "" }); return; }
         const nb = blocks.filter((_, i) => i !== idx); save(nb);
-        setTimeout(() => document.getElementById("blk-" + Math.max(0, idx - 1))?.focus(), 30);
+        focusAtEnd("blk-" + Math.max(0, idx - 1));
     };
 
     const insertSlashType = type => {
@@ -142,7 +174,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                     onDelete={() => delBlk(idx)}
                                     onAddAfter={type => addBlk(idx, type)}
                                     onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
-                                    onSlashClose={() => setSlash(null)} />
+                                    onSlashClose={() => setSlash(null)}
+                                    onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
+                                    onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))} />
                             ))}
                         </div>
 

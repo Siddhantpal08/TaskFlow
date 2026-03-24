@@ -68,7 +68,7 @@ const verifyEmail = asyncWrapper(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: 15 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -119,7 +119,7 @@ const googleLogin = asyncWrapper(async (req, res, next) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            maxAge: 15 * 24 * 60 * 60 * 1000,
         });
 
         const finalUser = await userModel.getUserById(userId);
@@ -184,7 +184,7 @@ const login = asyncWrapper(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: 15 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -194,6 +194,9 @@ const login = asyncWrapper(async (req, res, next) => {
             name: user.name,
             email: user.email,
             avatar_initials: user.avatar_initials,
+            role: user.role,
+            bio: user.bio,
+            avatar_url: user.avatar_url,
             accessToken,
             refreshToken,
         },
@@ -241,7 +244,7 @@ const refresh = asyncWrapper(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: 15 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({ success: true, accessToken, refreshToken: newRefreshToken });

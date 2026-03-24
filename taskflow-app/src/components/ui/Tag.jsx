@@ -17,7 +17,7 @@ export function PriTag({ p, t }) {
 }
 
 export function StTag({ s, t }) {
-    const m = { done: [t.green, "Done"], active: [t.accent, "Active"], pending: [t.t2, "Pending"] };
+    const m = { done: [t.green, "Done"], active: [t.accent, "Active"], pending: [t.t2, "Pending"], pending_approval: [t.orange || '#FFB020', "Needs Apprvl"], refused: [t.red, "Refused"] };
     const [c, l] = m[s] || [t.t2, s];
     return <Tag label={l} color={c} />;
 }

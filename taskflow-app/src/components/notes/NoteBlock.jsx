@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { I, IC } from "../ui/Icon.jsx";
 import BlockHandle from "./BlockHandle.jsx";
 
-export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose, onOpenSlash }) {
+export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose, onOpenSlash, onFocusPrev, onFocusNext }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -31,6 +31,20 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         if (e.key === "Backspace" && ref.current?.innerText.trim() === "") {
             e.preventDefault();
             onDelete();
+        }
+        if (e.key === "ArrowUp") {
+            const sel = window.getSelection();
+            if (sel.anchorOffset === 0) {
+                e.preventDefault();
+                onFocusPrev();
+            }
+        }
+        if (e.key === "ArrowDown") {
+            const sel = window.getSelection();
+            if (sel.anchorOffset === (ref.current?.innerText.length || 0) || ref.current?.innerText === "") {
+                e.preventDefault();
+                onFocusNext();
+            }
         }
     };
 
