@@ -10,4 +10,6 @@ export const teamApi = {
     getLeaveRequests: (teamId) => api.get(`/team/${teamId}/leave-requests`),
     approveLeaveRequest: (requestId) => api.post(`/team/leave-requests/${requestId}/approve`),
     rejectLeaveRequest: (requestId) => api.post(`/team/leave-requests/${requestId}/reject`),
+    getMemberActivity: (memberId) => api.get(`/team/members/${memberId}/activity`),
+    getDummyHierarchy: () => api.get('/team/hierarchy/dummy')
 };

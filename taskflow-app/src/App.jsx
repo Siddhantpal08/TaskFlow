@@ -3,6 +3,7 @@ import { FONTS, DARK, LIGHT } from "./data/themes.js";
 import { INIT_PAGES, mkId, mkBlock, EMOJIS } from "./data/notes.js";
 import { I, IC } from "./components/ui/Icon.jsx";
 import "./styles/global.css";
+import { notesApi } from "./api/notes.js";
 
 // Auth
 import { useAuth } from "./context/AuthContext.jsx";
@@ -38,18 +39,37 @@ function MainApp() {
     const [searchQuery, setSearchQuery] = useState("");
 
     // Notes state
-    const [pages, setPages] = useState(() => {
-        try {
-            const saved = localStorage.getItem('tf_notes_pages');
-            return saved ? JSON.parse(saved) : INIT_PAGES;
-        } catch { return INIT_PAGES; }
-    });
-    const [notePageId, setNotePageId] = useState("np1");
-    const [expanded, setExpanded] = useState({ root: true, np1: true });
+    const [pages, setPages] = useState({});
+    const [notePageId, setNotePageId] = useState(null);
+    const [expanded, setExpanded] = useState({ root: true });
 
     useEffect(() => {
-        localStorage.setItem('tf_notes_pages', JSON.stringify(pages));
-    }, [pages]);
+        notesApi.getPages().then(res => {
+            const roots = res.data.data;
+            if (roots.length === 0) {
+                notesApi.createPage({ title: "My Workspace", emoji: "🏠" }).then(r => {
+                    const id = r.data.data.id;
+                    setPages({ [id]: { id, title: "My Workspace", emoji: "🏠", parentId: "root", childIds: [], updatedAt: "Just now" } });
+                    setNotePageId(id);
+                });
+            } else {
+                const newPages = {};
+                let firstId = null;
+                const walk = (node, parentId) => {
+                    if (!firstId) firstId = node.id;
+                    newPages[node.id] = {
+                        id: node.id, title: node.title, emoji: node.emoji || "📄",
+                        parentId: parentId || "root", childIds: node.children?.map(c => c.id) || [],
+                        updatedAt: "Server Sync"
+                    };
+                    node.children?.forEach(c => walk(c, node.id));
+                };
+                roots.forEach(r => walk(r, null));
+                setPages(newPages);
+                setNotePageId(firstId);
+            }
+        }).catch(e => console.error(e));
+    }, []);
 
     const t = dark ? DARK : LIGHT;
 
@@ -70,35 +90,42 @@ function MainApp() {
     .nsi:hover  { background: ${t.noteHover} !important; }
   `;
 
-    const addNotePage = parentId => {
-        const id = mkId();
-        const emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-        setPages(prev => ({
-            ...prev,
-            [id]: { id, title: "Untitled", emoji, parentId, childIds: [], blocks: [mkBlock("h1", "Untitled"), mkBlock("p", "")], updatedAt: "Just now" },
-            [parentId]: { ...prev[parentId], childIds: [...(prev[parentId].childIds || []), id] },
-        }));
-        setExpanded(prev => ({ ...prev, [parentId]: true }));
-        setNotePageId(id);
-        setPage("notes");
+    const addNotePage = async (parentId) => {
+        try {
+            const r = await notesApi.createPage({ title: "Untitled", emoji: "📄", parentId: parentId === 'root' ? null : parentId });
+            const id = r.data.data.id;
+            setPages(prev => ({
+                ...prev,
+                [id]: { id, title: "Untitled", emoji: "📄", parentId, childIds: [], updatedAt: "Just now" },
+                [parentId]: { ...prev[parentId], childIds: [...(prev[parentId]?.childIds || []), id] },
+            }));
+            setExpanded(prev => ({ ...prev, [parentId]: true }));
+            setNotePageId(id);
+            setPage("notes");
+        } catch (e) { }
     };
 
-    const deleteNotePage = id => {
+    const deleteNotePage = async (id) => {
         const pg = pages[id];
         if (!pg || id === "root") return;
-        setPages(prev => {
-            const next = { ...prev };
-            if (pg.parentId && next[pg.parentId])
-                next[pg.parentId] = { ...next[pg.parentId], childIds: next[pg.parentId].childIds.filter(c => c !== id) };
-            const del = pid => { const p = next[pid]; if (!p) return; p.childIds?.forEach(del); delete next[pid]; };
-            del(id);
-            return next;
-        });
-        if (notePageId === id) setNotePageId(pg.parentId === "root" ? "np1" : pg.parentId);
+        try {
+            await notesApi.deletePage(id);
+            setPages(prev => {
+                const next = { ...prev };
+                if (pg.parentId && next[pg.parentId])
+                    next[pg.parentId] = { ...next[pg.parentId], childIds: next[pg.parentId].childIds.filter(c => c !== id) };
+                const del = pid => { const p = next[pid]; if (!p) return; p.childIds?.forEach(del); delete next[pid]; };
+                del(id);
+                return next;
+            });
+            if (notePageId === id) setNotePageId(pg.parentId === "root" ? Object.keys(pages)[0] : pg.parentId);
+        } catch (e) { }
     };
 
-    const updateNotePage = (id, changes) =>
+    const updateNotePage = (id, changes) => {
         setPages(prev => ({ ...prev, [id]: { ...prev[id], ...changes, updatedAt: "Just now" } }));
+        notesApi.updatePage(id, changes).catch(() => { });
+    };
 
     const navigateNote = id => { setNotePageId(id); setPage("notes"); };
 

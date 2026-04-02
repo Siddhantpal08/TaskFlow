@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toastSuccess, toastError } from '../components/ui/Toast.jsx';
+import Friends from '../components/Friends.jsx';
 
 export default function ProfilePage({ t, onGoBack }) {
     const { user, setUser } = useAuth();
@@ -203,6 +204,9 @@ export default function ProfilePage({ t, onGoBack }) {
                         {passLoading ? 'Requesting...' : 'Change Password'}
                     </button>
                 </div>
+
+                {/* Friends Section */}
+                <Friends t={t} />
             </div>
 
             {/* Avatar Zoom Modal */}

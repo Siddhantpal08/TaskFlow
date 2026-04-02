@@ -67,4 +67,61 @@ const getMemberActivity = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: { member, activity } });
 });
 
-module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity };
+const getDummyHierarchy = asyncWrapper(async (req, res) => {
+    const dummyTree = {
+        id: 't_ceo_1',
+        title: 'Launch TaskFlow Q3',
+        status: 'in_progress',
+        assignee: { name: 'Alice (CEO)', initials: 'AL' },
+        children: [
+            {
+                id: 't_cto_1',
+                title: 'Deploy New Core Architecture',
+                status: 'in_progress',
+                assignee: { name: 'Bob (CTO)', initials: 'BO' },
+                children: [
+                    {
+                        id: 't_dev_1',
+                        title: 'Migrate DB Servers',
+                        status: 'done',
+                        assignee: { name: 'Charlie (DevLead)', initials: 'CH' },
+                        children: []
+                    },
+                    {
+                        id: 't_dev_2',
+                        title: 'Implement Friends Socket Sync',
+                        status: 'in_progress',
+                        assignee: { name: 'Dave (Backend)', initials: 'DA' },
+                        children: [
+                            {
+                                id: 't_dev_3',
+                                title: 'Write Friend Model Specs',
+                                status: 'done',
+                                assignee: { name: 'Eve (Intern)', initials: 'EV' },
+                                children: []
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 't_cmo_1',
+                title: 'Market New Collaboration Feature',
+                status: 'pending',
+                assignee: { name: 'Fiona (CMO)', initials: 'FI' },
+                children: [
+                    {
+                        id: 't_mar_1',
+                        title: 'Draft Newsletter',
+                        status: 'in_progress',
+                        assignee: { name: 'George (Marketing)', initials: 'GE' },
+                        children: []
+                    }
+                ]
+            }
+        ]
+    };
+    res.status(200).json({ success: true, data: dummyTree });
+});
+
+module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy };

@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
-const { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity } = require('../controllers/teamController');
+const { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy } = require('../controllers/teamController');
 
 const router = express.Router();
 
@@ -29,5 +29,8 @@ router.get('/members', getMembers);
 
 // Get activity of a specific member
 router.get('/members/:id/activity', getMemberActivity);
+
+// Dummy organizational hierarchy
+router.get('/hierarchy/dummy', getDummyHierarchy);
 
 module.exports = router;

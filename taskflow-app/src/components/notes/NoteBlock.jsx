@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { I, IC } from "../ui/Icon.jsx";
 import BlockHandle from "./BlockHandle.jsx";
 
-export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose, onOpenSlash, onFocusPrev, onFocusNext }) {
+export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose, onOpenSlash, onFocusPrev, onFocusNext, onPasteHTML }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -54,6 +54,16 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         onSlashClose();
     };
 
+    const handlePaste = e => {
+        const html = e.clipboardData.getData('text/html');
+        const text = e.clipboardData.getData('text/plain');
+        if (onPasteHTML && (html || text)) {
+            if (onPasteHTML(html, text, idx)) {
+                e.preventDefault();
+            }
+        }
+    };
+
     // ── DIVIDER ──
     if (blk.type === "divider") return (
         <div className="blkr" style={{ position: "relative", padding: "6px 0" }}
@@ -89,7 +99,7 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
             <div style={{ display: "flex", gap: 11, padding: "11px 14px", borderRadius: 10, background: t.calloutBg, border: `1px solid ${t.calloutBorder}` }}>
                 <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>💡</span>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
-                    data-ph="Add a callout…" onInput={handleInput} onKeyDown={handleKey}
+                    data-ph="Add a callout…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                     style={{ flex: 1, fontSize: 13.5, color: t.calloutText, lineHeight: 1.65, fontFamily: t.disp, wordBreak: "break-word" }}>
                 </div>
             </div>
@@ -104,7 +114,7 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
             <div style={{ display: "flex" }}>
                 <div style={{ width: 3, borderRadius: 3, background: t.quoteBorder, flexShrink: 0 }} />
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
-                    data-ph="Add a quote…" onInput={handleInput} onKeyDown={handleKey}
+                    data-ph="Add a quote…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                     style={{ flex: 1, fontSize: 15, color: t.quoteText, lineHeight: 1.7, fontFamily: "'Lora',serif", fontStyle: "italic", padding: "4px 16px", wordBreak: "break-word" }}>
                 </div>
             </div>
@@ -122,7 +132,7 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
                     {blk.checked && <I d={IC.chk} sz={9} c={dark ? "#000" : "#fff"} sw={3} />}
                 </button>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
-                    data-ph="To-do…" onInput={handleInput} onKeyDown={handleKey}
+                    data-ph="To-do…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                     style={{ flex: 1, fontSize: 14, lineHeight: 1.65, wordBreak: "break-word", color: blk.checked ? t.noteMuted : t.noteText, fontFamily: t.disp, textDecoration: blk.checked ? "line-through" : "none", transition: "all .2s" }}>
                 </div>
             </div>
@@ -197,7 +207,7 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
             )}
             <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                 data-ph={blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "Write something, or '/' for commands…"}
-                onInput={handleInput} onKeyDown={handleKey}
+                onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                 style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10, paddingRight: hov && blk.type === 'p' ? 180 : 90 }}>
             </div>
         </div>

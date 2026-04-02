@@ -3,29 +3,77 @@ import { I, IC } from "../ui/Icon.jsx";
 import { EMOJIS, mkBlock } from "../../data/notes.js";
 import NoteBlock from "./NoteBlock.jsx";
 import SlashMenu from "./SlashMenu.jsx";
+import { notesApi } from "../../api/notes.js";
+import { io } from "socket.io-client";
 
 export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage, searchQuery = "" }) {
     const pg = pages[notePageId];
     if (!pg) return null;
 
-    const [blocks, setBlocks] = useState(pg.blocks || [mkBlock("p", "")]);
+    const [blocks, setBlocks] = useState([]);
     const [slash, setSlash] = useState(null);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const titleRef = useRef();
+    const socketRef = useRef(null);
 
     useEffect(() => {
-        setBlocks(pages[notePageId]?.blocks || [mkBlock("p", "")]);
         setSlash(null);
+        let active = true;
+
+        notesApi.getPage(notePageId).then(res => {
+            if (active) setBlocks(res.data.data.blocks || [mkBlock("p", "")]);
+        }).catch(e => {
+            if (active) setBlocks([mkBlock("p", "")]);
+        });
+
+        // Socket setup
+        const s = io(import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000');
+        socketRef.current = s;
+        s.emit('note:join', notePageId);
+
+        s.on('note:block:updated', ({ blockId, changes }) => {
+            setBlocks(prev => {
+                const idx = prev.findIndex(b => b.id === blockId);
+                if (idx === -1) return prev;
+                const next = [...prev];
+                next[idx] = { ...next[idx], ...changes };
+                return next;
+            });
+        });
+
+        return () => {
+            active = false;
+            s.emit('note:leave', notePageId);
+            s.disconnect();
+        };
     }, [notePageId]);
 
-    const save = nb => { setBlocks(nb); updateNotePage(notePageId, { blocks: nb }); };
+    const save = nb => { setBlocks(nb); /* Local backup logic not needed here */ };
 
-    const addBlk = (afterIdx, type = "p", content = "") => {
+    const addBlk = async (afterIdx, type = "p", content = "") => {
         const b = mkBlock(type, content);
         const nb = [...blocks]; nb.splice(afterIdx + 1, 0, b); save(nb);
         setTimeout(() => document.getElementById("blk-" + (afterIdx + 1))?.focus(), 30);
+        try {
+            const res = await notesApi.createBlock(notePageId, { type, content, position: afterIdx + 1 });
+            b.id = res.data.data.id;
+        } catch (e) { }
     };
-    const updBlk = (idx, ch) => { const nb = [...blocks]; nb[idx] = { ...nb[idx], ...ch }; save(nb); };
+
+    const updBlk = (idx, ch) => {
+        const nb = [...blocks];
+        const blk = nb[idx];
+        nb[idx] = { ...blk, ...ch };
+        save(nb);
+
+        socketRef.current?.emit('note:block:update', { pageId: notePageId, blockId: blk.id, changes: ch });
+
+        // Debounce update to backend
+        clearTimeout(blk._t);
+        blk._t = setTimeout(() => {
+            notesApi.updateBlock(blk.id, ch).catch(() => { });
+        }, 800);
+    };
     const focusAtEnd = (id) => {
         setTimeout(() => {
             const el = document.getElementById(id);
@@ -60,8 +108,53 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     const delBlk = idx => {
         if (blocks.length <= 1) { updBlk(0, { content: "" }); return; }
+        const blk = blocks[idx];
         const nb = blocks.filter((_, i) => i !== idx); save(nb);
         focusAtEnd("blk-" + Math.max(0, idx - 1));
+        notesApi.deleteBlock(blk.id).catch(() => { });
+    };
+
+    const handlePasteHTML = (html, text, targetIdx) => {
+        if (!html && !text) return false;
+        let newBlocks = [];
+
+        if (html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const walk = (node) => {
+                const tag = node.tagName?.toLowerCase();
+                const isBlock = ['h1', 'h2', 'h3', 'p', 'blockquote', 'pre', 'li', 'div'].includes(tag);
+                if (isBlock) {
+                    let type = 'p';
+                    if (tag === 'h1') type = 'h1';
+                    else if (tag === 'h2') type = 'h2';
+                    else if (tag === 'h3') type = 'h3';
+                    else if (tag === 'blockquote') type = 'quote';
+                    else if (tag === 'pre') type = 'code';
+                    else if (tag === 'li') {
+                        // Notion todo lists check
+                        if (node.querySelector('.pseudoCheckbox') || node.closest('.to-do-list')) type = 'todo';
+                    }
+                    const content = node.innerText.trim();
+                    if (content) newBlocks.push(mkBlock(type, content));
+                } else if (node.nodeType === 1) {
+                    Array.from(node.children).forEach(walk);
+                }
+            };
+            Array.from(doc.body.children).forEach(walk);
+        } else if (text) {
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            newBlocks = lines.map(l => mkBlock('p', l));
+        }
+
+        // Only intercept if pasting multiple blocks, otherwise default paste inline
+        if (newBlocks.length <= 1) return false;
+
+        const nb = [...blocks];
+        nb.splice(targetIdx + 1, 0, ...newBlocks);
+        save(nb);
+        setTimeout(() => document.getElementById("blk-" + (targetIdx + newBlocks.length))?.focus(), 30);
+        return true;
     };
 
     const insertSlashType = type => {
@@ -176,7 +269,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                     onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
                                     onSlashClose={() => setSlash(null)}
                                     onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
-                                    onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))} />
+                                    onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))}
+                                    onPasteHTML={(html, text, i) => handlePasteHTML(html, text, i)} />
                             ))}
                         </div>
 

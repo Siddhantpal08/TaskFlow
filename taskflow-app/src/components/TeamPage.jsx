@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext.jsx';
 import { teamApi } from '../api/team.js';
 import { toastError, toastSuccess } from './ui/Toast.jsx';
 import Team from './Team.jsx';
+import HierarchyChart from './HierarchyChart.jsx';
 
 export default function TeamPage({ t }) {
     const { refreshTeams } = useData();
@@ -144,6 +145,12 @@ export default function TeamPage({ t }) {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                {/* Delegation Hierarchy Chart */}
+                <div style={{ marginBottom: 32 }}>
+                    <h3 style={{ fontSize: 16, color: t.t1, marginBottom: 16, marginTop: 0, fontFamily: t.disp }}>Task Delegation Hierarchy</h3>
+                    <HierarchyChart t={t} />
                 </div>
 
                 {/* List of User's Teams */}

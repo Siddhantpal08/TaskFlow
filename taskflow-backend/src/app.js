@@ -19,6 +19,7 @@ const calendarRoutes = require('./routes/calendarRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const userRoutes = require('./routes/userRoutes');
+const friendRoutes = require('./routes/friendRoutes');
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 const app = express();
@@ -118,6 +119,7 @@ app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/notes', notesRoutes);
 app.use('/api/v1/calendar', calendarRoutes);
 app.use('/api/v1/team', teamRoutes);
+app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1', userRoutes);          // /api/v1/dashboard, /api/v1/users/me
 

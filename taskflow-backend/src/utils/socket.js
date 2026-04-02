@@ -34,6 +34,28 @@ const initSocket = (io) => {
             db.query('UPDATE users SET is_online = 0 WHERE id = ?', [userId]).catch(console.error);
             io.emit('user:offline', { userId });
         });
+
+        // Notes Collaboration Rooms
+        socket.on('note:join', (pageId) => {
+            if (pageId) socket.join(`note:${pageId}`);
+        });
+
+        socket.on('note:leave', (pageId) => {
+            if (pageId) socket.leave(`note:${pageId}`);
+        });
+
+        // Forward a block update to other clients in the same note room
+        socket.on('note:block:update', ({ pageId, blockId, changes }) => {
+            socket.to(`note:${pageId}`).emit('note:block:updated', { blockId, changes });
+        });
+
+        socket.on('note:block:add', ({ pageId, block, afterIdx }) => {
+            socket.to(`note:${pageId}`).emit('note:block:added', { block, afterIdx });
+        });
+
+        socket.on('note:block:delete', ({ pageId, idx }) => {
+            socket.to(`note:${pageId}`).emit('note:block:deleted', { idx });
+        });
     });
 };
 
