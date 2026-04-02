@@ -12,8 +12,8 @@ export default function Friends({ t }) {
         try {
             setLoading(true);
             const { data } = await friendsApi.getFriends();
-            setFriends(data.data.friends || []);
-            setRequests(data.data.requests || []);
+            setFriends(data.friends || []);
+            setRequests(data.requests || []);
         } catch (e) {
             toastError("Failed to fetch friends.");
         } finally {

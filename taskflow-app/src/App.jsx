@@ -45,25 +45,25 @@ function MainApp() {
 
     useEffect(() => {
         notesApi.getPages().then(res => {
-            const roots = res.data.data;
+            const roots = res.data;
             if (roots.length === 0) {
                 const initPages = async () => {
                     try {
                         const r1 = await notesApi.createPage({ title: "My Workspace", emoji: "🏠" });
                         const r2 = await notesApi.createPage({ title: "Personal Notes", emoji: "📝" });
                         const r3 = await notesApi.createPage({ title: "Project Ideas", emoji: "💡" });
-                        const r4 = await notesApi.createPage({ title: "To-do List", emoji: "✅", parentId: r3.data.data.id });
+                        const r4 = await notesApi.createPage({ title: "To-do List", emoji: "✅", parentId: r3.data.id });
 
                         setPages({
-                            [r1.data.data.id]: { id: r1.data.data.id, title: "My Workspace", emoji: "🏠", parentId: "root", childIds: [], updatedAt: "Just now" },
-                            [r2.data.data.id]: { id: r2.data.data.id, title: "Personal Notes", emoji: "📝", parentId: "root", childIds: [], updatedAt: "Just now" },
-                            [r3.data.data.id]: { id: r3.data.data.id, title: "Project Ideas", emoji: "💡", parentId: "root", childIds: [r4.data.data.id], updatedAt: "Just now" },
-                            [r4.data.data.id]: { id: r4.data.data.id, title: "To-do List", emoji: "✅", parentId: r3.data.data.id, childIds: [], updatedAt: "Just now" }
+                            [r1.data.id]: { id: r1.data.id, title: "My Workspace", emoji: "🏠", parentId: "root", childIds: [], updatedAt: "Just now" },
+                            [r2.data.id]: { id: r2.data.id, title: "Personal Notes", emoji: "📝", parentId: "root", childIds: [], updatedAt: "Just now" },
+                            [r3.data.id]: { id: r3.data.id, title: "Project Ideas", emoji: "💡", parentId: "root", childIds: [r4.data.id], updatedAt: "Just now" },
+                            [r4.data.id]: { id: r4.data.id, title: "To-do List", emoji: "✅", parentId: r3.data.id, childIds: [], updatedAt: "Just now" }
                         });
-                        setNotePageId(r1.data.data.id);
+                        setNotePageId(r1.data.id);
 
-                        await notesApi.createBlock(r1.data.data.id, { type: "h1", content: "Welcome to your Workspace!" });
-                        await notesApi.createBlock(r1.data.data.id, { type: "p", content: "Try pasting an entire article from Notion to see the formatting magic!" });
+                        await notesApi.createBlock(r1.data.id, { type: "h1", content: "Welcome to your Workspace!" });
+                        await notesApi.createBlock(r1.data.id, { type: "p", content: "Try pasting an entire article from Notion to see the formatting magic!" });
                     } catch (e) { }
                 };
                 initPages();
@@ -108,7 +108,7 @@ function MainApp() {
     const addNotePage = async (parentId) => {
         try {
             const r = await notesApi.createPage({ title: "Untitled", emoji: "📄", parentId: parentId === 'root' ? null : parentId });
-            const id = r.data.data.id;
+            const id = r.data.id;
             setPages(prev => ({
                 ...prev,
                 [id]: { id, title: "Untitled", emoji: "📄", parentId, childIds: [], updatedAt: "Just now" },

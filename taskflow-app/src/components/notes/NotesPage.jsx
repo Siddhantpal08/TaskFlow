@@ -21,7 +21,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         let active = true;
 
         notesApi.getPage(notePageId).then(res => {
-            if (active) setBlocks(res.data.data.blocks || [mkBlock("p", "")]);
+            if (active) setBlocks(res.data.blocks || [mkBlock("p", "")]);
         }).catch(e => {
             if (active) setBlocks([mkBlock("p", "")]);
         });
@@ -56,7 +56,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         setTimeout(() => document.getElementById("blk-" + (afterIdx + 1))?.focus(), 30);
         try {
             const res = await notesApi.createBlock(notePageId, { type, content, position: afterIdx + 1 });
-            b.id = res.data.data.id;
+            b.id = res.data.id;
         } catch (e) { }
     };
 

@@ -79,7 +79,7 @@ export default function HierarchyChart({ t }) {
         try {
             setLoading(true);
             const res = await teamApi.getDummyHierarchy();
-            setTreeData(res.data.data);
+            setTreeData(res.data);
         } catch (e) {
             console.error("Failed to load generic corporate hierarchy.", e);
         } finally {
