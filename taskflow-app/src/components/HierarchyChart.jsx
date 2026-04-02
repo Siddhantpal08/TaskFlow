@@ -93,7 +93,7 @@ export default function HierarchyChart({ t }) {
                 <I d={IC.team} sz={32} c={t.t3} style={{ marginBottom: 16 }} />
                 <h3 style={{ fontSize: 16, color: t.t1, margin: '0 0 8px 0' }}>Organizational Dummy Chart</h3>
                 <p style={{ fontSize: 13, color: t.t2, margin: '0 0 16px 0', lineHeight: 1.6 }}>Generate a hierarchical view of delegated corporate tasks to see how reporting lines work in TaskFlow.</p>
-                <button onClick={loadDummyData} style={{ background: t.accent, color: '#000', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp }}>
+                <button type="button" onClick={loadDummyData} style={{ background: t.accent, color: '#000', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp }}>
                     Generate Demo Structure
                 </button>
             </div>

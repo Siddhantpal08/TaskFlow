@@ -47,11 +47,26 @@ function MainApp() {
         notesApi.getPages().then(res => {
             const roots = res.data.data;
             if (roots.length === 0) {
-                notesApi.createPage({ title: "My Workspace", emoji: "🏠" }).then(r => {
-                    const id = r.data.data.id;
-                    setPages({ [id]: { id, title: "My Workspace", emoji: "🏠", parentId: "root", childIds: [], updatedAt: "Just now" } });
-                    setNotePageId(id);
-                });
+                const initPages = async () => {
+                    try {
+                        const r1 = await notesApi.createPage({ title: "My Workspace", emoji: "🏠" });
+                        const r2 = await notesApi.createPage({ title: "Personal Notes", emoji: "📝" });
+                        const r3 = await notesApi.createPage({ title: "Project Ideas", emoji: "💡" });
+                        const r4 = await notesApi.createPage({ title: "To-do List", emoji: "✅", parentId: r3.data.data.id });
+
+                        setPages({
+                            [r1.data.data.id]: { id: r1.data.data.id, title: "My Workspace", emoji: "🏠", parentId: "root", childIds: [], updatedAt: "Just now" },
+                            [r2.data.data.id]: { id: r2.data.data.id, title: "Personal Notes", emoji: "📝", parentId: "root", childIds: [], updatedAt: "Just now" },
+                            [r3.data.data.id]: { id: r3.data.data.id, title: "Project Ideas", emoji: "💡", parentId: "root", childIds: [r4.data.data.id], updatedAt: "Just now" },
+                            [r4.data.data.id]: { id: r4.data.data.id, title: "To-do List", emoji: "✅", parentId: r3.data.data.id, childIds: [], updatedAt: "Just now" }
+                        });
+                        setNotePageId(r1.data.data.id);
+
+                        await notesApi.createBlock(r1.data.data.id, { type: "h1", content: "Welcome to your Workspace!" });
+                        await notesApi.createBlock(r1.data.data.id, { type: "p", content: "Try pasting an entire article from Notion to see the formatting magic!" });
+                    } catch (e) { }
+                };
+                initPages();
             } else {
                 const newPages = {};
                 let firstId = null;

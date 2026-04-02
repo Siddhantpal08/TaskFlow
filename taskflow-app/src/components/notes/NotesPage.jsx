@@ -192,7 +192,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     {crumbs.map((p, i) => (
                         <div key={p.id} style={{ display: "flex", alignItems: "center" }}>
                             {i > 0 && <span style={{ color: t.t3, fontSize: 11, margin: "0 5px" }}>/</span>}
-                            <button onClick={() => navigateNote(p.id)}
+                            <button type="button" onClick={() => navigateNote(p.id)}
                                 style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 7px", borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: i < crumbs.length - 1 ? t.t2 : t.t1, fontFamily: t.disp, fontSize: 12, fontWeight: i === crumbs.length - 1 ? 600 : 400, transition: "background .12s" }}
                                 onMouseEnter={e => { if (i < crumbs.length - 1) e.currentTarget.style.background = t.noteHover; }}
                                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -201,7 +201,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </div>
                     ))}
                     <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-                        <button onClick={() => addNotePage(notePageId)}
+                        <button type="button" onClick={() => addNotePage(notePageId)}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -219,7 +219,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
                         {/* Emoji picker */}
                         <div style={{ position: "relative", display: "inline-block", marginBottom: 6 }}>
-                            <button onClick={e => { e.stopPropagation(); setEmojiOpen(p => !p); }}
+                            <button type="button" onClick={e => { e.stopPropagation(); setEmojiOpen(p => !p); }}
                                 style={{ fontSize: 52, background: "none", border: "none", cursor: "pointer", lineHeight: 1, padding: 4, borderRadius: 8, transition: "background .15s" }}
                                 onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -229,7 +229,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, zIndex: 60, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10, boxShadow: t.shadow, display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 3, width: 230, maxHeight: 280, overflowY: "auto" }}
                                     onClick={e => e.stopPropagation()}>
                                     {EMOJIS.map(em => (
-                                        <button key={em} onClick={() => { updateNotePage(notePageId, { emoji: em }); setEmojiOpen(false); }}
+                                        <button type="button" key={em} onClick={() => { updateNotePage(notePageId, { emoji: em }); setEmojiOpen(false); }}
                                             style={{ fontSize: 19, background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, transition: "background .1s" }}
                                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -299,7 +299,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         )}
 
                         {/* Add sub-page CTA */}
-                        <button onClick={() => addNotePage(notePageId)}
+                        <button type="button" onClick={() => addNotePage(notePageId)}
                             style={{
                                 marginTop: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                                 padding: "18px 24px", borderRadius: 12, border: "none", cursor: "pointer",
