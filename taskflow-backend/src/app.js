@@ -117,13 +117,35 @@ app.get('/health', (req, res) => {
 app.get('/db-repair', async (req, res) => {
     try {
         const db = require('./utils/db');
-        const errors = [];
-        const success = [];
+
+        const q1 = await db.query(`CREATE TABLE IF NOT EXISTS notes_pages (
+            id CHAR(36) PRIMARY KEY,
+            user_id INT NOT NULL,
+            parent_id CHAR(36) NULL,
+            title VARCHAR(255) DEFAULT 'Untitled',
+            emoji VARCHAR(8) NULL,
+            position INT DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (parent_id) REFERENCES notes_pages(id) ON DELETE CASCADE
+        )`).catch(e => e.message);
+
+        const q2 = await db.query(`CREATE TABLE IF NOT EXISTS notes_blocks (
+            id CHAR(36) PRIMARY KEY,
+            page_id CHAR(36) NOT NULL,
+            type VARCHAR(20) DEFAULT 'p',
+            content TEXT,
+            checked TINYINT(1) DEFAULT 0,
+            position INT DEFAULT 0,
+            FOREIGN KEY (page_id) REFERENCES notes_pages(id) ON DELETE CASCADE
+        )`).catch(e => e.message);
+
         const r1 = await db.query("ALTER TABLE users ADD COLUMN role ENUM('admin','user') DEFAULT 'user'").catch(e => e.message);
         const r2 = await db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL').catch(e => e.message);
         const r3 = await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL').catch(e => e.message);
         const r4 = await db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL').catch(e => e.message);
-        res.json({ r1, r2, r3, r4 });
+
+        res.json({ tables: { q1, q2 }, alter: { r1, r2, r3, r4 } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
