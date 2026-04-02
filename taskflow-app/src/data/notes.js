@@ -1,4 +1,4 @@
-export const mkId = () => Math.random().toString(36).slice(2, 9);
+export const mkId = () => "loc-" + Math.random().toString(36).slice(2, 9);
 export const mkBlock = (type = "p", content = "", extra = {}) => ({ id: mkId(), type, content, checked: false, ...extra });
 
 export const EMOJIS = ["📝", "📚", "🗂️", "💡", "🎯", "🔬", "⚡", "🌿", "🎨", "🔧", "📊", "🚀", "🧠", "💼", "🌍", "🔐", "📐", "🎵", "🏗️", "✨"];

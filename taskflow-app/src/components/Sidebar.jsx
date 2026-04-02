@@ -125,8 +125,10 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                         background: `linear-gradient(135deg, ${t.accent}40, ${t.purple || '#B083FF'}40)`,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         fontSize: 12, fontWeight: 700, color: t.accent,
-                        border: `1.5px solid ${t.accent}44`
-                    }}>{user?.avatar_initials || "?"}</div>
+                        border: `1.5px solid ${t.accent}44`,
+                        backgroundImage: user?.avatar_url ? `url(${user.avatar_url})` : 'none',
+                        backgroundSize: 'cover', backgroundPosition: 'center'
+                    }}>{!user?.avatar_url && (user?.avatar_initials || "?")}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: t.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.name || "User"}</div>
                         <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email || ""}</div>

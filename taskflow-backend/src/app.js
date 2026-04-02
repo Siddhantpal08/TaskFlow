@@ -113,6 +113,40 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'TaskFlow API is running.' });
 });
 
+// ─── Diagnostic Hook ──────────────────────────────────────────────────────────
+app.get('/db-repair', async (req, res) => {
+    try {
+        const db = require('./utils/db');
+        const errors = [];
+        const success = [];
+        const r1 = await db.query('ALTER TABLE users ADD COLUMN role ENUM("admin","user") DEFAULT "user"').catch(e => e.message);
+        const r2 = await db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL').catch(e => e.message);
+        const r3 = await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL').catch(e => e.message);
+        const r4 = await db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL').catch(e => e.message);
+        res.json({ r1, r2, r3, r4 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── Diagnostic Hook ──────────────────────────────────────────────────────────
+app.get('/api/v1/diagnose-db', async (req, res) => {
+    try {
+        const db = require('./utils/db');
+        const errors = [];
+        const success = [];
+
+        try { await db.query('ALTER TABLE users ADD COLUMN role ENUM("admin","user") DEFAULT "user"'); success.push("role"); } catch (e) { errors.push({ col: "role", err: e.message }); }
+        try { await db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL'); success.push("google_id"); } catch (e) { errors.push({ col: "google_id", err: e.message }); }
+        try { await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL'); success.push("avatar_url"); } catch (e) { errors.push({ col: "avatar_url", err: e.message }); }
+        try { await db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL'); success.push("bio"); } catch (e) { errors.push({ col: "bio", err: e.message }); }
+
+        res.json({ success, errors });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/tasks', taskRoutes);
