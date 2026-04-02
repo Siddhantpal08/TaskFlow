@@ -50,22 +50,42 @@ function MainApp() {
             if (roots.length === 0) {
                 const initPages = async () => {
                     try {
-                        const r1 = await notesApi.createPage({ title: "My Workspace", emoji: "🏠" });
-                        const r2 = await notesApi.createPage({ title: "Personal Notes", emoji: "📝" });
-                        const r3 = await notesApi.createPage({ title: "Project Ideas", emoji: "💡" });
-                        const r4 = await notesApi.createPage({ title: "To-do List", emoji: "✅", parentId: r3.data.id });
+                        const idMap = { root: null };
+                        const order = ["np1", "np1a", "np1b", "np1b1", "np2", "np3"];
 
-                        setPages({
-                            [r1.data.id]: { id: r1.data.id, title: "My Workspace", emoji: "🏠", parentId: "root", childIds: [], updatedAt: "Just now" },
-                            [r2.data.id]: { id: r2.data.id, title: "Personal Notes", emoji: "📝", parentId: "root", childIds: [], updatedAt: "Just now" },
-                            [r3.data.id]: { id: r3.data.id, title: "Project Ideas", emoji: "💡", parentId: "root", childIds: [r4.data.id], updatedAt: "Just now" },
-                            [r4.data.id]: { id: r4.data.id, title: "To-do List", emoji: "✅", parentId: r3.data.id, childIds: [], updatedAt: "Just now" }
-                        });
-                        setNotePageId(r1.data.id);
+                        for (const oldId of order) {
+                            const pg = INIT_PAGES[oldId];
+                            if (!pg) continue;
+                            const res = await notesApi.createPage({
+                                title: pg.title, emoji: pg.emoji,
+                                parentId: idMap[pg.parentId]
+                            });
+                            idMap[oldId] = res.data.id;
+                            for (let i = 0; i < pg.blocks.length; i++) {
+                                await notesApi.createBlock(res.data.id, {
+                                    type: pg.blocks[i].type, content: pg.blocks[i].content,
+                                    position: i, checked: pg.blocks[i].checked
+                                });
+                            }
+                        }
 
-                        await notesApi.createBlock(r1.data.id, { type: "h1", content: "Welcome to your Workspace!" });
-                        await notesApi.createBlock(r1.data.id, { type: "p", content: "Try pasting an entire article from Notion to see the formatting magic!" });
-                    } catch (e) { }
+                        // Force a full tree reload to ingest the server's generated structure
+                        const treeRes = await notesApi.getPages();
+                        const newPages = {};
+                        let firstId = null;
+                        const walk = (node, parentId) => {
+                            if (!firstId) firstId = node.id;
+                            newPages[node.id] = {
+                                id: node.id, title: node.title, emoji: node.emoji || "📄",
+                                parentId: parentId || "root", childIds: node.children?.map(c => c.id) || [],
+                                updatedAt: "Server Sync"
+                            };
+                            node.children?.forEach(c => walk(c, node.id));
+                        };
+                        treeRes.data.forEach(r => walk(r, null));
+                        setPages(newPages);
+                        setNotePageId(firstId);
+                    } catch (e) { console.error(e); }
                 };
                 initPages();
             } else {
