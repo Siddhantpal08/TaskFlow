@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const friendController = require('../controllers/friendController');
-const { protect } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 
-router.use(protect);
+router.use(authenticate);
 
 router.get('/', friendController.getFriendsAndRequests);
 router.post('/request', friendController.sendRequest);
