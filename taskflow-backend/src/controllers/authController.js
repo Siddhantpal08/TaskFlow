@@ -130,7 +130,7 @@ const googleLogin = asyncWrapper(async (req, res, next) => {
         });
     } catch (error) {
         console.error('Google Auth Error:', error);
-        return next(new AppError('Invalid Google credential', 401));
+        return next(new AppError(error.message || 'Invalid Google credential', 400));
     }
 });
 
