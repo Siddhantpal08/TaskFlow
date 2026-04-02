@@ -3,10 +3,12 @@ const db = require('../utils/db');
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 // Automatically alter table independently without throwing exceptions if columns exist
-db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL').catch(() => { });
-db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL').catch(() => { });
-db.query('ALTER TABLE users ADD COLUMN role ENUM("admin","user") DEFAULT "user"').catch(() => { });
-db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL').catch(() => { });
+(async () => {
+    try { await db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL'); } catch (e) { }
+    try { await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL'); } catch (e) { }
+    try { await db.query('ALTER TABLE users ADD COLUMN role ENUM("admin","user") DEFAULT "user"'); } catch (e) { }
+    try { await db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL'); } catch (e) { }
+})();
 
 const createUser = async (name, email, hashedPassword, avatarInitials) => {
     const [result] = await db.query(

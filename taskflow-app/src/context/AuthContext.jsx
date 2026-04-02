@@ -42,8 +42,9 @@ export function AuthProvider({ children }) {
 
     const login = async (email, password) => {
         const res = await authApi.login(email, password);
-        const { accessToken, ...userData } = res.data;
+        const { accessToken, refreshToken, ...userData } = res.data;
         localStorage.setItem('tf_token', accessToken);
+        if (refreshToken) localStorage.setItem('tf_refresh', refreshToken);
         setToken(accessToken);
         setUser(userData);
         return userData;
@@ -51,8 +52,9 @@ export function AuthProvider({ children }) {
 
     const googleLogin = async (credential) => {
         const res = await authApi.googleLogin(credential);
-        const { accessToken, ...userData } = res.data;
+        const { accessToken, refreshToken, ...userData } = res.data;
         localStorage.setItem('tf_token', accessToken);
+        if (refreshToken) localStorage.setItem('tf_refresh', refreshToken);
         setToken(accessToken);
         setUser(userData);
         return userData;
@@ -65,8 +67,9 @@ export function AuthProvider({ children }) {
 
     const verifyEmail = async (email, otp) => {
         const res = await authApi.verifyEmail(email, otp);
-        const { accessToken, ...userData } = res.data;
+        const { accessToken, refreshToken, ...userData } = res.data;
         localStorage.setItem('tf_token', accessToken);
+        if (refreshToken) localStorage.setItem('tf_refresh', refreshToken);
         setToken(accessToken);
         setUser(userData);
         return userData;

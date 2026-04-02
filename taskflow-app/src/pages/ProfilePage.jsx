@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toastSuccess, toastError } from '../components/ui/Toast.jsx';
 export default function ProfilePage({ t, onGoBack }) {
@@ -206,15 +207,15 @@ export default function ProfilePage({ t, onGoBack }) {
             </div>
 
             {/* Avatar Zoom Modal */}
-            {imgModal && avatarPreview && (
+            {imgModal && avatarPreview && createPortal(
                 <div onClick={() => setImgModal(false)} className="popIn" style={{ position: 'fixed', inset: 0, background: '#000000dd', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
                     <img src={avatarPreview} alt="Avatar Large" onClick={e => e.stopPropagation()} style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain', borderRadius: 12, boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} />
                 </div>
-            )}
+                , document.body)}
 
             {/* Password Change OTP Modal */}
             {
-                passModal && (
+                passModal && createPortal(
                     <div onClick={e => e.target === e.currentTarget && setPassModal(false)} style={{
                         position: 'fixed', inset: 0, background: '#00000088', zIndex: 9999,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -242,7 +243,7 @@ export default function ProfilePage({ t, onGoBack }) {
                             </form>
                         </div>
                     </div>
-                )
+                    , document.body)
             }
         </div >
     );

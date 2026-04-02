@@ -47,13 +47,17 @@ async function doFetch(path, options = {}, retry = true) {
 
         if (res.status === 401 && retry) {
             // Attempt silent token refresh
+            const bodyPayload = localStorage.getItem('tf_refresh') ? JSON.stringify({ refreshToken: localStorage.getItem('tf_refresh') }) : undefined;
             const refreshRes = await fetch(`${BASE}/auth/refresh`, {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: bodyPayload,
                 credentials: 'include',
             });
             if (refreshRes.ok) {
-                const { accessToken } = await refreshRes.json();
+                const { accessToken, refreshToken } = await refreshRes.json();
                 _setToken(accessToken);
+                if (refreshToken) localStorage.setItem('tf_refresh', refreshToken);
                 return await doFetch(path, options, false); // one retry
             } else {
                 _onLogout();
