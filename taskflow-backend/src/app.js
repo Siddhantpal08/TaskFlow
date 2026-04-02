@@ -119,7 +119,7 @@ app.get('/db-repair', async (req, res) => {
         const db = require('./utils/db');
         const errors = [];
         const success = [];
-        const r1 = await db.query('ALTER TABLE users ADD COLUMN role ENUM("admin","user") DEFAULT "user"').catch(e => e.message);
+        const r1 = await db.query("ALTER TABLE users ADD COLUMN role ENUM('admin','user') DEFAULT 'user'").catch(e => e.message);
         const r2 = await db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL').catch(e => e.message);
         const r3 = await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL').catch(e => e.message);
         const r4 = await db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL').catch(e => e.message);

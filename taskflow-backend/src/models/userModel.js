@@ -4,9 +4,9 @@ const db = require('../utils/db');
 
 // Automatically alter table independently without throwing exceptions if columns exist
 (async () => {
+    try { await db.query("ALTER TABLE users ADD COLUMN role ENUM('admin','user') DEFAULT 'user'"); } catch (e) { }
     try { await db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL'); } catch (e) { }
     try { await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL'); } catch (e) { }
-    try { await db.query('ALTER TABLE users ADD COLUMN role ENUM("admin","user") DEFAULT "user"'); } catch (e) { }
     try { await db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL'); } catch (e) { }
 })();
 
@@ -32,11 +32,18 @@ const getUserById = async (id) => {
         return rows[0] || null;
     } catch (e) {
         if (e.code === 'ER_BAD_FIELD_ERROR') {
-            const [rows] = await db.query(
-                'SELECT id, name, email, avatar_initials, is_online, created_at FROM users WHERE id = ?',
-                [id]
-            );
-            return rows[0] || null;
+            // Self-healing: if role doesn't exist yet, alter and retry
+            try {
+                await db.query("ALTER TABLE users ADD COLUMN role ENUM('admin','user') DEFAULT 'user'");
+                const [retry] = await db.query('SELECT id, name, email, avatar_initials, role, bio, avatar_url, is_online, created_at FROM users WHERE id = ?', [id]);
+                return retry[0] || null;
+            } catch (alterErr) {
+                const [rows] = await db.query(
+                    'SELECT id, name, email, avatar_initials, is_online, created_at FROM users WHERE id = ?',
+                    [id]
+                );
+                return rows[0] || null;
+            }
         }
         throw e;
     }
