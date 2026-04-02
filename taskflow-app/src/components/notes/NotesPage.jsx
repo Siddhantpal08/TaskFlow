@@ -21,13 +21,14 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         let active = true;
 
         notesApi.getPage(notePageId).then(res => {
-            if (active) setBlocks(res.data.blocks || [mkBlock("p", "")]);
+            const b = res.data.blocks;
+            if (active) setBlocks(b && Array.isArray(b) && b.length > 0 ? b : [mkBlock("p", "")]);
         }).catch(e => {
             if (active) setBlocks([mkBlock("p", "")]);
         });
 
         // Socket setup
-        const s = io(import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000');
+        const s = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000');
         socketRef.current = s;
         s.emit('note:join', notePageId);
 

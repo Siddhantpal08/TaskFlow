@@ -237,13 +237,18 @@ export default function Calendar({ t }) {
                             return (
                                 <div key={d} onClick={() => handleDayClick(d)} className="hvr" style={{ background: t.card, minHeight: 72, padding: 6, cursor: 'pointer', transition: 'background .15s' }}>
                                     <div style={{ width: 24, height: 24, borderRadius: "50%", background: isToday ? t.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isToday ? 800 : 400, color: isToday ? "#000" : t.t2, marginBottom: 3 }}>{d}</div>
-                                    {firstEv && (
-                                        <div style={{ background: c + "18", border: `1px solid ${c}33`, borderRadius: 3, padding: "2px 4px", fontSize: 9, color: c, fontWeight: 600, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            {firstEv.recurrence && firstEv.recurrence !== 'none' && <span style={{ fontSize: 9 }}>🔁</span>}
-                                            {firstEv.title}
-                                        </div>
-                                    )}
-                                    {dayEvs.length > 1 && <div style={{ fontSize: 8, color: t.t3, marginTop: 2, fontFamily: t.mono }}>+{dayEvs.length - 1} more</div>}
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                                        {dayEvs.slice(0, 3).map((ev, idx) => {
+                                            const c = PCOLORS[ev.id % PCOLORS.length];
+                                            return (
+                                                <div key={ev.id + "-" + idx} style={{ background: c + "18", border: `1px solid ${c}33`, borderRadius: 3, padding: "2px 4px", fontSize: 9, color: c, fontWeight: 600, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    {ev.recurrence && ev.recurrence !== 'none' && <span style={{ fontSize: 9 }}>🔁</span>}
+                                                    {ev.title}
+                                                </div>
+                                            );
+                                        })}
+                                        {dayEvs.length > 3 && <div style={{ fontSize: 8, color: t.t3, marginTop: 1, fontFamily: t.mono }}>+{dayEvs.length - 3} more</div>}
+                                    </div>
                                     {hasTask && !firstEv && <div style={{ width: 5, height: 5, borderRadius: "50%", background: t.amber, margin: "3px auto 0" }} title="Task due" />}
                                 </div>
                             );

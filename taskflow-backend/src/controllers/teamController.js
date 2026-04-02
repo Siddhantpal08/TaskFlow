@@ -67,59 +67,38 @@ const getMemberActivity = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: { member, activity } });
 });
 
+const taskModel = require('../models/taskModel');
+
 const getDummyHierarchy = asyncWrapper(async (req, res) => {
+    const tasks = await taskModel.getTasksForUser(req.user.id);
+    const map = {};
+    const rootNodes = [];
+
+    tasks.forEach(t => {
+        map[t.id] = {
+            id: `t_${t.id}`,
+            title: t.title,
+            status: t.status,
+            assignee: { name: t.assigned_to_name || 'Unassigned', initials: t.assigned_to_initials || '?' },
+            children: [],
+            parent_task_id: t.parent_task_id
+        };
+    });
+
+    tasks.forEach(t => {
+        if (t.parent_task_id && map[t.parent_task_id]) {
+            map[t.parent_task_id].children.push(map[t.id]);
+        } else {
+            rootNodes.push(map[t.id]);
+        }
+    });
+
     const dummyTree = {
-        id: 't_ceo_1',
-        title: 'Launch TaskFlow Q3',
-        status: 'in_progress',
-        assignee: { name: 'Alice (CEO)', initials: 'AL' },
-        children: [
-            {
-                id: 't_cto_1',
-                title: 'Deploy New Core Architecture',
-                status: 'in_progress',
-                assignee: { name: 'Bob (CTO)', initials: 'BO' },
-                children: [
-                    {
-                        id: 't_dev_1',
-                        title: 'Migrate DB Servers',
-                        status: 'done',
-                        assignee: { name: 'Charlie (DevLead)', initials: 'CH' },
-                        children: []
-                    },
-                    {
-                        id: 't_dev_2',
-                        title: 'Implement Friends Socket Sync',
-                        status: 'in_progress',
-                        assignee: { name: 'Dave (Backend)', initials: 'DA' },
-                        children: [
-                            {
-                                id: 't_dev_3',
-                                title: 'Write Friend Model Specs',
-                                status: 'done',
-                                assignee: { name: 'Eve (Intern)', initials: 'EV' },
-                                children: []
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                id: 't_cmo_1',
-                title: 'Market New Collaboration Feature',
-                status: 'pending',
-                assignee: { name: 'Fiona (CMO)', initials: 'FI' },
-                children: [
-                    {
-                        id: 't_mar_1',
-                        title: 'Draft Newsletter',
-                        status: 'in_progress',
-                        assignee: { name: 'George (Marketing)', initials: 'GE' },
-                        children: []
-                    }
-                ]
-            }
-        ]
+        id: 't_root_org',
+        title: 'Project Delegation Network',
+        status: 'done',
+        assignee: { name: req.user.name, initials: req.user.avatar_initials || '?' },
+        children: rootNodes
     };
     res.status(200).json({ success: true, data: dummyTree });
 });

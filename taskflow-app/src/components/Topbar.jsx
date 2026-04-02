@@ -59,11 +59,11 @@ export default function Topbar({ t, dark, setDark, notif, setNotif, page, setPag
                             className="hvr"
                             style={{
                                 width: 30, height: 30, borderRadius: '50%',
-                                background: `linear-gradient(135deg, ${t.accent}40, ${t.purple || '#B083FF'}40)`,
+                                background: user.avatar_url ? `url(${user.avatar_url}) center/cover` : `linear-gradient(135deg, ${t.accent}40, ${t.purple || '#B083FF'}40)`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 11, fontWeight: 700, color: t.accent, flexShrink: 0,
                                 border: `1.5px solid ${t.accent}44`, cursor: 'pointer'
-                            }}>{user.avatar_initials}</div>
+                            }}>{!user.avatar_url && user.avatar_initials}</div>
                         <button onClick={logout} title="Logout" className="hvrI"
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 11, fontFamily: t.mono }}>
                             ⏻

@@ -2,6 +2,9 @@ const db = require('../utils/db');
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
+// Automatically alter table to include google attributes without throwing an exception if they already exist
+db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL, ADD COLUMN avatar_url VARCHAR(255) NULL;').catch(() => { });
+
 const createUser = async (name, email, hashedPassword, avatarInitials) => {
     const [result] = await db.query(
         'INSERT INTO users (name, email, password, avatar_initials) VALUES (?, ?, ?, ?)',
