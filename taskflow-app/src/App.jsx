@@ -22,6 +22,7 @@ import Dashboard from "./components/Dashboard.jsx";
 import Tasks from "./components/Tasks.jsx";
 import Calendar from "./components/Calendar.jsx";
 import TeamPage from "./components/TeamPage.jsx";
+import Friends from "./components/Friends.jsx";
 import NotesPage from "./components/notes/NotesPage.jsx";
 
 // Overlays
@@ -170,6 +171,7 @@ function MainApp() {
                                 searchQuery={searchQuery} />}
                             {page === "calendar" && <Calendar t={t} />}
                             {page === "team" && <TeamPage t={t} />}
+                            {page === "friends" && <Friends t={t} />}
                             {page === "profile" && <ProfilePage t={t} onGoBack={() => setPage("dashboard")} />}
                         </main>
                     </div>
@@ -186,6 +188,7 @@ function MainApp() {
                             { id: "notes", label: "Notes", icon: IC.note },
                             { id: "calendar", label: "Cal", icon: IC.cal },
                             { id: "team", label: "Team", icon: IC.team },
+                            { id: "friends", label: "Friends", icon: IC.user },
                         ].map(n => (
                             <button key={n.id} onClick={() => setPage(n.id)}
                                 className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>

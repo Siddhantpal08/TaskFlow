@@ -1,8 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toastSuccess, toastError } from '../components/ui/Toast.jsx';
-import Friends from '../components/Friends.jsx';
-
 export default function ProfilePage({ t, onGoBack }) {
     const { user, setUser } = useAuth();
     const [name, setName] = useState(user?.name || '');
@@ -205,8 +203,6 @@ export default function ProfilePage({ t, onGoBack }) {
                     </button>
                 </div>
 
-                {/* Friends Section */}
-                <Friends t={t} />
             </div>
 
             {/* Avatar Zoom Modal */}
@@ -217,35 +213,37 @@ export default function ProfilePage({ t, onGoBack }) {
             )}
 
             {/* Password Change OTP Modal */}
-            {passModal && (
-                <div onClick={e => e.target === e.currentTarget && setPassModal(false)} style={{
-                    position: 'fixed', inset: 0, background: '#00000088', zIndex: 9999,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                    <div className="popIn" style={{
-                        background: t.card, border: `1px solid ${t.border}`, borderRadius: 16,
-                        padding: '24px', width: 340, boxShadow: t.shadow,
+            {
+                passModal && (
+                    <div onClick={e => e.target === e.currentTarget && setPassModal(false)} style={{
+                        position: 'fixed', inset: 0, background: '#00000088', zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: t.t1, marginBottom: 18 }}>Change Password</div>
-                        <form onSubmit={submitPasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: 11, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>OTP (SENT TO EMAIL)</label>
-                                <input required value={otp} onChange={e => setOtp(e.target.value)} placeholder="6-digit code" style={inp} />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: 11, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>NEW PASSWORD</label>
-                                <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Minimum 6 characters" style={inp} minLength={6} />
-                            </div>
-                            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-                                <button type="button" onClick={() => setPassModal(false)} style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 16px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>Cancel</button>
-                                <button type="submit" disabled={passLoading} style={{ background: t.accent, border: 'none', borderRadius: 8, padding: '8px 18px', color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
-                                    {passLoading ? 'Updating...' : 'Update Password'}
-                                </button>
-                            </div>
-                        </form>
+                        <div className="popIn" style={{
+                            background: t.card, border: `1px solid ${t.border}`, borderRadius: 16,
+                            padding: '24px', width: 340, boxShadow: t.shadow,
+                        }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: t.t1, marginBottom: 18 }}>Change Password</div>
+                            <form onSubmit={submitPasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: 11, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>OTP (SENT TO EMAIL)</label>
+                                    <input required value={otp} onChange={e => setOtp(e.target.value)} placeholder="6-digit code" style={inp} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: 11, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>NEW PASSWORD</label>
+                                    <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Minimum 6 characters" style={inp} minLength={6} />
+                                </div>
+                                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+                                    <button type="button" onClick={() => setPassModal(false)} style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 16px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>Cancel</button>
+                                    <button type="submit" disabled={passLoading} style={{ background: t.accent, border: 'none', borderRadius: 8, padding: '8px 18px', color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                        {passLoading ? 'Updating...' : 'Update Password'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

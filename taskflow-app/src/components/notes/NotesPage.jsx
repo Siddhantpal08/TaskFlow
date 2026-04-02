@@ -72,7 +72,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         // Debounce update to backend
         clearTimeout(blk._t);
         blk._t = setTimeout(() => {
-            notesApi.updateBlock(blk.id, ch).catch(() => { });
+            if (blk.id.toString().startsWith("loc-")) {
+                notesApi.createBlock(notePageId, { type: blk.type, content: blk.content, position: idx }).then(res => {
+                    setBlocks(prev => prev.map(p => p.id === blk.id ? { ...p, id: res.data.id } : p));
+                }).catch(() => { });
+            } else {
+                notesApi.updateBlock(blk.id, ch).catch(() => { });
+            }
         }, 800);
     };
     const focusAtEnd = (id) => {

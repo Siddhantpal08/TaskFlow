@@ -56,7 +56,6 @@ export default function Topbar({ t, dark, setDark, notif, setNotif, page, setPag
                         <div
                             onClick={() => setPage('profile')}
                             title="Edit Profile"
-                            className="hvr"
                             style={{
                                 width: 30, height: 30, borderRadius: '50%',
                                 background: user.avatar_url ? `url(${user.avatar_url}) center/cover` : `linear-gradient(135deg, ${t.accent}40, ${t.purple || '#B083FF'}40)`,

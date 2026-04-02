@@ -73,34 +73,34 @@ const TreeNode = ({ node, t }) => {
 
 export default function HierarchyChart({ t }) {
     const [treeData, setTreeData] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    const loadDummyData = async () => {
-        try {
-            setLoading(true);
-            const res = await teamApi.getDummyHierarchy();
-            setTreeData(res.data);
-        } catch (e) {
-            console.error("Failed to load generic corporate hierarchy.", e);
-        } finally {
-            setLoading(false);
-        }
-    };
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                setLoading(true);
+                const res = await teamApi.getDummyHierarchy();
+                setTreeData(res.data);
+            } catch (e) {
+                console.error("Failed to load corporate hierarchy.", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, []);
 
-    if (!treeData && !loading) {
+    if (loading) return <div style={{ color: t.t3, fontSize: 13, padding: 20, textAlign: 'center' }}>Loading network diagram...</div>;
+
+    if (!treeData || !treeData.children || treeData.children.length === 0) {
         return (
             <div style={{ padding: 20, background: t.card, borderRadius: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
                 <I d={IC.team} sz={32} c={t.t3} style={{ marginBottom: 16 }} />
-                <h3 style={{ fontSize: 16, color: t.t1, margin: '0 0 8px 0' }}>Organizational Dummy Chart</h3>
-                <p style={{ fontSize: 13, color: t.t2, margin: '0 0 16px 0', lineHeight: 1.6 }}>Generate a hierarchical view of delegated corporate tasks to see how reporting lines work in TaskFlow.</p>
-                <button type="button" onClick={loadDummyData} style={{ background: t.accent, color: '#000', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp }}>
-                    Generate Demo Structure
-                </button>
+                <h3 style={{ fontSize: 16, color: t.t1, margin: '0 0 8px 0' }}>No Sub-Tasks Delegated</h3>
+                <p style={{ fontSize: 13, color: t.t2, margin: '0 0 16px 0', lineHeight: 1.6 }}>Assign tasks to your team members to generate the real-time project delegation chart and network workflow.</p>
             </div>
         );
     }
-
-    if (loading) return <div style={{ color: t.t3, fontSize: 13, padding: 20, textAlign: 'center' }}>Loading diagram...</div>;
 
     return (
         <div style={{ padding: '30px 20px', background: t.inset, borderRadius: 12, border: `1px solid ${t.border}`, overflowX: 'auto' }}>

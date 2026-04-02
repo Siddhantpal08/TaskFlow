@@ -66,8 +66,8 @@ const verifyEmail = asyncWrapper(async (req, res, next) => {
 
     res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        secure: true,
+        sameSite: 'None',
         maxAge: 15 * 24 * 60 * 60 * 1000,
     });
 
@@ -117,8 +117,8 @@ const googleLogin = asyncWrapper(async (req, res, next) => {
 
         res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
+            secure: true,
+            sameSite: 'None',
             maxAge: 15 * 24 * 60 * 60 * 1000,
         });
 
@@ -182,8 +182,8 @@ const login = asyncWrapper(async (req, res, next) => {
 
     res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        secure: true,
+        sameSite: 'None',
         maxAge: 15 * 24 * 60 * 60 * 1000,
     });
 
@@ -242,8 +242,8 @@ const refresh = asyncWrapper(async (req, res, next) => {
 
     res.cookie('refresh_token', newRefreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        secure: true,
+        sameSite: 'None',
         maxAge: 15 * 24 * 60 * 60 * 1000,
     });
 
@@ -270,8 +270,8 @@ const logout = asyncWrapper(async (req, res, next) => {
 
     res.clearCookie('refresh_token', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        secure: true,
+        sameSite: 'None',
     });
 
     res.status(200).json({ success: true, message: 'Logged out successfully.' });

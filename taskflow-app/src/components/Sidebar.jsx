@@ -26,6 +26,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
         { id: "tasks", label: "Tasks", ic: IC.task },
         { id: "calendar", label: "Calendar", ic: IC.cal },
         { id: "team", label: "Team", ic: IC.team },
+        { id: "friends", label: "Friends", ic: IC.user },
     ];
     const rootPage = pages["root"];
     const toggleExp = (id, e) => { e.stopPropagation(); setExpanded(p => ({ ...p, [id]: !p[id] })); };

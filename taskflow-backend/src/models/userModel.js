@@ -2,8 +2,11 @@ const db = require('../utils/db');
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-// Automatically alter table to include google attributes without throwing an exception if they already exist
-db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL, ADD COLUMN avatar_url VARCHAR(255) NULL;').catch(() => { });
+// Automatically alter table independently without throwing exceptions if columns exist
+db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL').catch(() => { });
+db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL').catch(() => { });
+db.query('ALTER TABLE users ADD COLUMN role ENUM("admin","user") DEFAULT "user"').catch(() => { });
+db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL').catch(() => { });
 
 const createUser = async (name, email, hashedPassword, avatarInitials) => {
     const [result] = await db.query(
