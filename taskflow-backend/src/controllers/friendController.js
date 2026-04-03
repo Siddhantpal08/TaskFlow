@@ -1,5 +1,6 @@
 const friendModel = require('../models/friendModel');
 const userModel = require('../models/userModel');
+const { sendNotification } = require('../services/notificationService');
 
 const sendRequest = async (req, res, next) => {
     try {
@@ -15,6 +16,14 @@ const sendRequest = async (req, res, next) => {
 
         await friendModel.sendRequest(userId, recipient.id);
 
+        // Notify the recipient in real-time
+        const senderName = req.user.name || 'Someone';
+        sendNotification(
+            recipient.id,
+            'friend_request',
+            `${senderName} sent you a friend request`
+        ).catch(() => { });
+
         res.status(200).json({ status: 'success', message: 'Friend request sent' });
     } catch (e) {
         if (e.message.includes('already')) {
@@ -29,7 +38,18 @@ const acceptRequest = async (req, res, next) => {
         const userId = req.user.id;
         const { requestId } = req.body;
 
-        await friendModel.acceptRequest(requestId, userId);
+        const result = await friendModel.acceptRequest(requestId, userId);
+
+        // Notify the original requester in real-time
+        const accepterName = req.user.name || 'Someone';
+        if (result?.requester_id) {
+            sendNotification(
+                result.requester_id,
+                'friend_accepted',
+                `${accepterName} accepted your friend request`
+            ).catch(() => { });
+        }
+
         res.status(200).json({ status: 'success', message: 'Friend request accepted' });
     } catch (e) {
         next(e);
@@ -66,3 +86,4 @@ module.exports = {
     getFriendsAndRequests,
     removeFriend
 };
+

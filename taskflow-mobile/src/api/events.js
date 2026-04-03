@@ -1,7 +1,10 @@
 import { doFetch } from './client';
 
 export const eventsApi = {
-    list: () => doFetch('/calendar/events'),
+    list: () => {
+        const now = new Date();
+        return doFetch(`/calendar/events?year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
+    },
 
     create: (data) => doFetch('/calendar/events', {
         method: 'POST',

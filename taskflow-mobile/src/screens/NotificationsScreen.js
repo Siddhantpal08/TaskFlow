@@ -19,6 +19,11 @@ const TYPE_META = {
     task_completed: { icon: '✅', color: t.green },
     task_delegated: { icon: '🔁', color: t.purple || '#B083FF' },
     event_reminder: { icon: '📅', color: t.amber },
+    friend_request: { icon: '🤝', color: t.purple || '#B083FF' },
+    friend_accepted: { icon: '👥', color: t.green },
+    task_approval_requested: { icon: '⏳', color: t.amber },
+    task_approved: { icon: '✅', color: t.green },
+    task_rejected: { icon: '❌', color: t.red },
     system: { icon: '🔔', color: t.t3 },
 };
 

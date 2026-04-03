@@ -8,6 +8,7 @@ import { tasksApi } from '../api/tasks';
 import { eventsApi } from '../api/events';
 import { teamApi } from '../api/team';
 import { notificationsApi } from '../api/notifications';
+import { friendsApi } from '../api/friends';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
 
@@ -23,6 +24,8 @@ export const DataProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
+    const [friends, setFriends] = useState([]);
+    const [friendRequests, setFriendRequests] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const socket = useRef(null);
@@ -31,6 +34,7 @@ export const DataProvider = ({ children }) => {
         if (!user) {
             setTasks([]); setEvents([]); setTeamMembers([]);
             setNotifications([]); setUnreadCount(0);
+            setFriends([]); setFriendRequests([]);
             if (socket.current) {
                 socket.current.disconnect();
                 socket.current = null;
@@ -41,20 +45,26 @@ export const DataProvider = ({ children }) => {
         const initData = async () => {
             setLoading(true);
             try {
-                const [tRes, eRes, tmRes, nRes] = await Promise.all([
+                const [tRes, eRes, tmRes, nRes, fRes] = await Promise.all([
                     tasksApi.list(),
                     eventsApi.list(),
                     teamApi.getMembers(),
                     notificationsApi.list(),
+                    friendsApi.list().catch(() => ({ data: { friends: [], requests: [] } })),
                 ]);
 
-                setTasks(tRes.data || []);
-                setEvents(eRes.data || []);
-                setTeamMembers(tmRes.data || []);
+                setTasks(Array.isArray(tRes.data) ? tRes.data : []);
+                // Calendar API returns { events: [], taskDueDates: [] } inside data
+                const evData = eRes.data;
+                setEvents(Array.isArray(evData) ? evData : Array.isArray(evData?.events) ? evData.events : []);
+                setTeamMembers(Array.isArray(tmRes.data) ? tmRes.data : []);
 
                 const notifs = nRes.data?.notifications || nRes.data || [];
                 setNotifications(notifs);
                 setUnreadCount(nRes.data?.unreadCount || notifs.filter(n => !n.is_read).length);
+
+                setFriends(fRes.data?.friends || []);
+                setFriendRequests(fRes.data?.requests || []);
 
                 setupSocket();
             } catch (err) {
@@ -68,16 +78,15 @@ export const DataProvider = ({ children }) => {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
 
+            // Send both token and userId — backend uses whichever is available
             socket.current = io(API_URL, {
-                auth: { token },
+                auth: { token, userId: user.id },
                 transports: ['websocket'],
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
             });
 
-            socket.current.on('connect', () => {
-                // Could fetch missed events here using a 'since' timestamp
-            });
+            socket.current.on('connect', () => { });
 
             socket.current.on('online_users', (users) => {
                 setOnlineUsers(new Set(users.map(String)));
@@ -91,10 +100,13 @@ export const DataProvider = ({ children }) => {
             socket.current.on('event_updated', e => setEvents(p => p.map(x => x.id === e.id ? e : x).sort((a, b) => new Date(a.event_date) - new Date(b.event_date))));
             socket.current.on('event_deleted', id => setEvents(p => p.filter(x => x.id !== id)));
 
-            socket.current.on('notification_new', n => {
+            // Handle both event name conventions for backwards compatibility
+            const handleNewNotif = (n) => {
                 setNotifications(p => [n, ...p]);
                 setUnreadCount(c => c + 1);
-            });
+            };
+            socket.current.on('notification_new', handleNewNotif);
+            socket.current.on('notification:new', handleNewNotif);
         };
 
         initData();
@@ -107,7 +119,6 @@ export const DataProvider = ({ children }) => {
         };
     }, [user]);
 
-    // Mutations
     const createTask = async (data) => {
         const res = await tasksApi.create(data);
         const newTask = await tasksApi.get(res.data.id || res.taskId);
@@ -117,10 +128,7 @@ export const DataProvider = ({ children }) => {
 
     const updateTaskStatus = async (id, status) => {
         setTasks(p => p.map(t => t.id === id ? { ...t, status } : t));
-        await tasksApi.updateStatus(id, status).catch(e => {
-            // Revert on error could go here
-            console.error("Update failed", e);
-        });
+        await tasksApi.updateStatus(id, status).catch(e => console.error("Update failed", e));
     };
 
     const deleteTask = async (id) => {
@@ -131,7 +139,8 @@ export const DataProvider = ({ children }) => {
     const createEvent = async (data) => {
         await eventsApi.create(data);
         const res = await eventsApi.list();
-        setEvents(res.data || []);
+        const d = res.data;
+        setEvents(Array.isArray(d) ? d : Array.isArray(d?.events) ? d.events : []);
     };
 
     const markNotifRead = async (id) => {
@@ -146,11 +155,39 @@ export const DataProvider = ({ children }) => {
         await notificationsApi.markAllRead().catch(console.error);
     };
 
+    const sendFriendRequest = async (email) => {
+        return await friendsApi.sendRequest(email);
+    };
+
+    const acceptFriendRequest = async (requestId) => {
+        await friendsApi.acceptRequest(requestId);
+        const res = await friendsApi.list().catch(() => null);
+        if (res) {
+            setFriends(res.data?.friends || []);
+            setFriendRequests(res.data?.requests || []);
+        }
+    };
+
+    const removeFriend = async (friendshipId) => {
+        setFriends(p => p.filter(f => f.id !== friendshipId));
+        await friendsApi.remove(friendshipId).catch(console.error);
+    };
+
+    const refreshFriends = async () => {
+        const res = await friendsApi.list().catch(() => null);
+        if (res) {
+            setFriends(res.data?.friends || []);
+            setFriendRequests(res.data?.requests || []);
+        }
+    };
+
     return (
         <DataContext.Provider value={{
             tasks, events, teamMembers, notifications, unreadCount, onlineUsers, loading,
+            friends, friendRequests,
             createTask, updateTaskStatus, deleteTask,
-            createEvent, markNotifRead, markAllNotifRead
+            createEvent, markNotifRead, markAllNotifRead,
+            sendFriendRequest, acceptFriendRequest, removeFriend, refreshFriends,
         }}>
             {children}
         </DataContext.Provider>

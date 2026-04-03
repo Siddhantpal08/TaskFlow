@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { useData } from '../context/DataContext';
 import { DARK as t } from '../data/themes';
 
@@ -23,11 +23,16 @@ export default function TeamScreen() {
                 return (
                     <View key={u.id} style={s.card}>
                         <View style={s.row}>
-                            <View style={s.avatar}>
-                                <Text style={s.avatarTxt}>{u.avatar_initials}</Text>
-                            </View>
+                            {u.avatar_url ? (
+                                <Image source={{ uri: u.avatar_url }} style={s.avatar} />
+                            ) : (
+                                <View style={s.avatar}>
+                                    <Text style={s.avatarTxt}>{u.avatar_initials}</Text>
+                                </View>
+                            )}
                             <View style={{ flex: 1 }}>
                                 <Text style={s.name}>{u.name}</Text>
+                                {u.bio ? <Text style={s.bio} numberOfLines={1}>{u.bio}</Text> : null}
                                 <View style={s.statusRow}>
                                     <View style={[s.dot, { backgroundColor: isOnline ? t.green : t.border }]} />
                                     <Text style={[s.statusTxt, { color: isOnline ? t.green : t.t3 }]}>{isOnline ? 'Online' : 'Offline'}</Text>
@@ -53,8 +58,9 @@ const s = StyleSheet.create({
     title: { fontSize: 24, fontWeight: '800', color: t.t1, marginBottom: 20, letterSpacing: -0.5 },
     card: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, padding: 20, marginBottom: 15 },
     row: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-    avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: t.accent + '30', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+    avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: t.accent + '30', justifyContent: 'center', alignItems: 'center', marginRight: 15, overflow: 'hidden' },
     avatarTxt: { color: t.accent, fontWeight: 'bold', fontSize: 18 },
+    bio: { fontSize: 11, color: t.t3, marginBottom: 4 },
     name: { fontSize: 16, fontWeight: 'bold', color: t.t1, marginBottom: 4 },
     statusRow: { flexDirection: 'row', alignItems: 'center' },
     dot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },

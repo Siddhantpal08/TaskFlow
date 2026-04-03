@@ -78,6 +78,7 @@ export default function ProfileScreen() {
                 <Text style={s.sectionTitle}>Account Info</Text>
                 <InfoRow label="Name" value={user?.name} />
                 <InfoRow label="Email" value={user?.email} />
+                <InfoRow label="Bio" value={user?.bio} />
                 <InfoRow label="Role" value={user?.role} />
                 <InfoRow label="Member Since" value={user?.created_at
                     ? new Date(user.created_at).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })

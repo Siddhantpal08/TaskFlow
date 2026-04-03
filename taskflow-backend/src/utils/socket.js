@@ -9,11 +9,24 @@ let _io = null;
  * Initialize the Socket.IO instance and set up connection handling.
  * @param {import('socket.io').Server} io
  */
+const { verifyToken } = require('./jwt');
+
 const initSocket = (io) => {
     _io = io;
 
     io.on('connection', (socket) => {
-        const userId = socket.handshake.auth?.userId;
+        // Support both web (auth.userId) and mobile (auth.token) authentication
+        let userId = socket.handshake.auth?.userId;
+
+        if (!userId && socket.handshake.auth?.token) {
+            try {
+                const decoded = verifyToken(socket.handshake.auth.token);
+                userId = decoded.id;
+            } catch (e) {
+                socket.disconnect(true);
+                return;
+            }
+        }
 
         if (!userId) {
             socket.disconnect(true);

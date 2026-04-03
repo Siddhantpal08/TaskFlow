@@ -36,6 +36,12 @@ const allowedOrigins = process.env.CLIENT_URLS
         'https://taskflow-by-crevio.vercel.app',   // production frontend
     ];
 
+// Helper: is it a private LAN address (for mobile dev)?
+const isLanOrigin = (origin) => {
+    if (!origin) return false;
+    return /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(origin);
+};
+
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (e.g. mobile apps, Postman)
@@ -46,7 +52,8 @@ app.use(cors({
             allowedOrigins.includes(origin) ||
             origin.startsWith('http://localhost') ||
             origin.startsWith('http://127.0.0.1') ||
-            origin.endsWith('.vercel.app')
+            origin.endsWith('.vercel.app') ||
+            isLanOrigin(origin)  // Allow local network IPs for mobile dev
         ) {
             callback(null, true);
         } else {

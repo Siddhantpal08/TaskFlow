@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { DARK as t } from '../data/themes';
@@ -120,8 +120,7 @@ export default function TasksScreen() {
     );
 }
 
-// Needed to import ScrollView at top, cheating here since flatlist imports it via react-native often but explicitly better:
-import { ScrollView } from 'react-native';
+
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: t.bg },

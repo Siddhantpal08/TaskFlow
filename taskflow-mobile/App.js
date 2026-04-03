@@ -15,6 +15,7 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import TeamScreen from './src/screens/TeamScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
@@ -46,6 +47,28 @@ function AuthStack() {
 function TabIcon({ emoji, focused }) {
   return (
     <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>{emoji}</Text>
+  );
+}
+
+function FriendsTabIcon({ focused }) {
+  const { friendRequests } = useData();
+  const count = friendRequests?.length || 0;
+  return (
+    <View>
+      <TabIcon emoji="🤝" focused={focused} />
+      {count > 0 && (
+        <View style={{
+          position: 'absolute', top: -2, right: -4,
+          backgroundColor: DARK.purple || '#B083FF', borderRadius: 6,
+          width: 12, height: 12, justifyContent: 'center', alignItems: 'center',
+          borderWidth: 1.5, borderColor: DARK.nav,
+        }}>
+          <Text style={{ color: '#fff', fontSize: 7, fontWeight: '900' }}>
+            {count > 9 ? '9+' : count}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -121,6 +144,13 @@ function MainTabs() {
         component={TeamScreen}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon emoji="👥" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{
+          tabBarIcon: ({ focused }) => <FriendsTabIcon focused={focused} />,
         }}
       />
       <Tab.Screen

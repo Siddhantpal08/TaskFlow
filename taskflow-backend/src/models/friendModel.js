@@ -43,6 +43,7 @@ const acceptRequest = async (requestId, userId) => {
     if (req.length === 0) throw new Error('Request not found or already accepted.');
 
     await db.query(`UPDATE friends SET status = 'accepted' WHERE id = ?`, [requestId]);
+    return req[0]; // Return full row so controller can get requester_id
 };
 
 const getFriends = async (userId) => {
