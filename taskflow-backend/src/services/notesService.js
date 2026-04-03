@@ -35,7 +35,7 @@ const createPage = async (userId, data) => {
     // Validate parent ownership if parentId provided
     if (data.parentId) {
         const parent = await notesModel.getPageById(data.parentId, userId);
-        if (!parent) throw new AppError('Parent page not found or not owned by you.', 404);
+        if (!parent || parent.user_id !== userId) throw new AppError('Parent page not found or not owned by you.', 403);
     }
     return notesModel.createPage(userId, data);
 };
@@ -60,6 +60,7 @@ const updatePage = async (pageId, userId, data) => {
 const deletePage = async (pageId, userId) => {
     const page = await notesModel.getPageById(pageId, userId);
     if (!page) throw new AppError('Page not found.', 404);
+    if (page.user_id !== userId) throw new AppError('Only the owner can delete this page.', 403);
 
     // Root-level protection: if page has no parent_id, it cannot be the very last page.
     // We allow deletion but always allow it here (UI should confirm).
@@ -71,7 +72,7 @@ const reorderChildren = async (parentId, userId, orderedIds) => {
     // Validate all provided IDs belong to this user
     const checks = orderedIds.map((id) => notesModel.getPageById(id, userId));
     const pages = await Promise.all(checks);
-    const invalid = pages.filter((p) => !p);
+    const invalid = pages.filter((p) => !p || p.user_id !== userId);
     if (invalid.length > 0) {
         throw new AppError('One or more page IDs not found or not owned by you.', 403);
     }

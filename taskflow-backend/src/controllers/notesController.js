@@ -18,14 +18,14 @@ const updatePageSchema = Joi.object({
 });
 
 const createBlockSchema = Joi.object({
-    type: Joi.string().valid('h1', 'h2', 'h3', 'p', 'todo', 'quote', 'callout', 'code').default('p'),
+    type: Joi.string().valid('h1', 'h2', 'h3', 'p', 'todo', 'quote', 'callout', 'code', 'link', 'divider').default('p'),
     content: Joi.string().allow('', null).optional(),
     checked: Joi.boolean().default(false),
     position: Joi.number().integer().min(0).default(0),
 });
 
 const updateBlockSchema = Joi.object({
-    type: Joi.string().valid('h1', 'h2', 'h3', 'p', 'todo', 'quote', 'callout', 'code').optional(),
+    type: Joi.string().valid('h1', 'h2', 'h3', 'p', 'todo', 'quote', 'callout', 'code', 'link', 'divider').optional(),
     content: Joi.string().allow('', null).optional(),
     checked: Joi.boolean().optional(),
 });

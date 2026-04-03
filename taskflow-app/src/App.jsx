@@ -46,8 +46,11 @@ function MainApp() {
 
     useEffect(() => {
         notesApi.getPages().then(res => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedNoteId = urlParams.get('note');
+
             const roots = res.data;
-            if (roots.length === 0) {
+            if (roots.length === 0 && !sharedNoteId) {
                 const initPages = async () => {
                     try {
                         const idMap = { root: null };
@@ -71,7 +74,9 @@ function MainApp() {
 
                         // Force a full tree reload to ingest the server's generated structure
                         const treeRes = await notesApi.getPages();
-                        const newPages = {};
+                        const newPages = {
+                            root: { id: "root", title: "Workspace Home", emoji: "🏠", parentId: null, childIds: [], updatedAt: "Server Sync" }
+                        };
                         let firstId = null;
                         const walk = (node, parentId) => {
                             if (!firstId) firstId = node.id;
@@ -80,6 +85,10 @@ function MainApp() {
                                 parentId: parentId || "root", childIds: node.children?.map(c => c.id) || [],
                                 updatedAt: "Server Sync"
                             };
+                            if (parentId || "root" in newPages) {
+                                if (parentId) newPages[parentId].childIds.push(node.id);
+                                else newPages["root"].childIds.push(node.id);
+                            }
                             node.children?.forEach(c => walk(c, node.id));
                         };
                         treeRes.data.forEach(r => walk(r, null));
@@ -104,8 +113,22 @@ function MainApp() {
                     node.children?.forEach(c => walk(c, node.id));
                 };
                 roots.forEach(r => walk(r, null));
-                setPages(newPages);
-                setNotePageId(firstId);
+
+                if (sharedNoteId) {
+                    if (!newPages[sharedNoteId]) {
+                        newPages[sharedNoteId] = {
+                            id: sharedNoteId, title: "Shared Note", emoji: "🔗", parentId: "root", childIds: [], updatedAt: "Shared Link"
+                        };
+                        newPages["root"].childIds.push(sharedNoteId);
+                    }
+                    setPages(newPages);
+                    setNotePageId(sharedNoteId);
+                    setPage("notes");
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } else {
+                    setPages(newPages);
+                    setNotePageId(firstId);
+                }
             }
         }).catch(e => console.error(e));
     }, []);

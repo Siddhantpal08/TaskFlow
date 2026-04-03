@@ -119,7 +119,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         socketRef.current?.emit('note:block:add', { pageId: notePageId, block: b, afterIdx });
         try {
             const res = await notesApi.createBlock(notePageId, { type, content, position: afterIdx + 1 });
-            b.id = res.data.id;
+            setBlocks(prev => prev.map(p => p.id === b.id ? { ...p, id: res.data.id } : p));
         } catch (e) { }
     };
 
@@ -299,6 +299,16 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </div>
                     ))}
                     <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+                        <button type="button" onClick={() => {
+                            const url = `${window.location.origin}?note=${notePageId}`;
+                            navigator.clipboard.writeText(url);
+                            alert("Link copied to clipboard! Share it with your friends to collaborate.");
+                        }}
+                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                            <I d={IC.lnk} sz={12} c="currentColor" />Share Note
+                        </button>
                         <button type="button" onClick={() => addNotePage(notePageId)}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}

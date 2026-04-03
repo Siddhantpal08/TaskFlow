@@ -24,8 +24,8 @@ const getPageTree = async (userId) => {
 const getPageById = async (id, userId) => {
     const [rows] = await db.query(
         `SELECT id, user_id, parent_id, title, emoji, position, updated_at
-         FROM notes_pages WHERE id = ? AND user_id = ?`,
-        [id, userId]
+         FROM notes_pages WHERE id = ?`,
+        [id]
     );
     return rows[0] || null;
 };
