@@ -35,7 +35,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         });
 
         // Socket setup
-        const s = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000');
+        const s = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000', {
+            transports: ['websocket']
+        });
         socketRef.current = s;
         s.emit('note:join', notePageId);
 

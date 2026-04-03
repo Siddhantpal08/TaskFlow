@@ -82,13 +82,10 @@ function MainApp() {
                             if (!firstId) firstId = node.id;
                             newPages[node.id] = {
                                 id: node.id, title: node.title, emoji: node.emoji || "📄",
-                                parentId: parentId || "root", childIds: node.children?.map(c => c.id) || [],
+                                parentId: parentId || "root", childIds: [],
                                 updatedAt: "Server Sync"
                             };
-                            if (parentId || "root" in newPages) {
-                                if (parentId) newPages[parentId].childIds.push(node.id);
-                                else newPages["root"].childIds.push(node.id);
-                            }
+                            newPages[parentId || "root"].childIds.push(node.id);
                             node.children?.forEach(c => walk(c, node.id));
                         };
                         treeRes.data.forEach(r => walk(r, null));
@@ -106,7 +103,7 @@ function MainApp() {
                     if (!firstId) firstId = node.id;
                     newPages[node.id] = {
                         id: node.id, title: node.title, emoji: node.emoji || "📄",
-                        parentId: parentId || "root", childIds: node.children?.map(c => c.id) || [],
+                        parentId: parentId || "root", childIds: [],
                         updatedAt: "Server Sync"
                     };
                     newPages[parentId || "root"].childIds.push(node.id);
@@ -153,9 +150,11 @@ function MainApp() {
   `;
 
     const [isAddingPage, setIsAddingPage] = useState(false);
+    const addingPageRef = useRef(false);
 
     const addNotePage = async (parentId) => {
-        if (isAddingPage) return;
+        if (addingPageRef.current) return;
+        addingPageRef.current = true;
         setIsAddingPage(true);
         try {
             const r = await notesApi.createPage({ title: "Untitled", emoji: "📄", parentId: parentId === 'root' ? null : parentId });
@@ -170,6 +169,7 @@ function MainApp() {
             setPage("notes");
         } catch (e) {
         } finally {
+            addingPageRef.current = false;
             setIsAddingPage(false);
         }
     };
