@@ -98,9 +98,13 @@ export default function Friends({ t }) {
                                 {requests.map(req => (
                                     <div key={req.request_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, border: `1px solid ${t.border}`, background: t.card, borderRadius: 10 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ width: 34, height: 34, borderRadius: '50%', background: t.inset, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: t.t1, fontWeight: 700 }}>
-                                                {req.avatar_initials || "?"}
-                                            </div>
+                                            {req.avatar_url ? (
+                                                <img src={req.avatar_url} alt={req.name} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: `1px solid ${t.border}` }} />
+                                            ) : (
+                                                <div style={{ width: 34, height: 34, borderRadius: '50%', background: t.inset, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: t.t1, fontWeight: 700 }}>
+                                                    {req.avatar_initials || "?"}
+                                                </div>
+                                            )}
                                             <div>
                                                 <div style={{ fontSize: 13, fontWeight: 600, color: t.t1 }}>{req.name}</div>
                                                 <div style={{ fontSize: 11, color: t.t3 }}>{req.email}</div>
@@ -125,15 +129,20 @@ export default function Friends({ t }) {
                                 {friends.map(f => (
                                     <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, border: `1px solid ${t.border}`, background: t.card, borderRadius: 10 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ width: 34, height: 34, borderRadius: '50%', background: t.inset, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: t.t1, fontWeight: 700 }}>
-                                                {f.avatar_initials || "?"}
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: 13, fontWeight: 600, color: t.t1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    {f.name}
-                                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.is_online ? '#10B981' : t.border }}></div>
+                                            {f.avatar_url ? (
+                                                <img src={f.avatar_url} alt={f.name} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: `1px solid ${t.border}` }} />
+                                            ) : (
+                                                <div style={{ width: 38, height: 38, borderRadius: '50%', background: t.inset, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: t.t1, fontWeight: 700 }}>
+                                                    {f.avatar_initials || "?"}
                                                 </div>
-                                                <div style={{ fontSize: 11, color: t.t3 }}>{f.email}</div>
+                                            )}
+                                            <div>
+                                                <div style={{ fontSize: 14, fontWeight: 600, color: t.t1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    {f.name}
+                                                    <div title={f.is_online ? "Online" : "Offline"} style={{ width: 8, height: 8, borderRadius: '50%', background: f.is_online ? '#10B981' : t.border }}></div>
+                                                </div>
+                                                <div style={{ fontSize: 12, color: t.t3, marginTop: 2 }}>{f.email}</div>
+                                                {f.bio && <div style={{ fontSize: 12, color: t.t2, marginTop: 4, fontStyle: 'italic' }}>"{f.bio}"</div>}
                                             </div>
                                         </div>
                                     </div>

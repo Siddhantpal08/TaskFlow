@@ -31,14 +31,38 @@ const getPageById = async (id, userId) => {
 };
 
 const getPageWithBlocks = async (id, userId) => {
+    if (id === 'root') {
+        const [subPages] = await db.query(
+            `SELECT id, title, emoji, position FROM notes_pages
+             WHERE parent_id IS NULL AND user_id = ? ORDER BY position ASC`,
+            [userId]
+        );
+        return {
+            id: 'root', user_id: userId, parent_id: null, title: 'Workspace Home', emoji: '🏠', position: 0,
+            updated_at: new Date().toISOString(),
+            blocks: [
+                { id: 'sys-root-0', page_id: 'root', type: 'h1', content: 'Welcome to your Workspace 🏠', checked: 0, position: 0 },
+                { id: 'sys-root-1', page_id: 'root', type: 'p', content: 'This is the starting point for all your notes. Create new sub-pages below.', checked: 0, position: 1 },
+                { id: 'sys-root-2', page_id: 'root', type: 'callout', content: 'Notes are securely stored in the cloud. No deletion will occur on refresh.', checked: 0, position: 2 }
+            ],
+            subPages
+        };
+    }
+
     const page = await getPageById(id, userId);
     if (!page) return null;
 
-    const [blocks] = await db.query(
+    let [blocks] = await db.query(
         `SELECT id, page_id, type, content, checked, position
          FROM notes_blocks WHERE page_id = ? ORDER BY position ASC`,
         [id]
     );
+
+    if (blocks.length === 0) {
+        const blockId = uuidv4();
+        await db.query(`INSERT INTO notes_blocks (id, page_id, type, content, position) VALUES (?, ?, 'p', '', 0)`, [blockId, id]);
+        blocks = [{ id: blockId, page_id: id, type: 'p', content: '', checked: 0, position: 0 }];
+    }
 
     // Get direct sub-page stubs
     const [subPages] = await db.query(
@@ -51,6 +75,7 @@ const getPageWithBlocks = async (id, userId) => {
 };
 
 const updatePage = async (id, userId, { title, emoji, position }) => {
+    if (id === 'root') return { id: 'root', user_id: userId, parent_id: null, title: 'Workspace Home', emoji: '🏠' };
     await db.query(
         `UPDATE notes_pages SET title = ?, emoji = ?, position = ? WHERE id = ? AND user_id = ?`,
         [title, emoji !== undefined ? emoji : null, position, id, userId]
@@ -100,6 +125,7 @@ const reorderChildren = async (parentId, userId, orderedIds) => {
 // ─── Blocks ───────────────────────────────────────────────────────────────────
 
 const createBlock = async (pageId, { type = 'p', content = '', checked = 0, position = 0 }) => {
+    if (pageId === 'root') return { id: uuidv4(), page_id: 'root', type, content, checked: checked ? 1 : 0, position };
     const id = uuidv4();
     await db.query(
         `INSERT INTO notes_blocks (id, page_id, type, content, checked, position) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -110,6 +136,7 @@ const createBlock = async (pageId, { type = 'p', content = '', checked = 0, posi
 };
 
 const updateBlock = async (blockId, pageId, { content, checked, type }) => {
+    if (pageId === 'root') return { id: blockId, page_id: 'root', type: type || 'p', content: content || '', checked: checked ? 1 : 0 };
     // If a property is undefined, we leave it alone (by reusing existing value).
     // This allows partial updates from the frontend (e.g. only content changes).
     const updates = [];

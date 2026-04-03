@@ -47,7 +47,7 @@ const acceptRequest = async (requestId, userId) => {
 
 const getFriends = async (userId) => {
     const [rows] = await db.query(
-        `SELECT u.id, u.name, u.email, u.avatar_initials, u.is_online 
+        `SELECT u.id, u.name, u.email, u.avatar_initials, u.avatar_url, u.bio, u.is_online 
          FROM friends f
          JOIN users u ON (u.id = f.requester_id OR u.id = f.recipient_id)
          WHERE (f.requester_id = ? OR f.recipient_id = ?) 
@@ -60,7 +60,7 @@ const getFriends = async (userId) => {
 
 const getPendingRequests = async (userId) => {
     const [requests] = await db.query(
-        `SELECT f.id as request_id, u.id as user_id, u.name, u.email, u.avatar_initials, f.created_at
+        `SELECT f.id as request_id, u.id as user_id, u.name, u.email, u.avatar_initials, u.avatar_url, f.created_at
          FROM friends f
          JOIN users u ON u.id = f.requester_id
          WHERE f.recipient_id = ? AND f.status = 'pending'`,

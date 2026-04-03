@@ -89,7 +89,9 @@ function MainApp() {
                 };
                 initPages();
             } else {
-                const newPages = {};
+                const newPages = {
+                    root: { id: "root", title: "Workspace Home", emoji: "🏠", parentId: null, childIds: [], updatedAt: "Server Sync" }
+                };
                 let firstId = null;
                 const walk = (node, parentId) => {
                     if (!firstId) firstId = node.id;
@@ -98,6 +100,7 @@ function MainApp() {
                         parentId: parentId || "root", childIds: node.children?.map(c => c.id) || [],
                         updatedAt: "Server Sync"
                     };
+                    newPages[parentId || "root"].childIds.push(node.id);
                     node.children?.forEach(c => walk(c, node.id));
                 };
                 roots.forEach(r => walk(r, null));
