@@ -63,6 +63,12 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
         const flushPendingSaves = () => {
             const currentBlocks = latestBlocksRef.current;
+            const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+            const authHeader = {
+                'Authorization': `Bearer ${localStorage.getItem('tf_token')}`,
+                'Content-Type': 'application/json'
+            };
+
             Object.keys(debounceTimers.current).forEach(blkId => {
                 const timer = debounceTimers.current[blkId];
                 if (timer) {
@@ -73,9 +79,20 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     if (blkToFlush) {
                         if (blkId.toString().startsWith("loc-")) {
                             const idx = currentBlocks.findIndex(b => b.id === blkId);
-                            notesApi.createBlock(notePageId, { type: blkToFlush.type, content: blkToFlush.content, position: idx }).catch(() => { });
+                            // Standard fetch with keepalive instead of axios/custom api
+                            fetch(`${BASE}/notes/pages/${notePageId}/blocks`, {
+                                method: 'POST',
+                                headers: authHeader,
+                                body: JSON.stringify({ type: blkToFlush.type, content: blkToFlush.content, position: idx }),
+                                keepalive: true
+                            }).catch(() => { });
                         } else {
-                            notesApi.updateBlock(blkId, { content: blkToFlush.content, checked: blkToFlush.checked, type: blkToFlush.type }).catch(() => { });
+                            fetch(`${BASE}/notes/blocks/${blkId}`, {
+                                method: 'PUT',
+                                headers: authHeader,
+                                body: JSON.stringify({ content: blkToFlush.content, checked: blkToFlush.checked, type: blkToFlush.type }),
+                                keepalive: true
+                            }).catch(() => { });
                         }
                     }
                 }

@@ -74,33 +74,46 @@ app.get('/', (req, res) => {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>TaskFlow API System</title>
+            <title>TaskFlow — Backend Engine</title>
+            <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%239D4EDD' /><stop offset='100%25' stop-color='%23FF6B6B' /></linearGradient></defs><rect width='100' height='100' rx='26' fill='url(%23g)'/><path d='M30 52 L45 67 L75 32' fill='none' stroke='white' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/></svg>">
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-                body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-                .bg-glow { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(56,189,248,0.15) 0%, rgba(15,23,42,0) 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none; }
-                .container { text-align: center; background: rgba(30, 41, 59, 0.7); padding: 3.5rem; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); backdrop-filter: blur(12px); max-width: 500px; width: 90%; }
-                h1 { margin: 0 0 1rem 0; font-size: 3.5rem; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.05em; }
-                p { margin: 0 0 2rem 0; color: #94a3b8; font-size: 1.15rem; line-height: 1.6; }
-                .status-badge { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.5rem 1.25rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 999px; font-size: 0.9rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+                @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+                body { margin: 0; padding: 0; font-family: 'Space Grotesk', sans-serif; background: #0a0a0f; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+                .bg-glow { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(157, 78, 221, 0.15) 0%, rgba(10, 10, 15, 0) 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none; }
+                .container { text-align: center; background: rgba(20, 20, 30, 0.6); padding: 4rem; border-radius: 32px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 30px 60px rgba(0,0,0,0.6); backdrop-filter: blur(20px); max-width: 550px; width: 90%; }
+                .logo { width: 80px; height: 80px; margin-bottom: 1.5rem; filter: drop-shadow(0 10px 20px rgba(157, 78, 221, 0.4)); animation: float 6s ease-in-out infinite; }
+                @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+                h1 { margin: 0 0 1rem 0; font-size: 3rem; font-weight: 700; background: linear-gradient(135deg, #FF6B6B, #9D4EDD); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.02em; }
+                p { margin: 0 0 2.5rem 0; color: #a1a1aa; font-size: 1.1rem; line-height: 1.6; }
+                .status-badge { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 999px; font-size: 0.95rem; color: #34d399; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2rem; }
                 .status-dot { width: 10px; height: 10px; background: #34d399; border-radius: 50%; box-shadow: 0 0 12px #34d399; animation: pulse 2s infinite ease-in-out; }
-                @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); box-shadow: 0 0 4px #34d399; } 100% { opacity: 1; transform: scale(1); } }
-                .links { margin-top: 2rem; display: flex; justify-content: center; gap: 1rem; }
-                .links a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; transition: color 0.2s; border-bottom: 1px dashed transparent; }
-                .links a:hover { color: #38bdf8; border-bottom-color: #38bdf8; }
+                @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+                .links { display: flex; justify-content: center; gap: 1.5rem; }
+                .links a { color: #f8fafc; text-decoration: none; padding: 0.8rem 1.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 0.95rem; font-weight: 600; transition: all 0.2s; }
+                .links a:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
             </style>
         </head>
         <body>
             <div class="bg-glow"></div>
             <div class="container">
+                <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#9D4EDD" />
+                            <stop offset="100%" stop-color="#FF6B6B" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="100" height="100" rx="26" fill="url(#grad1)"/>
+                    <path d="M30 52 L45 67 L75 32" fill="none" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
                 <h1>TaskFlow Backend</h1>
-                <p>The core API service powering TaskFlow applications is active and routing requests securely.</p>
+                <p>Advanced Peer-to-Peer Collaborative Engine is heavily active and routing secure requests globally.</p>
                 <div class="status-badge">
                     <div class="status-dot"></div>
                     System Operational
                 </div>
                 <div class="links">
-                    <a href="/health">Health Check</a>
+                    <a href="/health">Health Diagnostic</a>
                 </div>
             </div>
         </body>

@@ -17,7 +17,20 @@ export const BLOCK_TYPES = [
 ];
 
 export const INIT_PAGES = {
-    root: { id: "root", title: "Notes", emoji: "📝", parentId: null, childIds: ["np1", "np2", "np3"], blocks: [], updatedAt: "Just now" },
+    root: { id: "root", title: "Notes", emoji: "📝", parentId: null, childIds: ["intro", "np1", "np2", "np3"], blocks: [], updatedAt: "Just now" },
+    intro: {
+        id: "intro", title: "Welcome to Notes! 📝", emoji: "✨", parentId: "root", childIds: [],
+        blocks: [
+            mkBlock("h1", "Welcome to TaskFlow Notes ✨"),
+            mkBlock("p", "This is your secure, deeply collaborative starting point for all your ideas. Notes are synchronized completely in real-time — meaning anyone in your workspace can type seamlessly with you!"),
+            mkBlock("h2", "A few tips to get you started:"),
+            mkBlock("todo", "Press '/' (slash) and start typing to see the commands menu instantly.", { checked: false }),
+            mkBlock("todo", "Hit 'Enter' at the end of a block to quickly spawn another.", { checked: false }),
+            mkBlock("todo", "You can also hover over the left edge of any paragraph to reveal the drag options and change block types on the fly.", { checked: false }),
+            mkBlock("quote", "Notes sync dynamically and reliably — nothing gets lost. Try opening this page on your phone alongside your computer to watch the magic happen."),
+            mkBlock("callout", "Use the 'Add sub-page' functionality in the bottom or in the navigation to structure your documents indefinitely."),
+        ], updatedAt: "Just now"
+    },
     np1: {
         id: "np1", title: "BCA Project — TaskFlow", emoji: "🚀", parentId: "root", childIds: ["np1a", "np1b"],
         blocks: [

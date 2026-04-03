@@ -51,7 +51,7 @@ function MainApp() {
                 const initPages = async () => {
                     try {
                         const idMap = { root: null };
-                        const order = ["np1", "np1a", "np1b", "np1b1", "np2", "np3"];
+                        const order = ["intro", "np1", "np1a", "np1b", "np1b1", "np2", "np3"];
 
                         for (const oldId of order) {
                             const pg = INIT_PAGES[oldId];
