@@ -15,6 +15,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [emojiOpen, setEmojiOpen] = useState(false);
     const titleRef = useRef();
     const socketRef = useRef(null);
+    const debounceTimers = useRef({});
+    const latestBlocksRef = useRef([]);
+
+    // Keep the ref strictly synced with state so we can flush on unmount
+    useEffect(() => {
+        latestBlocksRef.current = blocks;
+    }, [blocks]);
 
     useEffect(() => {
         setSlash(null);
@@ -42,19 +49,57 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             });
         });
 
+        s.on('note:block:added', ({ block, afterIdx }) => {
+            setBlocks(prev => {
+                const next = [...prev];
+                next.splice(afterIdx + 1, 0, block);
+                return next;
+            });
+        });
+
+        s.on('note:block:deleted', ({ idx }) => {
+            setBlocks(prev => prev.filter((_, i) => i !== idx));
+        });
+
+        const flushPendingSaves = () => {
+            const currentBlocks = latestBlocksRef.current;
+            Object.keys(debounceTimers.current).forEach(blkId => {
+                const timer = debounceTimers.current[blkId];
+                if (timer) {
+                    clearTimeout(timer);
+                    delete debounceTimers.current[blkId];
+
+                    const blkToFlush = currentBlocks.find(b => b.id === blkId);
+                    if (blkToFlush) {
+                        if (blkId.toString().startsWith("loc-")) {
+                            const idx = currentBlocks.findIndex(b => b.id === blkId);
+                            notesApi.createBlock(notePageId, { type: blkToFlush.type, content: blkToFlush.content, position: idx }).catch(() => { });
+                        } else {
+                            notesApi.updateBlock(blkId, { content: blkToFlush.content, checked: blkToFlush.checked, type: blkToFlush.type }).catch(() => { });
+                        }
+                    }
+                }
+            });
+        };
+
+        window.addEventListener('beforeunload', flushPendingSaves);
+
         return () => {
             active = false;
+            flushPendingSaves();
+            window.removeEventListener('beforeunload', flushPendingSaves);
             s.emit('note:leave', notePageId);
             s.disconnect();
         };
     }, [notePageId]);
 
-    const save = nb => { setBlocks(nb); /* Local backup logic not needed here */ };
+    const save = nb => { setBlocks(nb); };
 
     const addBlk = async (afterIdx, type = "p", content = "") => {
         const b = mkBlock(type, content);
         const nb = [...blocks]; nb.splice(afterIdx + 1, 0, b); save(nb);
         setTimeout(() => document.getElementById("blk-" + (afterIdx + 1))?.focus(), 30);
+        socketRef.current?.emit('note:block:add', { pageId: notePageId, block: b, afterIdx });
         try {
             const res = await notesApi.createBlock(notePageId, { type, content, position: afterIdx + 1 });
             b.id = res.data.id;
@@ -63,21 +108,32 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     const updBlk = (idx, ch) => {
         const nb = [...blocks];
-        const blk = nb[idx];
-        nb[idx] = { ...blk, ...ch };
+        const prevBlk = nb[idx];
+        const newBlk = { ...prevBlk, ...ch };
+        nb[idx] = newBlk;
         save(nb);
 
-        socketRef.current?.emit('note:block:update', { pageId: notePageId, blockId: blk.id, changes: ch });
+        socketRef.current?.emit('note:block:update', { pageId: notePageId, blockId: newBlk.id, changes: ch });
 
-        // Debounce update to backend
-        clearTimeout(blk._t);
-        blk._t = setTimeout(() => {
-            if (blk.id.toString().startsWith("loc-")) {
-                notesApi.createBlock(notePageId, { type: blk.type, content: blk.content, position: idx }).then(res => {
-                    setBlocks(prev => prev.map(p => p.id === blk.id ? { ...p, id: res.data.id } : p));
+        // Debounce update to backend securely
+        if (debounceTimers.current[newBlk.id]) {
+            clearTimeout(debounceTimers.current[newBlk.id]);
+        }
+
+        debounceTimers.current[newBlk.id] = setTimeout(() => {
+            delete debounceTimers.current[newBlk.id];
+
+            // Re-fetch the absolutely latest version from the ref to ensure no data is lost
+            const latestBlk = latestBlocksRef.current.find(b => b.id === newBlk.id) || newBlk;
+            const currentIdx = latestBlocksRef.current.findIndex(b => b.id === newBlk.id);
+            if (currentIdx === -1) return; // Block deleted before save
+
+            if (latestBlk.id.toString().startsWith("loc-")) {
+                notesApi.createBlock(notePageId, { type: latestBlk.type, content: latestBlk.content, position: currentIdx }).then(res => {
+                    setBlocks(prev => prev.map(p => p.id === latestBlk.id ? { ...p, id: res.data.id } : p));
                 }).catch(() => { });
             } else {
-                notesApi.updateBlock(blk.id, ch).catch(() => { });
+                notesApi.updateBlock(latestBlk.id, { content: latestBlk.content, checked: latestBlk.checked, type: latestBlk.type }).catch(() => { });
             }
         }, 800);
     };
@@ -118,7 +174,17 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const blk = blocks[idx];
         const nb = blocks.filter((_, i) => i !== idx); save(nb);
         focusAtEnd("blk-" + Math.max(0, idx - 1));
-        notesApi.deleteBlock(blk.id).catch(() => { });
+
+        socketRef.current?.emit('note:block:delete', { pageId: notePageId, idx });
+
+        if (!blk.id.toString().startsWith("loc-")) {
+            notesApi.deleteBlock(blk.id).catch(() => { });
+        }
+
+        if (debounceTimers.current[blk.id]) {
+            clearTimeout(debounceTimers.current[blk.id]);
+            delete debounceTimers.current[blk.id];
+        }
     };
 
     const handlePasteHTML = (html, text, targetIdx) => {
@@ -160,6 +226,11 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const nb = [...blocks];
         nb.splice(targetIdx + 1, 0, ...newBlocks);
         save(nb);
+        newBlocks.forEach((newBlk, offsetIndex) => {
+            socketRef.current?.emit('note:block:add', { pageId: notePageId, block: newBlk, afterIdx: targetIdx + offsetIndex });
+            // Let the first timer trigger creation
+            updBlk(targetIdx + 1 + offsetIndex, { content: newBlk.content });
+        });
         setTimeout(() => document.getElementById("blk-" + (targetIdx + newBlocks.length))?.focus(), 30);
         return true;
     };
@@ -172,10 +243,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         if (currentContent.trim() === "") {
             nb[slash.idx] = { ...nb[slash.idx], type, content: "" };
             save(nb);
+            socketRef.current?.emit('note:block:update', { pageId: notePageId, blockId: nb[slash.idx].id, changes: { type, content: "" } });
+            updBlk(slash.idx, { type, content: "" });
             setSlash(null);
             setTimeout(() => document.getElementById("blk-" + slash.idx)?.focus(), 30);
         } else {
             const b = mkBlock(type, ""); nb.splice(slash.idx + 1, 0, b); save(nb);
+            socketRef.current?.emit('note:block:add', { pageId: notePageId, block: b, afterIdx: slash.idx });
             setSlash(null);
             setTimeout(() => document.getElementById("blk-" + (slash.idx + 1))?.focus(), 30);
         }

@@ -110,10 +110,32 @@ const createBlock = async (pageId, { type = 'p', content = '', checked = 0, posi
 };
 
 const updateBlock = async (blockId, pageId, { content, checked, type }) => {
-    await db.query(
-        `UPDATE notes_blocks SET content = ?, checked = ?, type = ? WHERE id = ? AND page_id = ?`,
-        [content ?? '', checked !== undefined ? (checked ? 1 : 0) : 0, type || 'p', blockId, pageId]
-    );
+    // If a property is undefined, we leave it alone (by reusing existing value).
+    // This allows partial updates from the frontend (e.g. only content changes).
+    const updates = [];
+    const values = [];
+
+    if (content !== undefined) {
+        updates.push('content = ?');
+        values.push(content ?? '');
+    }
+    if (checked !== undefined) {
+        updates.push('checked = ?');
+        values.push(checked ? 1 : 0);
+    }
+    if (type !== undefined) {
+        updates.push('type = ?');
+        values.push(type || 'p');
+    }
+
+    if (updates.length > 0) {
+        values.push(blockId, pageId);
+        await db.query(
+            `UPDATE notes_blocks SET ${updates.join(', ')} WHERE id = ? AND page_id = ?`,
+            values
+        );
+    }
+
     const [rows] = await db.query(`SELECT * FROM notes_blocks WHERE id = ?`, [blockId]);
     return rows[0] || null;
 };
