@@ -150,7 +150,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     setBlocks(prev => prev.map(p => p.id === latestBlk.id ? { ...p, id: res.data.id } : p));
                 }).catch(() => { });
             } else {
-                notesApi.updateBlock(latestBlk.id, { content: latestBlk.content, checked: latestBlk.checked, type: latestBlk.type }).catch(() => { });
+                notesApi.updateBlock(latestBlk.id, { content: latestBlk.content, checked: !!latestBlk.checked, type: latestBlk.type }).catch(() => { });
             }
         }, 800);
     };
