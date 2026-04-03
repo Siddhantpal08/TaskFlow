@@ -152,7 +152,11 @@ function MainApp() {
     .nsi:hover  { background: ${t.noteHover} !important; }
   `;
 
+    const [isAddingPage, setIsAddingPage] = useState(false);
+
     const addNotePage = async (parentId) => {
+        if (isAddingPage) return;
+        setIsAddingPage(true);
         try {
             const r = await notesApi.createPage({ title: "Untitled", emoji: "📄", parentId: parentId === 'root' ? null : parentId });
             const id = r.data.id;
@@ -164,7 +168,10 @@ function MainApp() {
             setExpanded(prev => ({ ...prev, [parentId]: true }));
             setNotePageId(id);
             setPage("notes");
-        } catch (e) { }
+        } catch (e) {
+        } finally {
+            setIsAddingPage(false);
+        }
     };
 
     const deleteNotePage = async (id) => {
