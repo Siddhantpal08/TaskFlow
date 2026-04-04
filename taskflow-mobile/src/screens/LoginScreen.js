@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet,
-    ActivityIndicator, Alert
+    View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { DARK as t } from '../data/themes';
@@ -24,18 +23,9 @@ export default function LoginScreen({ navigation }) {
         }
     };
 
-    const handleGoogleLogin = () => {
-        Alert.alert(
-            'Google Sign-in',
-            'Google Sign-in is available on the web version. Please use email & password to sign in on mobile, or visit the web app to sign in with Google.',
-            [{ text: 'OK' }]
-        );
-    };
-
     return (
         <View style={s.container}>
             <View style={s.card}>
-                {/* Logo */}
                 <View style={s.header}>
                     <View style={s.logo}><Text style={s.logotxt}>T</Text></View>
                     <Text style={s.title}>Task<Text style={{ color: t.accent }}>Flow</Text></Text>
@@ -68,19 +58,6 @@ export default function LoginScreen({ navigation }) {
                     {loading ? <ActivityIndicator color="#000" /> : <Text style={s.btntxt}>Sign In</Text>}
                 </TouchableOpacity>
 
-                {/* Divider */}
-                <View style={s.divRow}>
-                    <View style={s.divLine} />
-                    <Text style={s.divTxt}>OR</Text>
-                    <View style={s.divLine} />
-                </View>
-
-                {/* Google Sign-in */}
-                <TouchableOpacity style={s.googleBtn} onPress={handleGoogleLogin}>
-                    <Text style={s.googleG}>G</Text>
-                    <Text style={s.googleTxt}>Continue with Google</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')} style={s.link}>
                     <Text style={s.linkTxt}>Forgot password? <Text style={{ color: t.accent, fontWeight: 'bold' }}>Reset it</Text></Text>
                 </TouchableOpacity>
@@ -105,16 +82,6 @@ const s = StyleSheet.create({
     btn: { backgroundColor: t.accent, borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 25 },
     btntxt: { color: '#000', fontWeight: 'bold', fontSize: 16 },
     err: { color: t.red, backgroundColor: t.red + '22', padding: 10, borderRadius: 8, marginBottom: 10, fontSize: 13, overflow: 'hidden' },
-    divRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
-    divLine: { flex: 1, height: 1, backgroundColor: t.border },
-    divTxt: { color: t.t3, fontSize: 11, fontWeight: 'bold', marginHorizontal: 12 },
-    googleBtn: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        borderWidth: 1, borderColor: t.border, borderRadius: 10,
-        padding: 13, backgroundColor: t.card,
-    },
-    googleG: { fontSize: 18, fontWeight: '900', color: '#4285F4', marginRight: 10 },
-    googleTxt: { color: t.t1, fontWeight: '700', fontSize: 14 },
     link: { marginTop: 14, alignItems: 'center' },
     linkTxt: { color: t.t3, fontSize: 13 },
 });

@@ -35,7 +35,7 @@ export default function DashboardScreen({ navigation }) {
             {/* Header / Welcome */}
             <View style={s.header}>
                 <View style={{ flex: 1 }}>
-                    <Text style={s.greeting}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {firstName} 👋</Text>
+                    <Text style={s.greeting}>{(() => { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}, {firstName} 👋</Text>
                     <Text style={s.subgreeting}>
                         <Text style={{ color: t.red, fontWeight: 'bold' }}>{dueSoon} tasks due soon</Text>{' · '}
                         <Text style={{ color: t.accent, fontWeight: 'bold' }}>{tasks.filter(x => x.status === 'pending').length} awaiting action</Text>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { useData } from '../context/DataContext';
+import { eventsApi } from '../api/events';
 import { DARK as t } from '../data/themes';
 
 const PCOLORS = ['#FF3D5A', '#00E5CC', '#00D67B', '#B083FF', '#FFAA00'];
@@ -30,13 +31,51 @@ export default function CalendarScreen() {
         }
     };
 
+    const handleDelete = (ev) => {
+        Alert.alert('Delete Event', `Delete "${ev.title}"?`, [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete', style: 'destructive', onPress: async () => {
+                    try {
+                        await eventsApi.delete(ev.id);
+                    } catch (e) {
+                        Alert.alert('Error', e.message || 'Could not delete event');
+                    }
+                }
+            },
+        ]);
+    };
+
+    const today = new Date().toISOString().slice(0, 10);
     const marked = {};
     events.forEach(ev => {
         const dStr = ev.event_date.slice(0, 10);
         const c = PCOLORS[ev.id % PCOLORS.length];
         marked[dStr] = { marked: true, dotColor: c };
     });
-    marked[selected] = { ...marked[selected], selected: true, selectedColor: t.accent, selectedTextColor: '#000' };
+    // Today: outline ring (not filled, so it doesn't interfere with selection)
+    if (!marked[today]) marked[today] = {};
+    marked[today] = {
+        ...marked[today],
+        customStyles: {
+            container: {
+                borderWidth: 2, borderColor: t.accent, borderRadius: 20,
+                backgroundColor: 'transparent',
+            },
+            text: { color: t.accent, fontWeight: '900' },
+        },
+    };
+    marked[selected] = {
+        ...marked[selected],
+        selected: true, selectedColor: t.accent, selectedTextColor: '#000',
+    };
+    // If today is selected, merge styles
+    if (today === selected) {
+        marked[selected] = {
+            ...marked[selected],
+            customStyles: undefined, // let selected style win
+        };
+    }
 
     const selectedEvents = events.filter(ev => ev.event_date.slice(0, 10) === selected);
 
@@ -48,6 +87,7 @@ export default function CalendarScreen() {
         <View style={s.container}>
             <Calendar
                 style={s.cal}
+                markingType={'custom'}
                 theme={{
                     backgroundColor: t.bg,
                     calendarBackground: t.card,
@@ -84,10 +124,13 @@ export default function CalendarScreen() {
                         return (
                             <View key={ev.id} style={s.evCard}>
                                 <View style={[s.indicator, { backgroundColor: c }]} />
-                                <View>
+                                <View style={{ flex: 1 }}>
                                     <Text style={s.tkTitle}>{ev.title}</Text>
                                     <Text style={s.tkSub}>{ev.event_time ? ev.event_time.slice(0, 5) : 'All Day'}</Text>
                                 </View>
+                                <TouchableOpacity onPress={() => handleDelete(ev)} style={s.delBtn}>
+                                    <Text style={s.delTxt}>✕</Text>
+                                </TouchableOpacity>
                             </View>
                         );
                     })
@@ -130,6 +173,8 @@ const s = StyleSheet.create({
     indicator: { width: 4, height: '100%', borderRadius: 2, marginRight: 15 },
     tkTitle: { fontSize: 16, fontWeight: 'bold', color: t.t1, marginBottom: 4 },
     tkSub: { fontSize: 12, color: t.t3 },
+    delBtn: { padding: 8, borderRadius: 8, backgroundColor: t.red + '18' },
+    delTxt: { color: t.red, fontSize: 13, fontWeight: '800' },
     modalBg: { flex: 1, backgroundColor: '#000000AA', justifyContent: 'center', padding: 20 },
     modalCard: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, padding: 20 },
     modalTitle: { fontSize: 18, fontWeight: 'bold', color: t.t1, marginBottom: 15 },

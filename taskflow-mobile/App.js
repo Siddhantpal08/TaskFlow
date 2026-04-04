@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -14,13 +14,15 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
-import TeamScreen from './src/screens/TeamScreen';
+import NotesListScreen from './src/screens/NotesListScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
+import NoteEditorScreen from './src/screens/NoteEditorScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
-const Stack = createStackNavigator();
+const AppStack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+const NotifStack = createStackNavigator();
 
 const navTheme = {
   ...DefaultTheme,
@@ -36,17 +38,41 @@ const navTheme = {
 
 function AuthStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-    </Stack.Navigator>
+    <AppStack.Navigator screenOptions={{ headerShown: false }}>
+      <AppStack.Screen name="Login" component={LoginScreen} />
+      <AppStack.Screen name="Register" component={RegisterScreen} />
+      <AppStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    </AppStack.Navigator>
   );
 }
 
 function TabIcon({ emoji, focused }) {
+  return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>{emoji}</Text>;
+}
+
+// Notification bell shown in header of each screen
+function NotifBell() {
+  const { unreadCount } = useData();
+  const navigation = useNavigation();
   return (
-    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>{emoji}</Text>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('_Notifications')}
+      style={{ marginRight: 16, position: 'relative' }}
+    >
+      <Text style={{ fontSize: 22 }}>🔔</Text>
+      {unreadCount > 0 && (
+        <View style={{
+          position: 'absolute', top: -3, right: -4,
+          backgroundColor: DARK.red, borderRadius: 7,
+          minWidth: 14, height: 14, justifyContent: 'center', alignItems: 'center',
+          borderWidth: 1.5, borderColor: DARK.nav, paddingHorizontal: 1,
+        }}>
+          <Text style={{ color: '#fff', fontSize: 7, fontWeight: '900' }}>
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -72,39 +98,23 @@ function FriendsTabIcon({ focused }) {
   );
 }
 
-function NotifTabIcon({ focused }) {
-  const { unreadCount } = useData();
-  return (
-    <View>
-      <TabIcon emoji="🔔" focused={focused} />
-      {unreadCount > 0 && (
-        <View style={{
-          position: 'absolute', top: -2, right: -4,
-          backgroundColor: DARK.red, borderRadius: 6,
-          width: 12, height: 12, justifyContent: 'center', alignItems: 'center',
-          borderWidth: 1.5, borderColor: DARK.nav,
-        }}>
-          <Text style={{ color: '#fff', fontSize: 7, fontWeight: '900' }}>
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-}
+const sharedHeaderOptions = {
+  headerStyle: {
+    backgroundColor: DARK.nav,
+    shadowColor: 'transparent',
+    elevation: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: DARK.border,
+  },
+  headerTintColor: DARK.t1,
+  headerTitleStyle: { fontWeight: '800', fontSize: 18 },
+  headerRight: () => <NotifBell />,
+};
 
 function MainTabs() {
   return (
     <Tab.Navigator screenOptions={{
-      headerStyle: {
-        backgroundColor: DARK.nav,
-        shadowColor: 'transparent',
-        elevation: 0,
-        borderBottomWidth: 1,
-        borderBottomColor: DARK.border,
-      },
-      headerTintColor: DARK.t1,
-      headerTitleStyle: { fontWeight: '800', fontSize: 18 },
+      ...sharedHeaderOptions,
       tabBarStyle: {
         backgroundColor: DARK.nav,
         borderTopColor: DARK.border,
@@ -114,7 +124,6 @@ function MainTabs() {
       },
       tabBarActiveTintColor: DARK.accent,
       tabBarInactiveTintColor: DARK.t3,
-      tabBarShowLabel: true,
       tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginTop: 2 },
     }}>
       <Tab.Screen
@@ -140,10 +149,10 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Team"
-        component={TeamScreen}
+        name="Notes"
+        component={NotesListScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👥" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📝" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -154,14 +163,6 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{
-          tabBarLabel: 'Inbox',
-          tabBarIcon: ({ focused }) => <NotifTabIcon focused={focused} />,
-        }}
-      />
-      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
@@ -169,6 +170,30 @@ function MainTabs() {
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+// Wrap tabs + notifications in an app stack so notif screen can be pushed
+function AppNavigator() {
+  return (
+    <AppStack.Navigator screenOptions={{ headerShown: false }}>
+      <AppStack.Screen name="_Main" component={MainTabs} />
+      <AppStack.Screen
+        name="_Notifications"
+        component={NotificationsScreen}
+        options={{
+          headerShown: true,
+          title: 'Notifications',
+          ...sharedHeaderOptions,
+          headerRight: undefined,
+        }}
+      />
+      <AppStack.Screen
+        name="NoteEditor"
+        component={NoteEditorScreen}
+        options={{ headerShown: false }}
+      />
+    </AppStack.Navigator>
   );
 }
 
@@ -187,7 +212,7 @@ function RootNavigator() {
     <NavigationContainer theme={navTheme}>
       {user ? (
         <DataProvider>
-          <MainTabs />
+          <AppNavigator />
         </DataProvider>
       ) : (
         <AuthStack />
