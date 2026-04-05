@@ -1,0 +1,132 @@
+import { useState, useRef, useEffect } from "react";
+import { SCRIPT_ORDER } from "../../data/notes.js";
+
+const SCRIPT_STYLES = {
+    "scene-heading": {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: 13.5, fontWeight: 700, textTransform: "uppercase",
+        letterSpacing: "0.5px", color: null, // will use noteText
+        borderBottom: "1px solid", paddingBottom: 4, paddingTop: 20, marginBottom: 4,
+        tag: "INT./EXT.",
+    },
+    "action": {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: 13, fontWeight: 400, paddingTop: 10, paddingBottom: 4,
+        tag: "Action",
+    },
+    "character": {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: 13, fontWeight: 700, textTransform: "uppercase",
+        textAlign: "center", letterSpacing: "1px", paddingTop: 18, paddingBottom: 0,
+        tag: "Character",
+    },
+    "dialogue": {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: 13, fontWeight: 400, paddingTop: 2, paddingBottom: 4,
+        textAlign: "center", maxWidth: "60%", margin: "0 auto",
+        tag: "Dialogue",
+    },
+    "parenthetical": {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: 12.5, fontStyle: "italic", textAlign: "center",
+        paddingTop: 2, paddingBottom: 2, tag: "Parenthetical",
+        beforeText: "(", afterText: ")",
+    },
+    "transition": {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: 12.5, fontWeight: 700, textTransform: "uppercase",
+        textAlign: "right", letterSpacing: "0.5px", paddingTop: 14, paddingBottom: 6,
+        tag: "Transition",
+    },
+};
+
+export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfter, onFocusPrev, onFocusNext }) {
+    const ref = useRef();
+    const [hov, setHov] = useState(false);
+    const st = SCRIPT_STYLES[blk.type] || SCRIPT_STYLES["action"];
+
+    useEffect(() => {
+        if (ref.current && document.activeElement !== ref.current && ref.current.innerText !== blk.content) {
+            ref.current.innerText = blk.content || "";
+        }
+    }, [blk.content, blk.type]);
+
+    const cycleType = () => {
+        const cur = SCRIPT_ORDER.indexOf(blk.type);
+        const next = SCRIPT_ORDER[(cur + 1) % SCRIPT_ORDER.length];
+        onUpdate({ type: next, content: ref.current?.innerText || "" });
+    };
+
+    const handleKey = e => {
+        if (e.key === "Tab") { e.preventDefault(); cycleType(); return; }
+        if (e.key === "Enter") {
+            e.preventDefault();
+            // Natural progression: character → dialogue, dialogue → action, everything else → action
+            const next = blk.type === "character" ? "dialogue"
+                : blk.type === "dialogue" ? "action"
+                    : blk.type === "parenthetical" ? "dialogue"
+                        : blk.type;
+            onAddAfter(next);
+        }
+        if (e.key === "Backspace" && ref.current?.innerText.trim() === "") { e.preventDefault(); onDelete(); }
+        if (e.key === "ArrowUp") { const s = window.getSelection(); if (s.anchorOffset === 0) { e.preventDefault(); onFocusPrev(); } }
+        if (e.key === "ArrowDown") { const s = window.getSelection(); if (s.anchorOffset === (ref.current?.innerText.length || 0)) { e.preventDefault(); onFocusNext(); } }
+    };
+
+    const textColor = blk.type === "scene-heading" ? t.accent
+        : blk.type === "transition" ? t.t2
+            : blk.type === "parenthetical" ? t.noteMuted
+                : t.noteText;
+
+    return (
+        <div style={{ position: "relative", margin: "2px 0" }}
+            onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+            {/* Type badge */}
+            {hov && (
+                <div style={{
+                    position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)",
+                    display: "flex", alignItems: "center", gap: 4, zIndex: 5
+                }}>
+                    <button onMouseDown={e => { e.preventDefault(); cycleType(); }}
+                        style={{
+                            background: t.accentDim, border: `1px solid ${t.accent}44`, borderRadius: 6,
+                            color: t.accent, fontSize: 9.5, padding: "2px 8px", cursor: "pointer",
+                            fontFamily: t.mono, fontWeight: 700, letterSpacing: "0.3px"
+                        }}>
+                        {st.tag} · Tab↹
+                    </button>
+                    <button onMouseDown={e => { e.preventDefault(); onDelete(); }}
+                        style={{ background: "none", border: "none", color: t.red, fontSize: 12, cursor: "pointer", padding: "2px 4px" }}>×</button>
+                </div>
+            )}
+            <div
+                id={`blk-${idx}`} ref={ref}
+                contentEditable suppressContentEditableWarning
+                data-ph={st.tag + "…"}
+                onInput={e => onUpdate({ content: e.currentTarget.innerText || "" })}
+                onKeyDown={handleKey}
+                style={{
+                    fontFamily: st.fontFamily,
+                    fontSize: st.fontSize,
+                    fontWeight: st.fontWeight || 400,
+                    fontStyle: st.fontStyle || "normal",
+                    textTransform: st.textTransform || "none",
+                    textAlign: st.textAlign || "left",
+                    letterSpacing: st.letterSpacing || "normal",
+                    color: textColor,
+                    paddingTop: st.paddingTop || 4,
+                    paddingBottom: st.paddingBottom || 4,
+                    marginLeft: st.textAlign === "center" ? "auto" : 0,
+                    marginRight: st.textAlign === "center" ? "auto" : 0,
+                    maxWidth: st.maxWidth || "100%",
+                    width: st.maxWidth ? undefined : "100%",
+                    borderBottom: blk.type === "scene-heading" ? `1px solid ${t.accent}40` : "none",
+                    outline: "none",
+                    wordBreak: "break-word",
+                    lineHeight: 1.7,
+                    cursor: "text",
+                }}
+            />
+        </div>
+    );
+}

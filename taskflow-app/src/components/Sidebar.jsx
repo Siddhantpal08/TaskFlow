@@ -2,6 +2,7 @@ import { useState } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import NoteTreeItem from "./NoteTreeItem.jsx";
+import { TFLogo } from "../App.jsx";
 
 export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded,
     notePageId, navigateNote, addNotePage, deleteNotePage, className }) {
@@ -47,20 +48,12 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
             />
 
             {/* Logo — clickable → Dashboard */}
-            <div style={{ padding: "18px 16px 14px", borderBottom: `1px solid ${t.border}` }}>
+            <div style={{ padding: "16px 14px 14px", borderBottom: `1px solid ${t.border}` }}>
                 <div onClick={() => setPage("dashboard")}
-                    style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16, cursor: "pointer" }}>
-                    <div style={{
-                        width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-                        background: `linear-gradient(135deg,${t.accent},#009688)`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: t.accentGlow
-                    }}>
-                        <I d={IC.lnk} sz={16} c="#000" sw={2.4} />
-                    </div>
-                    <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.5px", color: t.t1 }}>
-                        Task<span style={{ color: t.accent }}>Flow</span>
-                    </span>
+                    style={{ marginBottom: 14, cursor: "pointer", transition: "opacity .15s" }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                    onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+                    <TFLogo size={30} showText={true} textColor={t.t1} />
                 </div>
                 {/* Main nav */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -122,11 +115,10 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                 >
                     <div style={{
                         width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                        background: `linear-gradient(135deg, ${t.accent}40, ${t.purple || '#B083FF'}40)`,
+                        background: user?.avatar_url ? `url(${user.avatar_url}) center/cover` : `linear-gradient(135deg, ${t.accent}40, #0072FF40)`,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         fontSize: 12, fontWeight: 700, color: t.accent,
                         border: `1.5px solid ${t.accent}44`,
-                        backgroundImage: user?.avatar_url ? `url(${user.avatar_url})` : 'none',
                         backgroundSize: 'cover', backgroundPosition: 'center'
                     }}>{!user?.avatar_url && (user?.avatar_initials || "?")}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>

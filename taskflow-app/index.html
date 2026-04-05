@@ -3,10 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>TaskFlow — Smart Task Management</title>
+    <!-- SEO -->
+    <title>TaskFlow — Smart Task Management & Collaboration</title>
+    <meta name="description" content="TaskFlow is a premium peer-to-peer task management and collaboration platform. Organize tasks, write notes, schedule events, and collaborate with your team in real-time." />
+    <!-- Watermark / Ownership -->
+    <meta name="author" content="Siddhant Pal" />
+    <meta name="copyright" content="Created and owned by Siddhant Pal. All rights reserved 2025-2026." />
+    <meta name="generator" content="TaskFlow v1.0 by Siddhant Pal" />
+    <!-- Open Graph -->
+    <meta property="og:title" content="TaskFlow — Smart Task Management" />
+    <meta property="og:description" content="Premium peer-to-peer task management and collaboration platform." />
+    <meta property="og:type" content="website" />
+    <!-- Favicon: TF logo SVG (teal→blue gradient) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%2300E5CC'/><stop offset='100%25' stop-color='%230072FF'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='url(%23g)'/><rect x='18' y='24' width='64' height='12' rx='6' fill='white'/><rect x='44' y='24' width='12' height='55' rx='6' fill='white'/><rect x='44' y='50' width='32' height='10' rx='5' fill='white'/></svg>" />
   </head>
   <body>
+    <!-- Hidden watermark — not visible to end users -->
+    <div id="tf-watermark" aria-hidden="true" style="position:absolute;opacity:0;pointer-events:none;user-select:none;font-size:0;z-index:-999;">
+      TaskFlow — Created and owned by Siddhant Pal. All rights reserved 2025-2026. Unauthorized use or distribution is prohibited.
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

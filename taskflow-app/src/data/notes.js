@@ -8,6 +8,8 @@ export const BLOCK_TYPES = [
     { type: "h1", icon: "H1", label: "Heading 1", desc: "Large title" },
     { type: "h2", icon: "H2", label: "Heading 2", desc: "Section heading" },
     { type: "h3", icon: "H3", label: "Heading 3", desc: "Sub-heading" },
+    { type: "ul", icon: "•", label: "Bullet List", desc: "Unordered list item" },
+    { type: "ol", icon: "1.", label: "Numbered List", desc: "Ordered list item" },
     { type: "todo", icon: "☐", label: "To-do", desc: "Checkbox item" },
     { type: "quote", icon: "❝", label: "Quote", desc: "Block quote" },
     { type: "callout", icon: "💡", label: "Callout", desc: "Info callout box" },
@@ -15,6 +17,29 @@ export const BLOCK_TYPES = [
     { type: "divider", icon: "—", label: "Divider", desc: "Horizontal line" },
     { type: "link", icon: "🔗", label: "Link", desc: "Clickable URL" },
 ];
+
+export const SCRIPT_BLOCK_TYPES = [
+    { type: "scene-heading", icon: "INT.", label: "Scene Heading", desc: "INT./EXT. location" },
+    { type: "action", icon: "Act", label: "Action", desc: "Scene description" },
+    { type: "character", icon: "CHR", label: "Character", desc: "Character name" },
+    { type: "dialogue", icon: "Dlg", label: "Dialogue", desc: "Spoken lines" },
+    { type: "parenthetical", icon: "()", label: "Parenthetical", desc: "Acting direction" },
+    { type: "transition", icon: "CUT", label: "Transition", desc: "CUT TO: / FADE OUT:" },
+];
+
+export const LYRICS_BLOCK_TYPES = [
+    { type: "verse", icon: "V", label: "Verse", desc: "Song verse" },
+    { type: "chorus", icon: "Ch", label: "Chorus", desc: "Song chorus" },
+    { type: "bridge", icon: "Br", label: "Bridge", desc: "Song bridge" },
+    { type: "pre-chorus", icon: "PC", label: "Pre-Chorus", desc: "Pre-chorus section" },
+    { type: "hook", icon: "Hk", label: "Hook", desc: "Song hook" },
+    { type: "outro", icon: "Ou", label: "Outro", desc: "Song outro" },
+];
+
+export const SCRIPT_TYPES = new Set(SCRIPT_BLOCK_TYPES.map(b => b.type));
+export const LYRICS_TYPES = new Set(LYRICS_BLOCK_TYPES.map(b => b.type));
+export const SCRIPT_ORDER = SCRIPT_BLOCK_TYPES.map(b => b.type);
+export const LYRICS_ORDER = LYRICS_BLOCK_TYPES.map(b => b.type);
 
 export const INIT_PAGES = {
     root: { id: "root", title: "Notes", emoji: "📝", parentId: null, childIds: ["intro", "np1", "np2", "np3"], blocks: [], updatedAt: "Just now" },
@@ -24,9 +49,9 @@ export const INIT_PAGES = {
             mkBlock("h1", "Welcome to TaskFlow Notes ✨"),
             mkBlock("p", "This is your secure, deeply collaborative starting point for all your ideas. Notes are synchronized completely in real-time — meaning anyone in your workspace can type seamlessly with you!"),
             mkBlock("h2", "A few tips to get you started:"),
-            mkBlock("todo", "Press '/' (slash) and start typing to see the commands menu instantly.", { checked: false }),
-            mkBlock("todo", "Hit 'Enter' at the end of a block to quickly spawn another.", { checked: false }),
-            mkBlock("todo", "You can also hover over the left edge of any paragraph to reveal the drag options and change block types on the fly.", { checked: false }),
+            mkBlock("ul", "Press '/' (slash) and start typing to see the commands menu instantly."),
+            mkBlock("ul", "Hit 'Enter' at the end of a block to quickly spawn another."),
+            mkBlock("ul", "You can also hover over the left edge of any paragraph to reveal the drag options and change block types on the fly."),
             mkBlock("quote", "Notes sync dynamically and reliably — nothing gets lost. Try opening this page on your phone alongside your computer to watch the magic happen."),
             mkBlock("callout", "Use the 'Add sub-page' functionality in the bottom or in the navigation to structure your documents indefinitely."),
         ], updatedAt: "Just now"
@@ -86,8 +111,8 @@ export const INIT_PAGES = {
             mkBlock("todo", "Notifications: email via NodeMailer + mobile push via Firebase FCM"),
             mkBlock("todo", "Dark/light mode toggle using React context + CSS variables"),
             mkBlock("h2", "Action Items"),
-            mkBlock("todo", "Siddhant: finalize DB schema by Feb 21"),
-            mkBlock("todo", "Shubham: set up Node.js project structure"),
+            mkBlock("ol", "Siddhant: finalize DB schema by Feb 21"),
+            mkBlock("ol", "Shubham: set up Node.js project structure"),
         ], updatedAt: "Feb 20, 2025"
     },
     np3: {
@@ -99,10 +124,10 @@ export const INIT_PAGES = {
             mkBlock("p", "Studied for reference: Todoist, Asana, Linear, Notion, ClickUp"),
             mkBlock("quote", "TaskFlow fills the gap between overly simple to-do apps and heavyweight enterprise tools — targeting students and small teams."),
             mkBlock("h2", "Future Features"),
-            mkBlock("todo", "Real-time collaboration (Socket.io)"),
-            mkBlock("todo", "In-app chat between task participants"),
-            mkBlock("todo", "PDF/Excel export (pdfkit, exceljs)"),
-            mkBlock("todo", "AI task suggestions"),
+            mkBlock("ul", "Real-time collaboration (Socket.io)"),
+            mkBlock("ul", "In-app chat between task participants"),
+            mkBlock("ul", "PDF/Excel export (pdfkit, exceljs)"),
+            mkBlock("ul", "AI task suggestions"),
         ], updatedAt: "Feb 18, 2025"
     },
 };

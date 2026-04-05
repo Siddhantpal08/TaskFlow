@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { I, IC } from "../ui/Icon.jsx";
 import BlockHandle from "./BlockHandle.jsx";
+import ScriptBlock from "./ScriptBlock.jsx";
+import LyricsBlock from "./LyricsBlock.jsx";
+import { SCRIPT_TYPES, LYRICS_TYPES } from "../../data/notes.js";
 
-export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose, onOpenSlash, onFocusPrev, onFocusNext, onPasteHTML }) {
+export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose, onFocusPrev, onFocusNext, onPasteHTML, olIndex }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -13,21 +16,45 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
     };
 
     useEffect(() => {
-        if (ref.current && document.activeElement !== ref.current && ref.current.innerText !== blk.content && blk.type !== "link" && blk.type !== "code") {
+        if (
+            ref.current &&
+            document.activeElement !== ref.current &&
+            ref.current.innerText !== blk.content &&
+            blk.type !== "link" && blk.type !== "code"
+        ) {
             ref.current.innerText = blk.content || "";
         }
     }, [blk.content, blk.type]);
 
     const handleKey = e => {
+        // Ctrl+A / Cmd+A: select all text inside this block only
+        if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+            e.preventDefault();
+            const el = ref.current;
+            if (!el) return;
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            return;
+        }
+
         if (e.key === "/") {
             e.preventDefault();
             openSlashMenu();
             return;
         }
+
         if (e.key === "Enter" && blk.type !== "code") {
             e.preventDefault();
-            onAddAfter(blk.type === "todo" ? "todo" : "p");
+            // continue list types on enter
+            if (blk.type === "ul") { onAddAfter("ul"); return; }
+            if (blk.type === "ol") { onAddAfter("ol"); return; }
+            if (blk.type === "todo") { onAddAfter("todo"); return; }
+            onAddAfter("p");
         }
+
         if (e.key === "Backspace" && ref.current?.innerText.trim() === "") {
             e.preventDefault();
             onDelete();
@@ -64,12 +91,30 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         }
     };
 
-    // ── DIVIDER ──
+    // Delegate creative writing block types
+    if (SCRIPT_TYPES.has(blk.type)) {
+        return <ScriptBlock blk={blk} idx={idx} t={t}
+            onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter}
+            onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} />;
+    }
+    if (LYRICS_TYPES.has(blk.type)) {
+        return <LyricsBlock blk={blk} idx={idx} t={t}
+            onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter}
+            onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} />;
+    }
+
+    // ── DIVIDER ── (now focusable + supports add-after)
     if (blk.type === "divider") return (
         <div className="blkr" style={{ position: "relative", padding: "6px 0" }}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
             <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
-            <hr style={{ border: "none", borderTop: `1.5px solid ${t.noteBorder}`, margin: "4px 0" }} />
+            <hr
+                tabIndex={0}
+                onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === "ArrowDown") { e.preventDefault(); onAddAfter("p"); }
+                    if (e.key === "ArrowUp") { e.preventDefault(); onFocusPrev(); }
+                }}
+                style={{ border: "none", borderTop: `1.5px solid ${t.noteBorder}`, margin: "4px 0", cursor: "default", outline: "none" }} />
         </div>
     );
 
@@ -139,6 +184,38 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         </div>
     );
 
+    // ── BULLET LIST (ul) ──
+    if (blk.type === "ul") return (
+        <div className="blkr" style={{ position: "relative" }}
+            onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "2px 0" }}>
+                <span style={{ color: t.accent, fontSize: 18, lineHeight: 1.6, flexShrink: 0, userSelect: "none", marginTop: 1 }}>•</span>
+                <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
+                    data-ph="List item…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
+                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: t.disp }}>
+                </div>
+            </div>
+        </div>
+    );
+
+    // ── NUMBERED LIST (ol) ──
+    if (blk.type === "ol") return (
+        <div className="blkr" style={{ position: "relative" }}
+            onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "2px 0" }}>
+                <span style={{ color: t.accent, fontSize: 13.5, fontWeight: 700, lineHeight: 1.9, flexShrink: 0, userSelect: "none", fontFamily: t.mono, minWidth: 20, textAlign: "right" }}>
+                    {(olIndex || 0) + 1}.
+                </span>
+                <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
+                    data-ph="List item…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
+                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: t.disp }}>
+                </div>
+            </div>
+        </div>
+    );
+
     // ── LINK ──
     if (blk.type === "link") return (
         <div className="blkr" style={{ position: "relative", margin: "4px 0" }}
@@ -169,46 +246,52 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
             <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
 
-            {/* Quick Type Convert Toolbar Workspace */}
-            {hov && (blk.type === 'p' || blk.type === 'h1' || blk.type === 'h2' || blk.type === 'h3') && (
+            {/* Hover toolbar — absolutely positioned, does NOT shift text */}
+            {hov && (
                 <div style={{
-                    position: 'absolute', right: blk.type === 'p' ? 95 : 0, top: '50%', transform: 'translateY(-50%)',
-                    display: 'flex', gap: 4, zIndex: 2, background: t.card, border: `1px solid ${t.border}`,
-                    borderRadius: 6, padding: '2px 4px'
+                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+                    display: 'flex', gap: 2, zIndex: 5, pointerEvents: 'all',
                 }}>
-                    {['h1', 'h2', 'h3', 'p'].map(bt => (
-                        <button key={bt} onClick={() => onUpdate({ type: bt, content: ref.current?.innerText })}
-                            title={`Convert to ${bt.toUpperCase()}`}
+                    {/* Type convert chips */}
+                    {(blk.type === 'p' || blk.type === 'h1' || blk.type === 'h2' || blk.type === 'h3') && (
+                        <div style={{
+                            display: 'flex', gap: 2, background: t.card, border: `1px solid ${t.border}`,
+                            borderRadius: 6, padding: '2px 4px', marginRight: 4
+                        }}>
+                            {['h1', 'h2', 'h3', 'p'].map(bt => (
+                                <button key={bt}
+                                    onMouseDown={e => { e.preventDefault(); onUpdate({ type: bt, content: ref.current?.innerText }); }}
+                                    style={{
+                                        background: blk.type === bt ? t.accentDim : 'transparent', border: 'none',
+                                        color: blk.type === bt ? t.accent : t.t3, fontSize: 10, fontFamily: t.mono, cursor: 'pointer',
+                                        padding: '2px 5px', borderRadius: 4, textTransform: 'uppercase', transition: 'all .1s'
+                                    }}>
+                                    {bt}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {/* Commands button */}
+                    {blk.type === 'p' && (
+                        <button
+                            onMouseDown={e => { e.preventDefault(); openSlashMenu(); }}
                             style={{
-                                background: blk.type === bt ? t.accentDim : 'transparent', border: 'none',
-                                color: blk.type === bt ? t.accent : t.t3, fontSize: 10, fontFamily: t.mono, cursor: 'pointer',
-                                padding: '2px 5px', borderRadius: 4, textTransform: 'uppercase', transition: 'all .1s'
-                            }}>
-                            {bt}
+                                background: t.card, border: `1px solid ${t.border}`, borderRadius: 6,
+                                padding: '2px 7px', fontSize: 10, color: t.t3, cursor: 'pointer',
+                                fontFamily: t.mono, display: 'flex', alignItems: 'center', gap: 4,
+                                whiteSpace: 'nowrap',
+                            }}
+                            title="Insert block (or type / to open)">
+                            / Commands
                         </button>
-                    ))}
+                    )}
                 </div>
             )}
 
-            {/* Commands button — visible on hover */}
-            {hov && blk.type === 'p' && (
-                <button
-                    onClick={openSlashMenu}
-                    style={{
-                        position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
-                        background: t.card, border: `1px solid ${t.border}`, borderRadius: 6,
-                        padding: '2px 7px', fontSize: 10, color: t.t3, cursor: 'pointer',
-                        fontFamily: t.mono, display: 'flex', alignItems: 'center', gap: 4,
-                        whiteSpace: 'nowrap', zIndex: 2,
-                    }}
-                    title="Insert block (or type / to open)">
-                    / Commands
-                </button>
-            )}
             <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                 data-ph={blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "Write something, or '/' for commands…"}
                 onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10, paddingRight: hov && blk.type === 'p' ? 180 : 90 }}>
+                style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10 }}>
             </div>
         </div>
     );

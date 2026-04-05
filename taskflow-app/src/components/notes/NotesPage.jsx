@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { I, IC } from "../ui/Icon.jsx";
-import { EMOJIS, mkBlock } from "../../data/notes.js";
+import { EMOJIS, mkBlock, BLOCK_TYPES, SCRIPT_BLOCK_TYPES, LYRICS_BLOCK_TYPES, SCRIPT_TYPES, LYRICS_TYPES } from "../../data/notes.js";
 import NoteBlock from "./NoteBlock.jsx";
 import SlashMenu from "./SlashMenu.jsx";
 import { notesApi } from "../../api/notes.js";
@@ -11,54 +11,39 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     if (!pg) return null;
 
     const [blocks, setBlocks] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [slash, setSlash] = useState(null);
     const [emojiOpen, setEmojiOpen] = useState(false);
+    const [writingMode, setWritingMode] = useState(null); // null | 'script' | 'lyrics'
     const titleRef = useRef();
     const socketRef = useRef(null);
     const debounceTimers = useRef({});
     const latestBlocksRef = useRef([]);
 
-    // Keep the ref strictly synced with state so we can flush on unmount
-    useEffect(() => {
-        latestBlocksRef.current = blocks;
-    }, [blocks]);
+    useEffect(() => { latestBlocksRef.current = blocks; }, [blocks]);
 
     useEffect(() => {
         setSlash(null);
+        setLoading(true);
         let active = true;
 
         notesApi.getPage(notePageId).then(res => {
             const b = res.data.blocks;
             if (active) setBlocks(b && Array.isArray(b) && b.length > 0 ? b : [mkBlock("p", "")]);
-        }).catch(e => {
+        }).catch(() => {
             if (active) setBlocks([mkBlock("p", "")]);
-        });
+        }).finally(() => { if (active) setLoading(false); });
 
-        // Socket setup
-        const s = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000', {
-            transports: ['websocket']
-        });
+        const s = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000', { transports: ['websocket'] });
         socketRef.current = s;
         s.emit('note:join', notePageId);
 
         s.on('note:block:updated', ({ blockId, changes }) => {
-            setBlocks(prev => {
-                const idx = prev.findIndex(b => b.id === blockId);
-                if (idx === -1) return prev;
-                const next = [...prev];
-                next[idx] = { ...next[idx], ...changes };
-                return next;
-            });
+            setBlocks(prev => { const idx = prev.findIndex(b => b.id === blockId); if (idx === -1) return prev; const next = [...prev]; next[idx] = { ...next[idx], ...changes }; return next; });
         });
-
         s.on('note:block:added', ({ block, afterIdx }) => {
-            setBlocks(prev => {
-                const next = [...prev];
-                next.splice(afterIdx + 1, 0, block);
-                return next;
-            });
+            setBlocks(prev => { const next = [...prev]; next.splice(afterIdx + 1, 0, block); return next; });
         });
-
         s.on('note:block:deleted', ({ idx }) => {
             setBlocks(prev => prev.filter((_, i) => i !== idx));
         });
@@ -66,35 +51,19 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const flushPendingSaves = () => {
             const currentBlocks = latestBlocksRef.current;
             const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-            const authHeader = {
-                'Authorization': `Bearer ${localStorage.getItem('tf_token')}`,
-                'Content-Type': 'application/json'
-            };
-
+            const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('tf_token')}`, 'Content-Type': 'application/json' };
             Object.keys(debounceTimers.current).forEach(blkId => {
                 const timer = debounceTimers.current[blkId];
                 if (timer) {
                     clearTimeout(timer);
                     delete debounceTimers.current[blkId];
-
                     const blkToFlush = currentBlocks.find(b => b.id === blkId);
                     if (blkToFlush) {
                         if (blkId.toString().startsWith("loc-")) {
                             const idx = currentBlocks.findIndex(b => b.id === blkId);
-                            // Standard fetch with keepalive instead of axios/custom api
-                            fetch(`${BASE}/notes/pages/${notePageId}/blocks`, {
-                                method: 'POST',
-                                headers: authHeader,
-                                body: JSON.stringify({ type: blkToFlush.type, content: blkToFlush.content, position: idx }),
-                                keepalive: true
-                            }).catch(() => { });
+                            fetch(`${BASE}/notes/pages/${notePageId}/blocks`, { method: 'POST', headers: authHeader, body: JSON.stringify({ type: blkToFlush.type, content: blkToFlush.content, position: idx }), keepalive: true }).catch(() => { });
                         } else {
-                            fetch(`${BASE}/notes/blocks/${blkId}`, {
-                                method: 'PUT',
-                                headers: authHeader,
-                                body: JSON.stringify({ content: blkToFlush.content, checked: blkToFlush.checked, type: blkToFlush.type }),
-                                keepalive: true
-                            }).catch(() => { });
+                            fetch(`${BASE}/notes/blocks/${blkId}`, { method: 'PUT', headers: authHeader, body: JSON.stringify({ content: blkToFlush.content, checked: blkToFlush.checked, type: blkToFlush.type }), keepalive: true }).catch(() => { });
                         }
                     }
                 }
@@ -102,7 +71,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         };
 
         window.addEventListener('beforeunload', flushPendingSaves);
-
         return () => {
             active = false;
             flushPendingSaves();
@@ -112,7 +80,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         };
     }, [notePageId]);
 
-    const save = nb => { setBlocks(nb); };
+    const save = nb => setBlocks(nb);
 
     const addBlk = async (afterIdx, type = "p", content = "") => {
         const b = mkBlock(type, content);
@@ -127,26 +95,16 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     const updBlk = (idx, ch) => {
         const nb = [...blocks];
-        const prevBlk = nb[idx];
-        const newBlk = { ...prevBlk, ...ch };
+        const newBlk = { ...nb[idx], ...ch };
         nb[idx] = newBlk;
         save(nb);
-
         socketRef.current?.emit('note:block:update', { pageId: notePageId, blockId: newBlk.id, changes: ch });
-
-        // Debounce update to backend securely
-        if (debounceTimers.current[newBlk.id]) {
-            clearTimeout(debounceTimers.current[newBlk.id]);
-        }
-
+        if (debounceTimers.current[newBlk.id]) clearTimeout(debounceTimers.current[newBlk.id]);
         debounceTimers.current[newBlk.id] = setTimeout(() => {
             delete debounceTimers.current[newBlk.id];
-
-            // Re-fetch the absolutely latest version from the ref to ensure no data is lost
             const latestBlk = latestBlocksRef.current.find(b => b.id === newBlk.id) || newBlk;
             const currentIdx = latestBlocksRef.current.findIndex(b => b.id === newBlk.id);
-            if (currentIdx === -1) return; // Block deleted before save
-
+            if (currentIdx === -1) return;
             if (latestBlk.id.toString().startsWith("loc-")) {
                 notesApi.createBlock(notePageId, { type: latestBlk.type, content: latestBlk.content, position: currentIdx }).then(res => {
                     setBlocks(prev => prev.map(p => p.id === latestBlk.id ? { ...p, id: res.data.id } : p));
@@ -156,18 +114,15 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             }
         }, 800);
     };
+
     const focusAtEnd = (id) => {
         setTimeout(() => {
             const el = document.getElementById(id);
             if (!el) return;
             el.focus();
-            if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
-                const range = document.createRange();
-                range.selectNodeContents(el);
-                range.collapse(false);
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
+            if (typeof window.getSelection !== "undefined") {
+                const range = document.createRange(); range.selectNodeContents(el); range.collapse(false);
+                const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
             }
         }, 30);
     };
@@ -177,13 +132,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             const el = document.getElementById(id);
             if (!el) return;
             el.focus();
-            if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
-                const range = document.createRange();
-                range.selectNodeContents(el);
-                range.collapse(true);
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
+            if (typeof window.getSelection !== "undefined") {
+                const range = document.createRange(); range.selectNodeContents(el); range.collapse(true);
+                const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
             }
         }, 30);
     };
@@ -193,17 +144,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const blk = blocks[idx];
         const nb = blocks.filter((_, i) => i !== idx); save(nb);
         focusAtEnd("blk-" + Math.max(0, idx - 1));
-
         socketRef.current?.emit('note:block:delete', { pageId: notePageId, idx });
-
-        if (!blk.id.toString().startsWith("loc-")) {
-            notesApi.deleteBlock(blk.id).catch(() => { });
-        }
-
-        if (debounceTimers.current[blk.id]) {
-            clearTimeout(debounceTimers.current[blk.id]);
-            delete debounceTimers.current[blk.id];
-        }
+        if (!blk.id.toString().startsWith("loc-")) notesApi.deleteBlock(blk.id).catch(() => { });
+        if (debounceTimers.current[blk.id]) { clearTimeout(debounceTimers.current[blk.id]); delete debounceTimers.current[blk.id]; }
     };
 
     const handlePasteHTML = (html, text, targetIdx) => {
@@ -215,7 +158,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             const doc = parser.parseFromString(html, 'text/html');
             const walk = (node) => {
                 const tag = node.tagName?.toLowerCase();
-                const isBlock = ['h1', 'h2', 'h3', 'p', 'blockquote', 'pre', 'li', 'div'].includes(tag);
+                const isBlock = ['h1', 'h2', 'h3', 'p', 'blockquote', 'pre', 'li', 'div', 'aside', 'section'].includes(tag);
                 if (isBlock) {
                     let type = 'p';
                     if (tag === 'h1') type = 'h1';
@@ -223,11 +166,14 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     else if (tag === 'h3') type = 'h3';
                     else if (tag === 'blockquote') type = 'quote';
                     else if (tag === 'pre') type = 'code';
+                    else if (tag === 'aside') type = 'callout'; // ← Notion aside fix
                     else if (tag === 'li') {
-                        // Notion todo lists check
-                        if (node.querySelector('.pseudoCheckbox') || node.closest('.to-do-list')) type = 'todo';
+                        const parentTag = node.parentElement?.tagName?.toLowerCase();
+                        if (parentTag === 'ol') type = 'ol';
+                        else if (node.querySelector('.pseudoCheckbox') || node.closest('.to-do-list')) type = 'todo';
+                        else type = 'ul'; // default li → bullet
                     }
-                    const content = node.innerText.trim();
+                    const content = node.innerText?.trim() || node.textContent?.trim();
                     if (content) newBlocks.push(mkBlock(type, content));
                 } else if (node.nodeType === 1) {
                     Array.from(node.children).forEach(walk);
@@ -239,7 +185,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             newBlocks = lines.map(l => mkBlock('p', l));
         }
 
-        // Only intercept if pasting multiple blocks, otherwise default paste inline
         if (newBlocks.length <= 1) return false;
 
         const nb = [...blocks];
@@ -247,7 +192,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         save(nb);
         newBlocks.forEach((newBlk, offsetIndex) => {
             socketRef.current?.emit('note:block:add', { pageId: notePageId, block: newBlk, afterIdx: targetIdx + offsetIndex });
-            // Let the first timer trigger creation
             updBlk(targetIdx + 1 + offsetIndex, { content: newBlk.content });
         });
         setTimeout(() => document.getElementById("blk-" + (targetIdx + newBlocks.length))?.focus(), 30);
@@ -258,11 +202,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         if (slash === null) return;
         const nb = [...blocks];
         const currentContent = nb[slash.idx].content;
-
         if (currentContent.trim() === "") {
             nb[slash.idx] = { ...nb[slash.idx], type, content: "" };
             save(nb);
-            socketRef.current?.emit('note:block:update', { pageId: notePageId, blockId: nb[slash.idx].id, changes: { type, content: "" } });
             updBlk(slash.idx, { type, content: "" });
             setSlash(null);
             setTimeout(() => document.getElementById("blk-" + slash.idx)?.focus(), 30);
@@ -274,21 +216,45 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         }
     };
 
+    // Word count + reading time
+    const allText = blocks.map(b => b.content || "").join(" ");
+    const wordCount = allText.trim() ? allText.trim().split(/\s+/).length : 0;
+    const readMins = Math.max(1, Math.ceil(wordCount / 200));
+
     // Breadcrumb
     const crumbs = [];
     let cur = notePageId;
     while (cur && pages[cur]) { crumbs.unshift(pages[cur]); cur = pages[cur].parentId; }
-    const subPages = (pg.childIds || [])
-        .map(id => pages[id])
-        .filter(Boolean)
+    const subPages = (pg.childIds || []).map(id => pages[id]).filter(Boolean)
         .filter(sp => !searchQuery || sp.title?.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    // Slash menu block types filtered by mode
+    const slashBlockTypes = writingMode === 'script' ? SCRIPT_BLOCK_TYPES
+        : writingMode === 'lyrics' ? LYRICS_BLOCK_TYPES
+            : BLOCK_TYPES;
+
+    // Compute ol-index for numbered list items
+    const olCounters = {};
+
+    // Skeleton loading
+    if (loading) return (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})`, flexShrink: 0 }} />
+            <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px", width: "100%" }}>
+                {/* Skeleton title */}
+                <div style={{ height: 46, borderRadius: 8, background: t.border, marginBottom: 24, animation: "skShimmer 1.4s ease infinite", backgroundSize: "200% 100%", backgroundImage: `linear-gradient(90deg, ${t.border} 25%, ${t.noteBorder} 50%, ${t.border} 75%)` }} />
+                {[80, 65, 90, 55, 75].map((w, i) => (
+                    <div key={i} style={{ height: 16, borderRadius: 6, background: t.border, marginBottom: 12, width: w + "%", animation: "skShimmer 1.4s ease infinite", animationDelay: i * 0.1 + "s", backgroundSize: "200% 100%", backgroundImage: `linear-gradient(90deg, ${t.border} 25%, ${t.noteBorder} 50%, ${t.border} 75%)` }} />
+                ))}
+            </div>
+        </div>
+    );
 
     return (
         <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-
                 {/* Breadcrumb bar */}
-                <div style={{ display: "flex", alignItems: "center", padding: "9px 28px", borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0, gap: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", padding: "9px 28px", borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0, gap: 0, flexWrap: "wrap" }}>
                     {crumbs.map((p, i) => (
                         <div key={p.id} style={{ display: "flex", alignItems: "center" }}>
                             {i > 0 && <span style={{ color: t.t3, fontSize: 11, margin: "0 5px" }}>/</span>}
@@ -300,31 +266,41 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             </button>
                         </div>
                     ))}
-                    <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-                        <button type="button" onClick={() => {
-                            const url = `${window.location.origin}?note=${notePageId}`;
-                            navigator.clipboard.writeText(url);
-                            alert("Link copied to clipboard! Share it with your friends to collaborate.");
-                        }}
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+                        {/* Writing mode toggles */}
+                        <button type="button" onClick={() => setWritingMode(writingMode === 'script' ? null : 'script')}
+                            title="Script Writing Mode"
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${writingMode === 'script' ? t.accent : t.border}`, background: writingMode === 'script' ? t.accentDim : "transparent", cursor: "pointer", color: writingMode === 'script' ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
+                            📽️ Script
+                        </button>
+                        <button type="button" onClick={() => setWritingMode(writingMode === 'lyrics' ? null : 'lyrics')}
+                            title="Song Lyrics Mode"
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${writingMode === 'lyrics' ? t.accent : t.border}`, background: writingMode === 'lyrics' ? t.accentDim : "transparent", cursor: "pointer", color: writingMode === 'lyrics' ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
+                            🎵 Lyrics
+                        </button>
+                        <button type="button" onClick={() => { const url = `${window.location.origin}?note=${notePageId}`; navigator.clipboard.writeText(url); alert("Link copied to clipboard! Share it with your friends to collaborate."); }}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <I d={IC.lnk} sz={12} c="currentColor" />Share Note
+                            <I d={IC.lnk} sz={12} c="currentColor" />Share
                         </button>
                         <button type="button" onClick={() => addNotePage(notePageId)}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <I d={IC.plus} sz={12} c="currentColor" />Add sub-page
+                            <I d={IC.plus} sz={12} c="currentColor" />Sub-page
                         </button>
-                        <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono }}>Updated {pg.updatedAt}</span>
                     </div>
                 </div>
 
                 {/* Content */}
                 <div style={{ flex: 1, overflow: "auto" }} onClick={() => setEmojiOpen(false)}>
-                    {/* Cover strip */}
-                    <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.purple})`, flexShrink: 0 }} />
+                    <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})`, flexShrink: 0 }} />
+                    {writingMode && (
+                        <div style={{ textAlign: "center", padding: "8px 0", background: writingMode === 'script' ? t.inset : t.calloutBg, borderBottom: `1px solid ${t.border}`, fontSize: 11.5, color: writingMode === 'script' ? t.accent : t.amber || t.accent, fontFamily: t.mono, fontWeight: 600, letterSpacing: "0.3px" }}>
+                            {writingMode === 'script' ? '📽️ Script Mode — Tab to cycle block types' : '🎵 Lyrics Mode — Tab to cycle section types'}
+                        </div>
+                    )}
 
                     <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
                         {/* Emoji picker */}
@@ -361,7 +337,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
                         {/* Meta */}
                         <div style={{ display: "flex", gap: 20, marginBottom: 28, paddingBottom: 18, borderBottom: `1px solid ${t.noteBorder}` }}>
-                            {[["Created", pg.updatedAt], ["Blocks", blocks.length + " blocks"], ["Sub-pages", (pg.childIds?.length || 0) + " pages"]].map(([l, v]) => (
+                            {[
+                                ["Created", pg.updatedAt],
+                                ["Words", wordCount.toLocaleString()],
+                                ["Read", readMins + " min"],
+                                ["Blocks", blocks.length + " blocks"],
+                                ["Sub-pages", (pg.childIds?.length || 0) + " pages"]
+                            ].map(([l, v]) => (
                                 <div key={l}>
                                     <div style={{ fontSize: 9.5, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2, fontFamily: t.mono }}>{l}</div>
                                     <div style={{ fontSize: 12, color: t.noteSubText }}>{v}</div>
@@ -371,17 +353,31 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
                         {/* Blocks */}
                         <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                            {blocks.map((blk, idx) => (
-                                <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
-                                    onUpdate={ch => updBlk(idx, ch)}
-                                    onDelete={() => delBlk(idx)}
-                                    onAddAfter={type => addBlk(idx, type)}
-                                    onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
-                                    onSlashClose={() => setSlash(null)}
-                                    onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
-                                    onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))}
-                                    onPasteHTML={(html, text, i) => handlePasteHTML(html, text, i)} />
-                            ))}
+                            {blocks.map((blk, idx) => {
+                                let olIndex = 0;
+                                if (blk.type === 'ol') {
+                                    const key = `ol-${idx}`;
+                                    // Count consecutive ol blocks before this one
+                                    let count = 0;
+                                    for (let i = idx - 1; i >= 0; i--) {
+                                        if (blocks[i].type === 'ol') count++;
+                                        else break;
+                                    }
+                                    olIndex = count;
+                                }
+                                return (
+                                    <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
+                                        olIndex={olIndex}
+                                        onUpdate={ch => updBlk(idx, ch)}
+                                        onDelete={() => delBlk(idx)}
+                                        onAddAfter={type => addBlk(idx, type)}
+                                        onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
+                                        onSlashClose={() => setSlash(null)}
+                                        onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
+                                        onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))}
+                                        onPasteHTML={(html, text, i) => handlePasteHTML(html, text, i)} />
+                                );
+                            })}
                         </div>
 
                         {/* Sub-pages */}
@@ -413,7 +409,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             style={{
                                 marginTop: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                                 padding: "18px 24px", borderRadius: 12, border: "none", cursor: "pointer",
-                                background: `linear-gradient(135deg, ${t.accent}22, ${t.purple || '#B083FF'}22)`,
+                                background: `linear-gradient(135deg, ${t.accent}22, ${t.blue || '#0072FF'}22)`,
                                 color: t.accent, fontSize: 15, fontWeight: 700, fontFamily: t.disp, width: "100%",
                                 transition: "all .2s", boxShadow: t.shadow
                             }}
@@ -427,7 +423,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             </div>
 
             {/* Slash menu */}
-            {slash && <SlashMenu t={t} filter={slash.filter} pos={{ x: slash.x, y: slash.y }} onSelect={insertSlashType} onClose={() => setSlash(null)} />}
+            {slash && <SlashMenu t={t} filter={slash.filter} pos={{ x: slash.x, y: slash.y }} onSelect={insertSlashType} onClose={() => setSlash(null)} blockTypes={slashBlockTypes} />}
         </div>
     );
 }
