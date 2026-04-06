@@ -26,6 +26,7 @@ import Calendar from "./components/Calendar.jsx";
 import TeamPage from "./components/TeamPage.jsx";
 import Friends from "./components/Friends.jsx";
 import NotesPage from "./components/notes/NotesPage.jsx";
+import NotesHome from "./components/notes/NotesHome.jsx";
 
 // Overlays
 import NotifPanel from "./components/NotifPanel.jsx";
@@ -138,64 +139,78 @@ function MainApp() {
     const [showCredits, setShowCredits] = useState(() => new URLSearchParams(window.location.search).has("credits"));
 
     useEffect(() => {
-        notesApi.getPages().then(res => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const sharedNoteId = urlParams.get('note');
-            const roots = res.data;
+        (async () => {
+            try {
+                const res = await notesApi.getPages();
+                const urlParams = new URLSearchParams(window.location.search);
+                const sharedNoteId = urlParams.get('note');
+                const roots = res.data;
 
-            const buildPages = (roots) => {
-                const newPages = { root: { id: "root", title: "Workspace Home", emoji: "🏠", parentId: null, childIds: [], updatedAt: "Server Sync" } };
-                let firstId = null;
-                const walk = (node, parentId) => {
-                    if (!firstId) firstId = node.id;
-                    newPages[node.id] = { id: node.id, title: node.title, emoji: node.emoji || "📄", parentId: parentId || "root", childIds: [], updatedAt: "Server Sync" };
-                    newPages[parentId || "root"].childIds.push(node.id);
-                    node.children?.forEach(c => walk(c, node.id));
+                const buildPages = (roots) => {
+                    const newPages = { root: { id: "root", title: "Workspace Home", emoji: "🏠", parentId: null, childIds: [], updatedAt: "Server Sync" } };
+                    let firstId = null;
+                    const walk = (node, parentId) => {
+                        if (!firstId) firstId = node.id;
+                        newPages[node.id] = { id: node.id, title: node.title, emoji: node.emoji || "📄", parentId: parentId || "root", childIds: [], updatedAt: "Server Sync" };
+                        newPages[parentId || "root"].childIds.push(node.id);
+                        node.children?.forEach(c => walk(c, node.id));
+                    };
+                    roots.forEach(r => walk(r, null));
+                    return { newPages, firstId };
                 };
-                roots.forEach(r => walk(r, null));
-                return { newPages, firstId };
-            };
 
-            if (roots.length === 0 && !sharedNoteId) {
-                const initPages = async () => {
-                    try {
-                        const idMap = { root: null };
-                        const order = ["intro", "np1", "np1a", "np1b", "np1b1", "np2", "np3"];
-                        for (const oldId of order) {
-                            const pg = INIT_PAGES[oldId];
-                            if (!pg) continue;
-                            const res = await notesApi.createPage({ title: pg.title, emoji: pg.emoji, parentId: idMap[pg.parentId] });
-                            idMap[oldId] = res.data.id;
-                            for (let i = 0; i < pg.blocks.length; i++) {
-                                await notesApi.createBlock(res.data.id, { type: pg.blocks[i].type, content: pg.blocks[i].content, position: i, checked: pg.blocks[i].checked });
+                if (roots.length === 0 && !sharedNoteId) {
+                    const initPages = async () => {
+                        try {
+                            const idMap = { root: null };
+                            const order = ["intro", "np1", "np1a", "np1b", "np1b1", "np2", "np3"];
+                            for (const oldId of order) {
+                                const pg = INIT_PAGES[oldId];
+                                if (!pg) continue;
+                                const res = await notesApi.createPage({ title: pg.title, emoji: pg.emoji, parentId: idMap[pg.parentId] });
+                                idMap[oldId] = res.data.id;
+                                for (let i = 0; i < pg.blocks.length; i++) {
+                                    await notesApi.createBlock(res.data.id, { type: pg.blocks[i].type, content: pg.blocks[i].content, position: i, checked: pg.blocks[i].checked });
+                                }
                             }
+                            const treeRes = await notesApi.getPages();
+                            const { newPages, firstId } = buildPages(treeRes.data);
+                            setPages(newPages);
+                            const restoredNote = sessionStorage.getItem("tf_notePageId");
+                            setNotePageIdWithPersist(restoredNote && newPages[restoredNote] ? restoredNote : firstId);
+                        } catch (e) { console.error(e); }
+                    };
+                    initPages();
+                } else {
+                    const { newPages, firstId } = buildPages(roots);
+                    if (sharedNoteId) {
+                        // Fetch real title/emoji for shared note
+                        let sharedTitle = "Shared Note"; let sharedEmoji = "🔗";
+                        try {
+                            const meta = await notesApi.getPage(sharedNoteId);
+                            sharedTitle = meta.data?.title || sharedTitle;
+                            sharedEmoji = meta.data?.emoji || sharedEmoji;
+                        } catch { }
+                        if (!newPages[sharedNoteId]) {
+                            newPages[sharedNoteId] = { id: sharedNoteId, title: sharedTitle, emoji: sharedEmoji, parentId: "root", childIds: [], updatedAt: "Shared Link" };
+                            newPages["root"].childIds.push(sharedNoteId);
+                        } else {
+                            newPages[sharedNoteId].title = sharedTitle;
+                            newPages[sharedNoteId].emoji = sharedEmoji;
                         }
-                        const treeRes = await notesApi.getPages();
-                        const { newPages, firstId } = buildPages(treeRes.data);
+                        setPages(newPages);
+                        setNotePageIdWithPersist(sharedNoteId);
+                        setPageWithPersist("notes");
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    } else {
                         setPages(newPages);
                         const restoredNote = sessionStorage.getItem("tf_notePageId");
                         setNotePageIdWithPersist(restoredNote && newPages[restoredNote] ? restoredNote : firstId);
-                    } catch (e) { console.error(e); }
-                };
-                initPages();
-            } else {
-                const { newPages, firstId } = buildPages(roots);
-                if (sharedNoteId) {
-                    if (!newPages[sharedNoteId]) {
-                        newPages[sharedNoteId] = { id: sharedNoteId, title: "Shared Note", emoji: "🔗", parentId: "root", childIds: [], updatedAt: "Shared Link" };
-                        newPages["root"].childIds.push(sharedNoteId);
                     }
-                    setPages(newPages);
-                    setNotePageIdWithPersist(sharedNoteId);
-                    setPageWithPersist("notes");
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } else {
-                    setPages(newPages);
-                    const restoredNote = sessionStorage.getItem("tf_notePageId");
-                    setNotePageIdWithPersist(restoredNote && newPages[restoredNote] ? restoredNote : firstId);
                 }
             }
-        }).catch(e => console.error(e));
+        } catch (e) { console.error(e); }
+    })();
     }, []);
 
     const themeCss = `
@@ -224,125 +239,135 @@ function MainApp() {
     .fadeUp { animation: fadeSlideIn 0.3s ease both; }
     `;
 
-    const [isAddingPage, setIsAddingPage] = useState(false);
-    const addingPageRef = useRef(false);
+const [isAddingPage, setIsAddingPage] = useState(false);
+const addingPageRef = useRef(false);
 
-    const addNotePage = async (parentId) => {
-        if (addingPageRef.current) return;
-        addingPageRef.current = true;
-        setIsAddingPage(true);
-        try {
-            const r = await notesApi.createPage({ title: "Untitled", emoji: "📄", parentId: parentId === 'root' ? null : parentId });
-            const id = r.data.id;
-            setPages(prev => ({
-                ...prev,
-                [id]: { id, title: "Untitled", emoji: "📄", parentId, childIds: [], updatedAt: "Just now" },
-                [parentId]: { ...prev[parentId], childIds: [...(prev[parentId]?.childIds || []), id] },
-            }));
-            setExpanded(prev => ({ ...prev, [parentId]: true }));
-            setNotePageIdWithPersist(id);
-            setPageWithPersist("notes");
-        } catch (e) {
-        } finally {
-            addingPageRef.current = false;
-            setIsAddingPage(false);
+const addNotePage = async (parentId, meta = {}) => {
+    if (addingPageRef.current) return;
+    addingPageRef.current = true;
+    setIsAddingPage(true);
+    const title = meta.title || "Untitled";
+    const emoji = meta.emoji || "📄";
+    const initBlocks = meta.initBlocks || [];
+    try {
+        const r = await notesApi.createPage({ title, emoji, parentId: parentId === 'root' ? null : parentId });
+        const id = r.data.id;
+        // Create initial blocks for template pages
+        for (let i = 0; i < initBlocks.length; i++) {
+            const b = initBlocks[i];
+            try { await notesApi.createBlock(id, { type: b.type, content: b.content || "", position: i, checked: !!b.checked }); } catch { }
         }
-    };
-
-    const deleteNotePage = async (id) => {
-        const pg = pages[id];
-        if (!pg || id === "root") return;
-        try {
-            await notesApi.deletePage(id);
-            setPages(prev => {
-                const next = { ...prev };
-                if (pg.parentId && next[pg.parentId])
-                    next[pg.parentId] = { ...next[pg.parentId], childIds: next[pg.parentId].childIds.filter(c => c !== id) };
-                const del = pid => { const p = next[pid]; if (!p) return; p.childIds?.forEach(del); delete next[pid]; };
-                del(id);
-                return next;
-            });
-            if (notePageId === id) setNotePageIdWithPersist(pg.parentId === "root" ? Object.keys(pages)[0] : pg.parentId);
-        } catch (e) { }
-    };
-
-    const updateNotePage = (id, changes) => {
-        setPages(prev => ({ ...prev, [id]: { ...prev[id], ...changes, updatedAt: "Just now" } }));
-        notesApi.updatePage(id, changes).catch(() => { });
-    };
-
-    const navigateNote = id => {
+        setPages(prev => ({
+            ...prev,
+            [id]: { id, title, emoji, parentId, childIds: [], updatedAt: "Just now" },
+            [parentId]: { ...prev[parentId], childIds: [...(prev[parentId]?.childIds || []), id] },
+        }));
+        setExpanded(prev => ({ ...prev, [parentId]: true }));
         setNotePageIdWithPersist(id);
         setPageWithPersist("notes");
-    };
+        return id;
+    } catch (e) {
+    } finally {
+        addingPageRef.current = false;
+        setIsAddingPage(false);
+    }
+};
 
-    return (
-        <>
-            <style>{FONTS}{themeCss}</style>
-            {/* Hidden watermark DOM element */}
-            <div aria-hidden="true" style={{ position: "absolute", opacity: 0, pointerEvents: "none", userSelect: "none", zIndex: -1, fontSize: 0 }}>
-                Created and owned by Siddhant Pal. TaskFlow v1.0. All rights reserved 2025-2026.
-            </div>
-            <TopLoader active={pageLoading} color={t.accent} />
-            <ToastProvider t={t}>
-                <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}
-                    className="app-root">
+const deleteNotePage = async (id) => {
+    const pg = pages[id];
+    if (!pg || id === "root") return;
+    try {
+        await notesApi.deletePage(id);
+        setPages(prev => {
+            const next = { ...prev };
+            if (pg.parentId && next[pg.parentId])
+                next[pg.parentId] = { ...next[pg.parentId], childIds: next[pg.parentId].childIds.filter(c => c !== id) };
+            const del = pid => { const p = next[pid]; if (!p) return; p.childIds?.forEach(del); delete next[pid]; };
+            del(id);
+            return next;
+        });
+        if (notePageId === id) setNotePageIdWithPersist(pg.parentId === "root" ? Object.keys(pages)[0] : pg.parentId);
+    } catch (e) { }
+};
 
-                    <Sidebar t={t} page={page} setPage={setPageWithPersist}
-                        pages={pages} expanded={expanded} setExpanded={setExpanded}
-                        notePageId={notePageId} navigateNote={navigateNote}
-                        addNotePage={addNotePage} deleteNotePage={deleteNotePage}
-                        className="sidebar-desktop" />
+const updateNotePage = (id, changes) => {
+    setPages(prev => ({ ...prev, [id]: { ...prev[id], ...changes, updatedAt: "Just now" } }));
+    notesApi.updatePage(id, changes).catch(() => { });
+};
 
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-                        <Topbar t={t} themeKey={themeKey} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
-                            notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} setModal={setModal}
-                            searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-                        <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
-                            {page === "dashboard" && <Dashboard t={t} setPage={setPageWithPersist} setTask={setTask} />}
-                            {page === "tasks" && <Tasks t={t} setTask={setTask} searchQuery={searchQuery} />}
-                            {page === "notes" && <NotesPage t={t} dark={themeKey.includes("dark") || themeKey === "midnight"} pages={pages} notePageId={notePageId}
-                                navigateNote={navigateNote} updateNotePage={updateNotePage}
-                                addNotePage={addNotePage} deleteNotePage={deleteNotePage}
-                                searchQuery={searchQuery} />}
-                            {page === "calendar" && <Calendar t={t} />}
-                            {page === "team" && <TeamPage t={t} />}
-                            {page === "friends" && <Friends t={t} />}
-                            {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
-                        </main>
-                    </div>
+const navigateNote = id => {
+    setNotePageIdWithPersist(id);
+    setPageWithPersist("notes");
+};
 
-                    {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
-                    {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
-                    {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
-                    {showCredits && <CreditsModal onClose={() => setShowCredits(false)} />}
-                    {showThemePicker && (
-                        <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
-                            onApplyPreset={applyPreset} onApplyCustom={applyCustom}
-                            onClose={() => setShowThemePicker(false)} />
-                    )}
+return (
+    <>
+        <style>{FONTS}{themeCss}</style>
+        {/* Hidden watermark DOM element */}
+        <div aria-hidden="true" style={{ position: "absolute", opacity: 0, pointerEvents: "none", userSelect: "none", zIndex: -1, fontSize: 0 }}>
+            Created and owned by Siddhant Pal. TaskFlow v1.0. All rights reserved 2025-2026.
+        </div>
+        <TopLoader active={pageLoading} color={t.accent} />
+        <ToastProvider t={t}>
+            <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}
+                className="app-root">
 
-                    {/* Mobile bottom nav */}
-                    <nav className="mobile-nav">
-                        {[
-                            { id: "dashboard", label: "Home", icon: IC.dash },
-                            { id: "tasks", label: "Tasks", icon: IC.task },
-                            { id: "notes", label: "Notes", icon: IC.note },
-                            { id: "calendar", label: "Cal", icon: IC.cal },
-                            { id: "team", label: "Team", icon: IC.team },
-                            { id: "friends", label: "Friends", icon: IC.user },
-                        ].map(n => (
-                            <button key={n.id} onClick={() => setPageWithPersist(n.id)}
-                                className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>
-                                <I d={n.icon} sz={20} c={page === n.id ? t.accent : t.t3} sw={page === n.id ? 2.2 : 1.7} />
-                                <span style={{ color: page === n.id ? t.accent : t.t3 }}>{n.label}</span>
-                            </button>
-                        ))}
-                    </nav>
+                <Sidebar t={t} page={page} setPage={setPageWithPersist}
+                    pages={pages} expanded={expanded} setExpanded={setExpanded}
+                    notePageId={notePageId} navigateNote={navigateNote}
+                    addNotePage={addNotePage} deleteNotePage={deleteNotePage}
+                    className="sidebar-desktop" />
+
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+                    <Topbar t={t} themeKey={themeKey} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
+                        notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} setModal={setModal}
+                        searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                    <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
+                        {page === "dashboard" && <Dashboard t={t} setPage={setPageWithPersist} setTask={setTask} />}
+                        {page === "tasks" && <Tasks t={t} setTask={setTask} searchQuery={searchQuery} />}
+                        {page === "notes" && notePageId && <NotesPage t={t} dark={themeKey.includes("dark") || themeKey === "midnight"} pages={pages} notePageId={notePageId}
+                            navigateNote={navigateNote} updateNotePage={updateNotePage}
+                            addNotePage={addNotePage} deleteNotePage={deleteNotePage}
+                            searchQuery={searchQuery} />}
+                        {page === "notes" && !notePageId && <NotesHome t={t} pages={pages} addNotePage={addNotePage} navigateNote={navigateNote} />}
+                        {page === "calendar" && <Calendar t={t} />}
+                        {page === "team" && <TeamPage t={t} />}
+                        {page === "friends" && <Friends t={t} />}
+                        {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
+                    </main>
                 </div>
-            </ToastProvider>
-        </>
-    );
+
+                {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
+                {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
+                {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
+                {showCredits && <CreditsModal onClose={() => setShowCredits(false)} />}
+                {showThemePicker && (
+                    <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
+                        onApplyPreset={applyPreset} onApplyCustom={applyCustom}
+                        onClose={() => setShowThemePicker(false)} />
+                )}
+
+                {/* Mobile bottom nav */}
+                <nav className="mobile-nav">
+                    {[
+                        { id: "dashboard", label: "Home", icon: IC.dash },
+                        { id: "tasks", label: "Tasks", icon: IC.task },
+                        { id: "notes", label: "Notes", icon: IC.note },
+                        { id: "calendar", label: "Cal", icon: IC.cal },
+                        { id: "team", label: "Team", icon: IC.team },
+                        { id: "friends", label: "Friends", icon: IC.user },
+                    ].map(n => (
+                        <button key={n.id} onClick={() => setPageWithPersist(n.id)}
+                            className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>
+                            <I d={n.icon} sz={20} c={page === n.id ? t.accent : t.t3} sw={page === n.id ? 2.2 : 1.7} />
+                            <span style={{ color: page === n.id ? t.accent : t.t3 }}>{n.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </div>
+        </ToastProvider>
+    </>
+);
 }
 
 export default function App() {

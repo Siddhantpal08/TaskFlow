@@ -126,7 +126,7 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
                             return steps.map((s, i) => (
                                 <div key={i} style={{ display: "flex", alignItems: "center" }}>
                                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 22px", borderRadius: 11, minWidth: 130, background: s.active ? t.accentDim : t.surf, border: `1px solid ${s.active ? t.accent : t.border}`, boxShadow: s.active ? t.accentGlow : "none" }}>
-                                        <div style={{ width: 46, height: 46, borderRadius: '50%', background: `linear-gradient(135deg, ${t.accent}40, ${t.purple}40)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: t.accent }}>{s.initials}</div>
+                                        <div style={{ width: 46, height: 46, borderRadius: '50%', background: `linear-gradient(135deg, ${t.accent}40, #0072FF40)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: t.accent }}>{s.initials}</div>
                                         <div style={{ marginTop: 9, fontSize: 12.5, fontWeight: 700, color: t.t1 }}>{s.name}</div>
                                         <div style={{ fontSize: 9.5, color: t.t3, fontFamily: t.mono, marginTop: 1, textTransform: "uppercase", letterSpacing: "0.7px" }}>{s.lbl}</div>
                                         <div style={{ marginTop: 8, fontSize: 10.5, padding: "3px 9px", borderRadius: 20, color: s.active ? t.accent : t.t2, background: s.active ? t.accentDim : t.card }}>{s.role}</div>
@@ -160,7 +160,7 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
                     return (
                         <div key={u.id} className="hvrC" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 18, textAlign: "center", boxShadow: t.shadow, transition: "all .2s" }}>
                             <div style={{ display: "flex", justifyContent: "center", marginBottom: 11 }}>
-                                <div style={{ width: 48, height: 48, borderRadius: '50%', background: `linear-gradient(135deg, ${t.accent}40, ${t.purple}40)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: t.accent, border: isMe ? `2px solid ${t.accent}` : 'none' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: '50%', background: `linear-gradient(135deg, ${t.accent}40, #0072FF40)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: t.accent, border: isMe ? `2px solid ${t.accent}` : 'none' }}>
                                     {u.avatar_initials}
                                 </div>
                             </div>

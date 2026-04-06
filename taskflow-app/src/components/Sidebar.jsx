@@ -8,6 +8,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
     notePageId, navigateNote, addNotePage, deleteNotePage, className }) {
     const { user, logout } = useAuth();
     const [width, setWidth] = useState(230);
+    const [noteSearch, setNoteSearch] = useState("");
 
     const handleMouseDown = (e) => {
         e.preventDefault();
@@ -76,12 +77,16 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
             </div>
 
             {/* Notes tree */}
-            <div style={{ flex: 1, overflow: "auto", padding: "10px 8px" }}>
+            <div style={{ flex: 1, overflow: "auto", padding: "10px 8px", display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "4px 8px", marginBottom: 4
                 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px" }}>Notes</span>
+                    <span onClick={() => { setPage("notes"); navigateNote(null); }}
+                        style={{ fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", cursor: "pointer" }}
+                        title="Go to Workspace Home">
+                        Notes 🏠
+                    </span>
                     <button onClick={() => addNotePage("root")} title="New page"
                         style={{
                             width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center",
@@ -93,7 +98,27 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                         <I d={IC.plus} sz={14} c="currentColor" />
                     </button>
                 </div>
-                {rootPage?.childIds?.map(id => (
+                {/* Search within notes */}
+                <div style={{ padding: "0 4px 4px", position: "relative" }}>
+                    <input value={noteSearch} onChange={e => setNoteSearch(e.target.value)}
+                        placeholder="Search notes..."
+                        style={{ width: "100%", boxSizing: "border-box", padding: "5px 8px 5px 28px", borderRadius: 6, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 11.5, fontFamily: t.disp, outline: "none" }} />
+                    <I d={IC.srch} sz={12} c={t.t3} style={{ position: "absolute", left: 12, top: 9 }} />
+                </div>
+                {/* Tree or flat search results */}
+                {noteSearch ? (
+                    Object.values(pages).filter(p => p.id !== "root" && p.title?.toLowerCase().includes(noteSearch.toLowerCase())).length === 0
+                        ? <div style={{ fontSize: 11, color: t.t3, padding: "6px 10px" }}>No notes found</div>
+                        : Object.values(pages)
+                            .filter(p => p.id !== "root" && p.title?.toLowerCase().includes(noteSearch.toLowerCase()))
+                            .map(p => (
+                                <div key={p.id} onClick={() => { navigateNote(p.id); setNoteSearch(""); }} className="nsi"
+                                    style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 10px", borderRadius: 6, cursor: "pointer", transition: "background .1s" }}>
+                                    <span style={{ fontSize: 14 }}>{p.emoji || "📄"}</span>
+                                    <span style={{ fontSize: 12, color: t.t1, fontWeight: notePageId === p.id ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.title || "Untitled"}</span>
+                                </div>
+                            ))
+                ) : rootPage?.childIds?.map(id => (
                     <NoteTreeItem key={id} pageId={id} pages={pages} expanded={expanded}
                         toggleExp={toggleExp} activeId={notePageId} isNotePage={page === "notes"}
                         navigateNote={navigateNote} addNotePage={addNotePage}

@@ -153,50 +153,105 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         if (!html && !text) return false;
         let newBlocks = [];
 
-        if (html) {
+        // ── Plain-text paste: detect markdown syntax ─────────────────────────
+        const parseText = (raw) => {
+            const lines = raw.split('\n');
+            const blks = [];
+            let inCode = false; let codeLines = [];
+            for (const raw of lines) {
+                const l = raw.trimEnd();
+                if (l.startsWith('```')) {
+                    if (inCode) { blks.push(mkBlock('code', codeLines.join('\n'))); codeLines = []; inCode = false; }
+                    else inCode = true;
+                    continue;
+                }
+                if (inCode) { codeLines.push(l); continue; }
+                if (!l.trim()) { blks.push(mkBlock('p', '')); continue; }
+                if (/^#{1} (.+)/.test(l)) { blks.push(mkBlock('h1', l.replace(/^# /, ''))); continue; }
+                if (/^#{2} (.+)/.test(l)) { blks.push(mkBlock('h2', l.replace(/^## /, ''))); continue; }
+                if (/^#{3} (.+)/.test(l)) { blks.push(mkBlock('h3', l.replace(/^### /, ''))); continue; }
+                if (/^---+$/.test(l.trim())) { blks.push(mkBlock('divider', '')); continue; }
+                if (/^> (.+)/.test(l)) { blks.push(mkBlock('quote', l.replace(/^> /, ''))); continue; }
+                if (/^(\d+)\. (.+)/.test(l)) { blks.push(mkBlock('ol', l.replace(/^\d+\. /, ''))); continue; }
+                if (/^[-*] \[x\] (.+)/i.test(l)) { blks.push(mkBlock('todo', l.replace(/^[-*] \[x\] /i, ''), { checked: true })); continue; }
+                if (/^[-*] \[ \] (.+)/i.test(l)) { blks.push(mkBlock('todo', l.replace(/^[-*] \[ \] /i, ''))); continue; }
+                if (/^[-*] (.+)/.test(l)) { blks.push(mkBlock('ul', l.replace(/^[-*] /, ''))); continue; }
+                blks.push(mkBlock('p', l));
+            }
+            if (inCode && codeLines.length) blks.push(mkBlock('code', codeLines.join('\n')));
+            return blks;
+        };
+
+        // ── HTML paste: walk DOM nodes ────────────────────────────────────────
+        const parseHTML = (html) => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
+            const blks = [];
+            const BLOCK_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote', 'pre', 'li', 'div', 'aside', 'section', 'article', 'header', 'footer', 'hr']);
             const walk = (node) => {
                 const tag = node.tagName?.toLowerCase();
-                const isBlock = ['h1', 'h2', 'h3', 'p', 'blockquote', 'pre', 'li', 'div', 'aside', 'section'].includes(tag);
-                if (isBlock) {
+                if (tag === 'hr') { blks.push(mkBlock('divider', '')); return; }
+                if (tag === 'pre' || (tag === 'code' && node.parentElement?.tagName?.toLowerCase() === 'pre')) {
+                    const txt = node.textContent?.trim();
+                    if (txt) blks.push(mkBlock('code', txt));
+                    return;
+                }
+                if (BLOCK_TAGS.has(tag)) {
                     let type = 'p';
                     if (tag === 'h1') type = 'h1';
                     else if (tag === 'h2') type = 'h2';
-                    else if (tag === 'h3') type = 'h3';
+                    else if (tag === 'h3' || tag === 'h4') type = 'h3';
                     else if (tag === 'blockquote') type = 'quote';
-                    else if (tag === 'pre') type = 'code';
-                    else if (tag === 'aside') type = 'callout'; // ← Notion aside fix
+                    else if (tag === 'aside') type = 'callout';
                     else if (tag === 'li') {
                         const parentTag = node.parentElement?.tagName?.toLowerCase();
                         if (parentTag === 'ol') type = 'ol';
-                        else if (node.querySelector('.pseudoCheckbox') || node.closest('.to-do-list')) type = 'todo';
-                        else type = 'ul'; // default li → bullet
+                        else if (node.querySelector('[data-checked]') || node.closest('[data-block-type="to_do"]')) type = 'todo';
+                        else type = 'ul';
                     }
+                    // If this block tag only contains other block-level children, recurse
+                    const hasBlockChildren = Array.from(node.children).some(c => BLOCK_TAGS.has(c.tagName?.toLowerCase()));
+                    if (hasBlockChildren && tag !== 'li') { Array.from(node.children).forEach(walk); return; }
                     const content = node.innerText?.trim() || node.textContent?.trim();
-                    if (content) newBlocks.push(mkBlock(type, content));
+                    if (content) blks.push(mkBlock(type, content));
                 } else if (node.nodeType === 1) {
                     Array.from(node.children).forEach(walk);
                 }
             };
             Array.from(doc.body.children).forEach(walk);
-        } else if (text) {
-            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-            newBlocks = lines.map(l => mkBlock('p', l));
-        }
+            return blks;
+        };
 
+        newBlocks = html ? parseHTML(html) : parseText(text);
+        // Fallback: if HTML parser produced no results, try plain text
+        if (newBlocks.length === 0 && text) newBlocks = parseText(text);
+        // Cap to prevent runaway
+        if (newBlocks.length > 200) newBlocks = newBlocks.slice(0, 200);
         if (newBlocks.length <= 1) return false;
 
+        // Insert all blocks into local state immediately (responsive UI)
         const nb = [...blocks];
         nb.splice(targetIdx + 1, 0, ...newBlocks);
-        save(nb);
-        newBlocks.forEach((newBlk, offsetIndex) => {
-            socketRef.current?.emit('note:block:add', { pageId: notePageId, block: newBlk, afterIdx: targetIdx + offsetIndex });
-            updBlk(targetIdx + 1 + offsetIndex, { content: newBlk.content });
-        });
-        setTimeout(() => document.getElementById("blk-" + (targetIdx + newBlocks.length))?.focus(), 30);
+        setBlocks(nb);
+        setTimeout(() => document.getElementById("blk-" + (targetIdx + newBlocks.length))?.focus(), 60);
+
+        // Batch-save to DB in a queued async loop (no storm of simultaneous requests)
+        (async () => {
+            for (let i = 0; i < newBlocks.length; i++) {
+                const b = newBlocks[i];
+                try {
+                    const res = await notesApi.createBlock(notePageId, { type: b.type, content: b.content || '', position: targetIdx + 1 + i, checked: !!b.checked });
+                    // Update local id from server response
+                    setBlocks(prev => prev.map(p => p.id === b.id ? { ...p, id: res.data.id } : p));
+                } catch { /* continue */ }
+                // Yield every 10 blocks so the UI stays responsive
+                if (i % 10 === 9) await new Promise(r => setTimeout(r, 15));
+            }
+        })();
+
         return true;
     };
+
 
     const insertSlashType = type => {
         if (slash === null) return;
