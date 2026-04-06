@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <linearGradient id="tfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5CC"/>
+      <stop offset="100%" stop-color="#0072FF"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00E5CC"/>
+      <stop offset="100%" stop-color="#0072FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon squircle -->
+  <rect x="0" y="50" width="300" height="300" rx="70" fill="url(#tfGrad)"/>
+
+  <!-- T crossbar -->
+  <rect x="54"  y="121" width="192" height="36" rx="18" fill="white"/>
+  <!-- T/F vertical stem -->
+  <rect x="132" y="121" width="36" height="162" rx="18" fill="white"/>
+  <!-- F middle arm -->
+  <rect x="132" y="202" width="96"  height="30" rx="15" fill="white"/>
+
+  <!-- Wordmark: "Task" in white/light -->
+  <text x="340" y="230"
+    font-family="'Outfit', 'Inter', 'Segoe UI', sans-serif"
+    font-size="148"
+    font-weight="800"
+    letter-spacing="-4"
+    fill="#FFFFFF">Task</text>
+
+  <!-- Wordmark: "Flow" in teal-to-blue gradient -->
+  <text x="684" y="230"
+    font-family="'Outfit', 'Inter', 'Segoe UI', sans-serif"
+    font-size="148"
+    font-weight="800"
+    letter-spacing="-4"
+    fill="url(#textGrad)">Flow</text>
+
+  <!-- Tagline -->
+  <text x="342" y="292"
+    font-family="'IBM Plex Mono', 'Courier New', monospace"
+    font-size="28"
+    font-weight="400"
+    letter-spacing="2"
+    fill="#6AADCC"
+    opacity="0.75">Smart Task Management &amp; Collaboration</text>
+</svg>

@@ -208,7 +208,6 @@ function MainApp() {
                         setNotePageIdWithPersist(restoredNote && newPages[restoredNote] ? restoredNote : firstId);
                     }
                 }
-            }
         } catch (e) { console.error(e); }
     })();
     }, []);
