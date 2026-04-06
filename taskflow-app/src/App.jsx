@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { FONTS, THEMES, buildCustomTheme } from "./data/themes.js";
 import { INIT_PAGES, mkId, mkBlock, EMOJIS } from "./data/notes.js";
 import { I, IC } from "./components/ui/Icon.jsx";
+import TFLogo from "./components/ui/TFLogo.jsx";
 import "./styles/global.css";
 import { notesApi } from "./api/notes.js";
 import ThemePicker from "./components/ui/ThemePicker.jsx";
@@ -31,34 +32,6 @@ import NotifPanel from "./components/NotifPanel.jsx";
 import TaskDrawer from "./components/TaskDrawer.jsx";
 import AssignModal from "./components/AssignModal.jsx";
 import { ToastProvider } from "./components/ui/Toast.jsx";
-
-// ── Inline SVG Logo ─────────────────────────────────────────────────────────
-export function TFLogo({ size = 34, showText = false, textColor = "#E2EFFF" }) {
-    return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="tfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#00E5CC" />
-                        <stop offset="100%" stopColor="#0072FF" />
-                    </linearGradient>
-                </defs>
-                <rect width="100" height="100" rx="24" fill="url(#tfGrad)" />
-                {/* T crossbar */}
-                <rect x="18" y="24" width="64" height="12" rx="6" fill="white" />
-                {/* T stem / F stem */}
-                <rect x="44" y="24" width="12" height="55" rx="6" fill="white" />
-                {/* F middle bar */}
-                <rect x="44" y="50" width="32" height="10" rx="5" fill="white" />
-            </svg>
-            {showText && (
-                <span style={{ fontSize: size * 0.55, fontWeight: 800, letterSpacing: "-0.5px", color: textColor, fontFamily: "'Outfit',sans-serif" }}>
-                    Task<span style={{ color: "#00E5CC" }}>Flow</span>
-                </span>
-            )}
-        </div>
-    );
-}
 
 // ── Credits Modal ────────────────────────────────────────────────────────────
 function CreditsModal({ onClose }) {

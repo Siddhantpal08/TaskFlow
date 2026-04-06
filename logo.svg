@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="tfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5CC"/>
+      <stop offset="100%" stop-color="#0072FF"/>
+    </linearGradient>
+    <!-- Subtle inner shadow for depth -->
+    <filter id="innerGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+      <feOffset dx="0" dy="4" result="offset"/>
+      <feComposite in="SourceGraphic" in2="offset" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle background -->
+  <rect width="512" height="512" rx="120" fill="url(#tfGrad)"/>
+
+  <!-- Very subtle inner highlight -->
+  <rect width="512" height="512" rx="120"
+    fill="url(#hiGrad)" opacity="0.08"/>
+
+  <!-- T crossbar (horizontal bar at top) -->
+  <rect x="92"  y="122" width="328" height="60" rx="30" fill="white"/>
+
+  <!-- T stem / F vertical bar -->
+  <rect x="226" y="122" width="60" height="278" rx="30" fill="white"/>
+
+  <!-- F middle arm -->
+  <rect x="226" y="252" width="164" height="50" rx="25" fill="white"/>
+</svg>

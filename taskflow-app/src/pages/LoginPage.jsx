@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DARK } from '../data/themes.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { GoogleLogin } from '@react-oauth/google';
-import { TFLogo } from '../App.jsx';
+import TFLogo from '../components/ui/TFLogo.jsx';
 
 const t = DARK;
 

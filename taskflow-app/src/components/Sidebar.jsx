@@ -2,7 +2,7 @@ import { useState } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import NoteTreeItem from "./NoteTreeItem.jsx";
-import { TFLogo } from "../App.jsx";
+import TFLogo from "./ui/TFLogo.jsx";
 
 export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded,
     notePageId, navigateNote, addNotePage, deleteNotePage, className }) {
