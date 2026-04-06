@@ -1,5 +1,7 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
+const { notesLimiter } = require('../middleware/rateLimiter');
+const { sanitizeBlock } = require('../middleware/sanitize');
 const {
     getPageTree, createPage, getPage, updatePage, deletePage, reorderChildren,
     createBlock, updateBlock, deleteBlock,
@@ -16,10 +18,10 @@ router.get('/pages/:id', getPage);
 router.put('/pages/:id', updatePage);
 router.delete('/pages/:id', deletePage);
 router.patch('/pages/:id/reorder', reorderChildren);
-router.post('/pages/:id/blocks', createBlock);
 
-// Block routes
-router.put('/blocks/:id', updateBlock);
+// Block write routes — rate-limited + sanitized
+router.post('/pages/:id/blocks', notesLimiter, sanitizeBlock, createBlock);
+router.put('/blocks/:id', notesLimiter, sanitizeBlock, updateBlock);
 router.delete('/blocks/:id', deleteBlock);
 
 module.exports = router;

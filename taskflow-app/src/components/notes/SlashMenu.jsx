@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { BLOCK_TYPES } from "../../data/notes.js";
 
-export default function SlashMenu({ t, filter, pos, onSelect, onClose }) {
+export default function SlashMenu({ t, filter, pos, onSelect, onClose, blockTypes }) {
+    const ALL_TYPES = blockTypes || BLOCK_TYPES;
     const [sel, setSel] = useState(0);
     const menuRef = useRef();
     const MENU_W = 248;
     const MENU_H = 320;
 
-    const filtered = BLOCK_TYPES.filter(b =>
+    const filtered = ALL_TYPES.filter(b =>
         !filter || b.label.toLowerCase().includes(filter.toLowerCase()) ||
         b.type.toLowerCase().includes(filter.toLowerCase())
     );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DARK } from '../data/themes.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { GoogleLogin } from '@react-oauth/google';
+import TFLogo from '../components/ui/TFLogo.jsx';
 
 const t = DARK;
 
@@ -21,7 +22,7 @@ const inputStyle = {
 const btnStyle = {
     width: '100%',
     padding: '12px',
-    background: t.accent,
+    background: `linear-gradient(135deg, ${t.accent}, #0072FF)`,
     color: '#060B12',
     border: 'none',
     borderRadius: 10,
@@ -105,18 +106,10 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgot }) {
             }}>
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                        <div style={{
-                            width: 38, height: 38, borderRadius: 10,
-                            background: `linear-gradient(135deg, ${t.accent}, ${t.accent}88)`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 18, fontWeight: 900, color: '#060B12',
-                        }}>T</div>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: t.t1, letterSpacing: '-0.5px' }}>
-                            Task<span style={{ color: t.accent }}>Flow</span>
-                        </span>
+                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                        <TFLogo size={48} showText={true} textColor={t.t1} />
                     </div>
-                    <div style={{ fontSize: 13, color: t.t2 }}>Sign in to your workspace</div>
+                    <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>Sign in to your workspace</div>
                 </div>
 
                 {needsVerification ? (
