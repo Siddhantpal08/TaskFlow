@@ -5,10 +5,78 @@ import ScriptBlock from "./ScriptBlock.jsx";
 import LyricsBlock from "./LyricsBlock.jsx";
 import { SCRIPT_TYPES, LYRICS_TYPES } from "../../data/notes.js";
 
-export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose, onFocusPrev, onFocusNext, onPasteHTML, olIndex }) {
+// Detects YouTube video ID from a URL string
+function ytId(url) {
+    try {
+        const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_\-]{11})/);
+        return m ? m[1] : null;
+    } catch { return null; }
+}
+
+// Simple link preview card
+function LinkPreview({ content, t, onDismiss }) {
+    const urlRegex = /https?:\/\/[^\s]+/g;
+    const urls = content?.match(urlRegex) || [];
+    if (!urls.length) return null;
+
+    const previews = urls.map(url => {
+        const vid = ytId(url);
+        if (vid) return { url, type: "youtube", vid };
+        try { return { url, type: "link", host: new URL(url).hostname }; } catch { return null; }
+    }).filter(Boolean);
+
+    if (!previews.length) return null;
+
+    return (
+        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
+            {previews.map((p, i) => (
+                <div key={i} style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${t.border}`, background: t.card, position: "relative" }}>
+                    <button onClick={() => onDismiss(p.url)}
+                        style={{ position: "absolute", top: 5, right: 7, background: "none", border: "none", color: t.t3, cursor: "pointer", fontSize: 14, lineHeight: 1 }}>×</button>
+                    {p.type === "youtube" ? (
+                        <a href={p.url} target="_blank" rel="noreferrer" style={{ display: "block", textDecoration: "none" }}>
+                            <img src={`https://img.youtube.com/vi/${p.vid}/mqdefault.jpg`}
+                                alt="YouTube thumbnail"
+                                style={{ width: "100%", maxHeight: 180, objectFit: "cover", display: "block" }} />
+                            <div style={{ padding: "7px 10px", fontSize: 11, color: t.accent, fontFamily: t.mono }}>▶ YouTube Video — {p.url}</div>
+                        </a>
+                    ) : (
+                        <a href={p.url} target="_blank" rel="noreferrer"
+                            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", textDecoration: "none" }}>
+                            <img src={`https://www.google.com/s2/favicons?domain=${p.host}&sz=24`} alt=""
+                                style={{ width: 16, height: 16, borderRadius: 3 }}
+                                onError={e => { e.target.style.display = "none"; }} />
+                            <span style={{ fontSize: 11, color: t.accent, fontFamily: t.mono, wordBreak: "break-all" }}>{p.host}</span>
+                            <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginLeft: "auto", flexShrink: 0 }}>↗ Open</span>
+                        </a>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export default function NoteBlock({
+    blk, idx, t, dark, onUpdate, onDelete, onAddAfter, onSlash, onSlashClose,
+    onFocusPrev, onFocusNext, onPasteHTML, olIndex,
+    // drag-and-drop props passed from NotesPage
+    onDragStart, onDragOver, onDrop, isDragging, isDragOver,
+    // Convert existing block to a different type
+    onConvert,
+}) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [dismissedUrls, setDismissedUrls] = useState([]);
+    const [showPreview, setShowPreview] = useState(false);
+    const [focused, setFocused] = useState(false);
+
+    // Show link preview after blur if content has URLs
+    const handleBlur = () => {
+        setFocused(false);
+        const content = ref.current?.innerText || "";
+        if (/https?:\/\/[^\s]+/.test(content)) setShowPreview(true);
+    };
 
     const openSlashMenu = () => {
         const rect = ref.current?.getBoundingClientRect();
@@ -40,6 +108,19 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
             return;
         }
 
+        // Tab/Shift+Tab — indent/dedent for list types
+        if (e.key === "Tab" && (blk.type === "ul" || blk.type === "ol")) {
+            e.preventDefault();
+            const cur = blk.indent || 0;
+            if (e.shiftKey) {
+                if (cur > 0) onUpdate({ indent: cur - 1 });
+                else onUpdate({ type: "p", indent: 0 }); // exit list
+            } else {
+                onUpdate({ indent: Math.min(cur + 1, 4) });
+            }
+            return;
+        }
+
         if (e.key === "/") {
             e.preventDefault();
             openSlashMenu();
@@ -47,8 +128,31 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         }
 
         if (e.key === "Enter" && blk.type !== "code") {
+            const curText = ref.current?.innerText || "";
+            const sel = window.getSelection();
+            const atStart = sel && sel.anchorOffset === 0 && sel.toString() === "";
+
+            // Paragraph: Enter on empty block → new block; Enter on non-empty → let browser wrap (natural newline in contenteditable)
+            if (blk.type === "p") {
+                if (curText.trim() === "") {
+                    e.preventDefault();
+                    onAddAfter("p");
+                }
+                // else: allow default browser newline within block
+                return;
+            }
+
             e.preventDefault();
-            // continue list types on enter
+
+            // List types: if empty or at start of empty → exit list (convert to p or dedent)
+            if ((blk.type === "ul" || blk.type === "ol" || blk.type === "todo") && curText.trim() === "") {
+                const indent = blk.indent || 0;
+                if (indent > 0) onUpdate({ indent: indent - 1 });
+                else onUpdate({ type: "p", indent: 0 });
+                return;
+            }
+
+            // Continue list types on enter
             if (blk.type === "ul") { onAddAfter("ul"); return; }
             if (blk.type === "ol") { onAddAfter("ol"); return; }
             if (blk.type === "todo") { onAddAfter("todo"); return; }
@@ -61,10 +165,7 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         }
         if (e.key === "ArrowUp") {
             const sel = window.getSelection();
-            if (sel.anchorOffset === 0) {
-                e.preventDefault();
-                onFocusPrev();
-            }
+            if (sel.anchorOffset === 0) { e.preventDefault(); onFocusPrev(); }
         }
         if (e.key === "ArrowDown") {
             const sel = window.getSelection();
@@ -91,23 +192,60 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
         }
     };
 
+    // Block drag handlers
+    const handleDragStart = e => {
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart?.(idx);
+    };
+    const handleDragOver = e => {
+        e.preventDefault();
+        onDragOver?.(idx);
+    };
+    const handleDrop = e => {
+        e.preventDefault();
+        onDrop?.(idx);
+    };
+
+    const wrapperStyle = {
+        position: "relative",
+        opacity: isDragging ? 0.4 : 1,
+        outline: isDragOver ? `2px dashed ${t.accent}` : "none",
+        borderRadius: 6,
+        transition: "opacity .15s, outline .1s",
+    };
+
+    // Indent padding for lists
+    const indentPx = (blk.indent || 0) * 22;
+
     // Delegate creative writing block types
     if (SCRIPT_TYPES.has(blk.type)) {
-        return <ScriptBlock blk={blk} idx={idx} t={t}
-            onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter}
-            onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} />;
+        return (
+            <div style={wrapperStyle}
+                draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}>
+                <ScriptBlock blk={blk} idx={idx} t={t}
+                    onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter}
+                    onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} />
+            </div>
+        );
     }
     if (LYRICS_TYPES.has(blk.type)) {
-        return <LyricsBlock blk={blk} idx={idx} t={t}
-            onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter}
-            onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} />;
+        return (
+            <div style={wrapperStyle}
+                draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}>
+                <LyricsBlock blk={blk} idx={idx} t={t}
+                    onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter}
+                    onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} />
+            </div>
+        );
     }
 
-    // ── DIVIDER ── (now focusable + supports add-after)
+    // ── DIVIDER ──
     if (blk.type === "divider") return (
-        <div className="blkr" style={{ position: "relative", padding: "6px 0" }}
+        <div className="blkr" style={{ ...wrapperStyle, padding: "6px 0" }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
             <hr
                 tabIndex={0}
                 onKeyDown={e => {
@@ -120,13 +258,18 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
 
     // ── CODE ──
     if (blk.type === "code") return (
-        <div className="blkr" style={{ position: "relative", margin: "4px 0" }}
+        <div className="blkr" style={{ ...wrapperStyle, margin: "4px 0" }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
             <div style={{ background: t.codeBg, borderRadius: 10, overflow: "hidden", border: `1px solid ${t.border}` }}>
                 <div style={{ padding: "7px 14px", borderBottom: `1px solid ${t.noteBorder}22`, display: "flex", alignItems: "center", gap: 5 }}>
                     {["#ff5f57", "#ffbd2e", "#28c840"].map(c => <div key={c} style={{ width: 9, height: 9, borderRadius: "50%", background: c }} />)}
                     <span style={{ marginLeft: 6, fontSize: 10.5, color: t.t3, fontFamily: t.mono }}>code</span>
+                    <button onClick={() => onConvert?.("p")}
+                        style={{ marginLeft: "auto", background: "none", border: "none", color: t.t3, fontSize: 10, cursor: "pointer", fontFamily: t.mono, padding: "0 4px" }}
+                        title="Convert to text">✕ code</button>
                 </div>
                 <textarea value={blk.content} onChange={e => onUpdate({ content: e.target.value })}
                     onKeyDown={e => e.key === "Tab" && (e.preventDefault(), onUpdate({ content: blk.content + "  " }))}
@@ -138,14 +281,17 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
 
     // ── CALLOUT ──
     if (blk.type === "callout") return (
-        <div className="blkr" style={{ position: "relative", margin: "4px 0" }}
+        <div className="blkr" style={{ ...wrapperStyle, margin: "4px 0" }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
             <div style={{ display: "flex", gap: 11, padding: "11px 14px", borderRadius: 10, background: t.calloutBg, border: `1px solid ${t.calloutBorder}` }}>
                 <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>💡</span>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="Add a callout…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                    style={{ flex: 1, fontSize: 13.5, color: t.calloutText, lineHeight: 1.65, fontFamily: t.disp, wordBreak: "break-word" }}>
+                    onFocus={() => setFocused(true)} onBlur={handleBlur}
+                    style={{ flex: 1, fontSize: 13.5, color: t.calloutText, lineHeight: 1.65, fontFamily: t.disp, wordBreak: "break-word", outline: "none" }}>
                 </div>
             </div>
         </div>
@@ -153,14 +299,17 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
 
     // ── QUOTE ──
     if (blk.type === "quote") return (
-        <div className="blkr" style={{ position: "relative", margin: "4px 0" }}
+        <div className="blkr" style={{ ...wrapperStyle, margin: "4px 0" }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
             <div style={{ display: "flex" }}>
                 <div style={{ width: 3, borderRadius: 3, background: t.quoteBorder, flexShrink: 0 }} />
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="Add a quote…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                    style={{ flex: 1, fontSize: 15, color: t.quoteText, lineHeight: 1.7, fontFamily: "'Lora',serif", fontStyle: "italic", padding: "4px 16px", wordBreak: "break-word" }}>
+                    onFocus={() => setFocused(true)} onBlur={handleBlur}
+                    style={{ flex: 1, fontSize: 15, color: t.quoteText, lineHeight: 1.7, fontFamily: "'Lora',serif", fontStyle: "italic", padding: "4px 16px", wordBreak: "break-word", outline: "none" }}>
                 </div>
             </div>
         </div>
@@ -168,9 +317,11 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
 
     // ── TODO ──
     if (blk.type === "todo") return (
-        <div className="blkr" style={{ position: "relative" }}
+        <div className="blkr" style={{ ...wrapperStyle, paddingLeft: indentPx }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
             <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "3px 0" }}>
                 <button onClick={() => onUpdate({ checked: !blk.checked })}
                     style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 3, border: `1.5px solid ${blk.checked ? t.accent : t.noteBorder}`, background: blk.checked ? t.accent : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s" }}>
@@ -178,7 +329,8 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
                 </button>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="To-do…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                    style={{ flex: 1, fontSize: 14, lineHeight: 1.65, wordBreak: "break-word", color: blk.checked ? t.noteMuted : t.noteText, fontFamily: t.disp, textDecoration: blk.checked ? "line-through" : "none", transition: "all .2s" }}>
+                    onFocus={() => setFocused(true)} onBlur={handleBlur}
+                    style={{ flex: 1, fontSize: 14, lineHeight: 1.65, wordBreak: "break-word", color: blk.checked ? t.noteMuted : t.noteText, fontFamily: t.disp, textDecoration: blk.checked ? "line-through" : "none", transition: "all .2s", outline: "none" }}>
                 </div>
             </div>
         </div>
@@ -186,14 +338,19 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
 
     // ── BULLET LIST (ul) ──
     if (blk.type === "ul") return (
-        <div className="blkr" style={{ position: "relative" }}
+        <div className="blkr" style={{ ...wrapperStyle, paddingLeft: indentPx }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "2px 0" }}>
-                <span style={{ color: t.accent, fontSize: 18, lineHeight: 1.6, flexShrink: 0, userSelect: "none", marginTop: 1 }}>•</span>
+                <span style={{ color: t.accent, fontSize: (blk.indent || 0) > 0 ? 12 : 18, lineHeight: 1.6, flexShrink: 0, userSelect: "none", marginTop: 1 }}>
+                    {(blk.indent || 0) === 0 ? "•" : (blk.indent || 0) === 1 ? "◦" : "▸"}
+                </span>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="List item…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: t.disp }}>
+                    onFocus={() => setFocused(true)} onBlur={handleBlur}
+                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: t.disp, outline: "none" }}>
                 </div>
             </div>
         </div>
@@ -201,16 +358,19 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
 
     // ── NUMBERED LIST (ol) ──
     if (blk.type === "ol") return (
-        <div className="blkr" style={{ position: "relative" }}
+        <div className="blkr" style={{ ...wrapperStyle, paddingLeft: indentPx }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "2px 0" }}>
                 <span style={{ color: t.accent, fontSize: 13.5, fontWeight: 700, lineHeight: 1.9, flexShrink: 0, userSelect: "none", fontFamily: t.mono, minWidth: 20, textAlign: "right" }}>
                     {(olIndex || 0) + 1}.
                 </span>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="List item…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: t.disp }}>
+                    onFocus={() => setFocused(true)} onBlur={handleBlur}
+                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: t.disp, outline: "none" }}>
                 </div>
             </div>
         </div>
@@ -218,9 +378,11 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
 
     // ── LINK ──
     if (blk.type === "link") return (
-        <div className="blkr" style={{ position: "relative", margin: "4px 0" }}
+        <div className="blkr" style={{ ...wrapperStyle, margin: "4px 0" }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
             onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
             <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 14px", borderRadius: 8, background: t.card, border: `1px solid ${t.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <I d={IC.lnk} sz={16} c={t.accent} />
@@ -241,37 +403,41 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
     };
     const st = textStyles[blk.type] || textStyles.p;
 
-    return (
-        <div className="blkr" style={{ position: "relative" }}
-            onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onDelete={onDelete} t={t} />
+    // Placeholder: only show "Write something…" if type is p (empty paragraph)
+    const placeholder = blk.type === "h1" ? "Heading 1"
+        : blk.type === "h2" ? "Heading 2"
+            : blk.type === "h3" ? "Heading 3"
+                : ""; // paragraph: no persistent placeholder — use CSS :empty::before only when focused
 
-            {/* Hover toolbar — absolutely positioned, does NOT shift text */}
-            {hov && (
+    return (
+        <div className="blkr" style={{ ...wrapperStyle }}
+            draggable onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
+            onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+            <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
+                onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
+
+            {/* Hover toolbar — floating BELOW the handle area, left-aligned so it never covers text */}
+            {hov && (blk.type === 'p' || blk.type === 'h1' || blk.type === 'h2' || blk.type === 'h3') && (
                 <div style={{
-                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
-                    display: 'flex', gap: 2, zIndex: 5, pointerEvents: 'all',
+                    position: 'absolute', left: -44, top: '100%', marginTop: 2,
+                    display: 'flex', gap: 2, zIndex: 15, pointerEvents: 'all',
                 }}>
-                    {/* Type convert chips */}
-                    {(blk.type === 'p' || blk.type === 'h1' || blk.type === 'h2' || blk.type === 'h3') && (
-                        <div style={{
-                            display: 'flex', gap: 2, background: t.card, border: `1px solid ${t.border}`,
-                            borderRadius: 6, padding: '2px 4px', marginRight: 4
-                        }}>
-                            {['h1', 'h2', 'h3', 'p'].map(bt => (
-                                <button key={bt}
-                                    onMouseDown={e => { e.preventDefault(); onUpdate({ type: bt, content: ref.current?.innerText }); }}
-                                    style={{
-                                        background: blk.type === bt ? t.accentDim : 'transparent', border: 'none',
-                                        color: blk.type === bt ? t.accent : t.t3, fontSize: 10, fontFamily: t.mono, cursor: 'pointer',
-                                        padding: '2px 5px', borderRadius: 4, textTransform: 'uppercase', transition: 'all .1s'
-                                    }}>
-                                    {bt}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    {/* Commands button */}
+                    <div style={{
+                        display: 'flex', gap: 2, background: t.card, border: `1px solid ${t.border}`,
+                        borderRadius: 6, padding: '2px 4px', boxShadow: t.shadow,
+                    }}>
+                        {['h1', 'h2', 'h3', 'p'].map(bt => (
+                            <button key={bt}
+                                onMouseDown={e => { e.preventDefault(); onConvert?.(bt); }}
+                                style={{
+                                    background: blk.type === bt ? t.accentDim : 'transparent', border: 'none',
+                                    color: blk.type === bt ? t.accent : t.t3, fontSize: 10, fontFamily: t.mono, cursor: 'pointer',
+                                    padding: '2px 5px', borderRadius: 4, textTransform: 'uppercase', transition: 'all .1s'
+                                }}>
+                                {bt}
+                            </button>
+                        ))}
+                    </div>
                     {blk.type === 'p' && (
                         <button
                             onMouseDown={e => { e.preventDefault(); openSlashMenu(); }}
@@ -279,7 +445,7 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
                                 background: t.card, border: `1px solid ${t.border}`, borderRadius: 6,
                                 padding: '2px 7px', fontSize: 10, color: t.t3, cursor: 'pointer',
                                 fontFamily: t.mono, display: 'flex', alignItems: 'center', gap: 4,
-                                whiteSpace: 'nowrap',
+                                whiteSpace: 'nowrap', boxShadow: t.shadow,
                             }}
                             title="Insert block (or type / to open)">
                             / Commands
@@ -289,10 +455,25 @@ export default function NoteBlock({ blk, idx, t, dark, onUpdate, onDelete, onAdd
             )}
 
             <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
-                data-ph={blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "Write something, or '/' for commands…"}
+                data-ph={blk.type === "p" && !focused ? "" : placeholder}
                 onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
+                onFocus={() => setFocused(true)} onBlur={handleBlur}
                 style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10 }}>
             </div>
+
+            {/* Link preview (shown after blur if content has URLs) */}
+            {showPreview && !dismissedUrls.includes("all") && (
+                <LinkPreview
+                    content={blk.content}
+                    t={t}
+                    onDismiss={url => {
+                        setDismissedUrls(p => [...p, url]);
+                        // If all dismissed, hide
+                        const urls = (blk.content?.match(/https?:\/\/[^\s]+/g) || []);
+                        if (urls.filter(u => !dismissedUrls.includes(u) && u !== url).length === 0) setShowPreview(false);
+                    }}
+                />
+            )}
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { I, IC } from "../ui/Icon.jsx";
 import { EMOJIS, mkBlock, BLOCK_TYPES, SCRIPT_BLOCK_TYPES, LYRICS_BLOCK_TYPES, SCRIPT_TYPES, LYRICS_TYPES } from "../../data/notes.js";
 import NoteBlock from "./NoteBlock.jsx";
@@ -6,7 +6,120 @@ import SlashMenu from "./SlashMenu.jsx";
 import { notesApi } from "../../api/notes.js";
 import { io } from "socket.io-client";
 
-export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage, searchQuery = "" }) {
+// ── Lock Gate ──────────────────────────────────────────────────────────────────
+function LockGate({ notePageId, t, onUnlock }) {
+    const storageKey = `tf_lock_${notePageId}`;
+    const [pin, setPin] = useState("");
+    const [error, setError] = useState("");
+    const [setting, setSetting] = useState(false);
+    const [newPin, setNewPin] = useState("");
+
+    const savedPin = localStorage.getItem(storageKey);
+
+    const tryUnlock = () => {
+        if (pin === savedPin) { onUnlock(); }
+        else { setError("Incorrect PIN"); setPin(""); }
+    };
+
+    const savePin = () => {
+        if (newPin.length < 4) { setError("PIN must be at least 4 digits"); return; }
+        localStorage.setItem(storageKey, newPin);
+        setSetting(false);
+        setNewPin("");
+        setError("");
+    };
+
+    if (setting) return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 14 }}>
+            <div style={{ fontSize: 36 }}>🔒</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>Set a PIN</div>
+            <input type="password" maxLength={12} placeholder="New PIN (min 4 digits)"
+                value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={e => e.key === "Enter" && savePin()}
+                style={{ padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 18, textAlign: "center", outline: "none", letterSpacing: 8, fontFamily: t.mono, width: 200 }} />
+            {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
+            <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={savePin} style={{ padding: "9px 24px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>Save</button>
+                <button onClick={() => { setSetting(false); setError(""); }} style={{ padding: "9px 24px", borderRadius: 9, background: t.card, border: `1px solid ${t.border}`, color: t.t2, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>Cancel</button>
+            </div>
+        </div>
+    );
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 14 }}>
+            <div style={{ fontSize: 48 }}>🔒</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>This note is locked</div>
+            <div style={{ fontSize: 13, color: t.t3, fontFamily: t.disp }}>Enter your PIN to continue</div>
+            <input type="password" maxLength={12} placeholder="PIN"
+                value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={e => e.key === "Enter" && tryUnlock()}
+                style={{ padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 24, textAlign: "center", outline: "none", letterSpacing: 10, fontFamily: t.mono, width: 200 }} />
+            {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
+            <button onClick={tryUnlock} style={{ padding: "9px 28px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 14 }}>Unlock</button>
+            <button onClick={() => { setSetting(true); setError(""); }} style={{ background: "none", border: "none", color: t.t3, fontSize: 12, cursor: "pointer", fontFamily: t.disp, marginTop: 4 }}>Change / remove PIN</button>
+        </div>
+    );
+}
+
+// ── Set Lock Modal ─────────────────────────────────────────────────────────────
+function SetLockModal({ notePageId, t, onClose }) {
+    const storageKey = `tf_lock_${notePageId}`;
+    const existing = localStorage.getItem(storageKey);
+    const [mode, setMode] = useState(existing ? "confirm" : "set"); // confirm = verify existing first
+    const [current, setCurrent] = useState("");
+    const [newPin, setNewPin] = useState("");
+    const [error, setError] = useState("");
+
+    const handleSet = () => {
+        if (mode === "confirm") {
+            if (current !== existing) { setError("Wrong current PIN"); return; }
+            setMode("set"); setError(""); setCurrent(""); return;
+        }
+        if (newPin.length < 4) { setError("PIN must be at least 4 digits"); return; }
+        localStorage.setItem(storageKey, newPin);
+        onClose();
+    };
+    const handleRemove = () => {
+        if (mode === "confirm" && current !== existing) { setError("Wrong current PIN"); return; }
+        localStorage.removeItem(storageKey);
+        onClose();
+    };
+
+    return (
+        <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: "28px 32px", minWidth: 300, display: "flex", flexDirection: "column", gap: 12, boxShadow: t.shadow }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>
+                    {existing ? (mode === "confirm" ? "🔐 Verify Current PIN" : "🔐 Set New PIN") : "🔐 Lock this Note"}
+                </div>
+                {mode === "confirm" && (
+                    <input type="password" maxLength={12} placeholder="Current PIN"
+                        value={current} onChange={e => setCurrent(e.target.value.replace(/\D/g, ""))}
+                        style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: 6, fontFamily: t.mono }} />
+                )}
+                {mode === "set" && (
+                    <input type="password" maxLength={12} placeholder="New PIN (min 4 digits)"
+                        value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ""))}
+                        onKeyDown={e => e.key === "Enter" && handleSet()}
+                        style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: 6, fontFamily: t.mono }} />
+                )}
+                {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button onClick={handleSet} style={{ flex: 1, padding: "8px", borderRadius: 8, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>
+                        {mode === "confirm" ? "Verify" : existing ? "Update PIN" : "Set PIN"}
+                    </button>
+                    {existing && (
+                        <button onClick={handleRemove} style={{ flex: 1, padding: "8px", borderRadius: 8, background: "transparent", border: `1px solid ${t.red}`, color: t.red, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>
+                            Remove Lock
+                        </button>
+                    )}
+                    <button onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 8, background: t.card, border: `1px solid ${t.border}`, color: t.t2, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>Cancel</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage }) {
     const pg = pages[notePageId];
     if (!pg) return null;
 
@@ -15,16 +128,30 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [slash, setSlash] = useState(null);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [writingMode, setWritingMode] = useState(null); // null | 'script' | 'lyrics'
+    const [zoom, setZoom] = useState(100);
+    const [isListening, setIsListening] = useState(false);
+    const [showLockModal, setShowLockModal] = useState(false);
+    const [unlocked, setUnlocked] = useState(false);
     const titleRef = useRef();
     const socketRef = useRef(null);
     const debounceTimers = useRef({});
     const latestBlocksRef = useRef([]);
+    const speechRef = useRef(null);
+    const activeBlkIdxRef = useRef(0);
+    // drag-and-drop
+    const dragFromIdx = useRef(null);
+    const [dragOver, setDragOver] = useState(null);
 
     useEffect(() => { latestBlocksRef.current = blocks; }, [blocks]);
+
+    // Lock check
+    const storageKey = `tf_lock_${notePageId}`;
+    const isLocked = !!localStorage.getItem(storageKey) && !unlocked;
 
     useEffect(() => {
         setSlash(null);
         setLoading(true);
+        setUnlocked(false);
         let active = true;
 
         notesApi.getPage(notePageId).then(res => {
@@ -115,6 +242,11 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         }, 800);
     };
 
+    // Convert a block to a different type (replace type in place)
+    const convertBlk = (idx, newType) => {
+        updBlk(idx, { type: newType });
+    };
+
     const focusAtEnd = (id) => {
         setTimeout(() => {
             const el = document.getElementById(id);
@@ -149,11 +281,30 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         if (debounceTimers.current[blk.id]) { clearTimeout(debounceTimers.current[blk.id]); delete debounceTimers.current[blk.id]; }
     };
 
+    // ── Drag-and-drop ─────────────────────────────────────────────────────────
+    const handleDragStart = (idx) => { dragFromIdx.current = idx; };
+    const handleDragOver = (idx) => { setDragOver(idx); };
+    const handleDrop = useCallback((toIdx) => {
+        const from = dragFromIdx.current;
+        if (from === null || from === toIdx) { dragFromIdx.current = null; setDragOver(null); return; }
+        const nb = [...latestBlocksRef.current];
+        const [moved] = nb.splice(from, 1);
+        nb.splice(toIdx, 0, moved);
+        setBlocks(nb);
+        dragFromIdx.current = null;
+        setDragOver(null);
+        // Persist reorder — update each moved block's position
+        nb.forEach((blk, i) => {
+            if (!blk.id.toString().startsWith("loc-")) {
+                notesApi.updateBlock(blk.id, { content: blk.content, type: blk.type, checked: !!blk.checked, position: i }).catch(() => { });
+            }
+        });
+    }, []);
+
     const handlePasteHTML = (html, text, targetIdx) => {
         if (!html && !text) return false;
         let newBlocks = [];
 
-        // ── Plain-text paste: detect markdown syntax ─────────────────────────
         const parseText = (raw) => {
             const lines = raw.split('\n');
             const blks = [];
@@ -182,7 +333,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             return blks;
         };
 
-        // ── HTML paste: walk DOM nodes ────────────────────────────────────────
         const parseHTML = (html) => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
@@ -209,7 +359,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         else if (node.querySelector('[data-checked]') || node.closest('[data-block-type="to_do"]')) type = 'todo';
                         else type = 'ul';
                     }
-                    // If this block tag only contains other block-level children, recurse
                     const hasBlockChildren = Array.from(node.children).some(c => BLOCK_TAGS.has(c.tagName?.toLowerCase()));
                     if (hasBlockChildren && tag !== 'li') { Array.from(node.children).forEach(walk); return; }
                     const content = node.innerText?.trim() || node.textContent?.trim();
@@ -223,28 +372,22 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         };
 
         newBlocks = html ? parseHTML(html) : parseText(text);
-        // Fallback: if HTML parser produced no results, try plain text
         if (newBlocks.length === 0 && text) newBlocks = parseText(text);
-        // Cap to prevent runaway
         if (newBlocks.length > 200) newBlocks = newBlocks.slice(0, 200);
         if (newBlocks.length <= 1) return false;
 
-        // Insert all blocks into local state immediately (responsive UI)
         const nb = [...blocks];
         nb.splice(targetIdx + 1, 0, ...newBlocks);
         setBlocks(nb);
         setTimeout(() => document.getElementById("blk-" + (targetIdx + newBlocks.length))?.focus(), 60);
 
-        // Batch-save to DB in a queued async loop (no storm of simultaneous requests)
         (async () => {
             for (let i = 0; i < newBlocks.length; i++) {
                 const b = newBlocks[i];
                 try {
                     const res = await notesApi.createBlock(notePageId, { type: b.type, content: b.content || '', position: targetIdx + 1 + i, checked: !!b.checked });
-                    // Update local id from server response
                     setBlocks(prev => prev.map(p => p.id === b.id ? { ...p, id: res.data.id } : p));
-                } catch { /* continue */ }
-                // Yield every 10 blocks so the UI stays responsive
+                } catch { }
                 if (i % 10 === 9) await new Promise(r => setTimeout(r, 15));
             }
         })();
@@ -252,18 +395,20 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         return true;
     };
 
-
     const insertSlashType = type => {
         if (slash === null) return;
         const nb = [...blocks];
+        // Always CONVERT the current block if it's empty, or INSERT after if not
         const currentContent = nb[slash.idx].content;
         if (currentContent.trim() === "") {
+            // Convert in place (don't add new block)
             nb[slash.idx] = { ...nb[slash.idx], type, content: "" };
             save(nb);
             updBlk(slash.idx, { type, content: "" });
             setSlash(null);
             setTimeout(() => document.getElementById("blk-" + slash.idx)?.focus(), 30);
         } else {
+            // Insert a new block after with the chosen type
             const b = mkBlock(type, ""); nb.splice(slash.idx + 1, 0, b); save(nb);
             socketRef.current?.emit('note:block:add', { pageId: notePageId, block: b, afterIdx: slash.idx });
             setSlash(null);
@@ -271,32 +416,92 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         }
     };
 
-    // Word count + reading time
+    // ── Speech-to-Text ────────────────────────────────────────────────────────
+    const toggleSpeech = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) { alert("Speech recognition is only supported in Chrome/Edge."); return; }
+        if (isListening) {
+            speechRef.current?.stop();
+            setIsListening(false);
+            return;
+        }
+        const recog = new SpeechRecognition();
+        recog.continuous = true;
+        recog.interimResults = true;
+        recog.lang = "en-IN";
+        speechRef.current = recog;
+        recog.onstart = () => setIsListening(true);
+        recog.onend = () => setIsListening(false);
+        recog.onresult = (event) => {
+            let final = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) final += event.results[i][0].transcript;
+            }
+            if (final.trim()) {
+                const idx = activeBlkIdxRef.current;
+                const el = document.getElementById("blk-" + idx);
+                if (el) {
+                    const cur = el.innerText || "";
+                    const newContent = cur + (cur.length && !cur.endsWith(" ") ? " " : "") + final.trim();
+                    el.innerText = newContent;
+                    updBlk(idx, { content: newContent });
+                }
+            }
+        };
+        recog.start();
+    };
+
+    // ── Word count + reading time ─────────────────────────────────────────────
     const allText = blocks.map(b => b.content || "").join(" ");
     const wordCount = allText.trim() ? allText.trim().split(/\s+/).length : 0;
     const readMins = Math.max(1, Math.ceil(wordCount / 200));
 
-    // Breadcrumb
+    // ── Breadcrumb ────────────────────────────────────────────────────────────
     const crumbs = [];
     let cur = notePageId;
     while (cur && pages[cur]) { crumbs.unshift(pages[cur]); cur = pages[cur].parentId; }
-    const subPages = (pg.childIds || []).map(id => pages[id]).filter(Boolean)
-        .filter(sp => !searchQuery || sp.title?.toLowerCase().includes(searchQuery.toLowerCase()));
+    const subPages = (pg.childIds || []).map(id => pages[id]).filter(Boolean);
 
-    // Slash menu block types filtered by mode
     const slashBlockTypes = writingMode === 'script' ? SCRIPT_BLOCK_TYPES
         : writingMode === 'lyrics' ? LYRICS_BLOCK_TYPES
             : BLOCK_TYPES;
 
-    // Compute ol-index for numbered list items
-    const olCounters = {};
+    // Compute ol-index for numbered list items (per indent level)
+    const getOlIndex = (blocks, idx) => {
+        const indent = blocks[idx].indent || 0;
+        let count = 0;
+        for (let i = idx - 1; i >= 0; i--) {
+            if (blocks[i].type === 'ol' && (blocks[i].indent || 0) === indent) count++;
+            else if ((blocks[i].indent || 0) < indent) break;
+            else if ((blocks[i].indent || 0) > indent) continue;
+            else break;
+        }
+        return count;
+    };
+
+    // Share note + sub-notes (collect all descendant IDs)
+    const getAllDescendantIds = (id) => {
+        const result = [id];
+        const page = pages[id];
+        if (!page) return result;
+        (page.childIds || []).forEach(childId => {
+            result.push(...getAllDescendantIds(childId));
+        });
+        return result;
+    };
+
+    const shareNote = () => {
+        const ids = getAllDescendantIds(notePageId);
+        const url = `${window.location.origin}?note=${notePageId}`;
+        navigator.clipboard.writeText(url);
+        alert(`Link copied! This note (and ${ids.length - 1} sub-note${ids.length !== 2 ? 's' : ''}) will be accessible via the shared link.`);
+    };
 
     // Skeleton loading
     if (loading) return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})`, flexShrink: 0 }} />
             <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px", width: "100%" }}>
-                {/* Skeleton title */}
                 <div style={{ height: 46, borderRadius: 8, background: t.border, marginBottom: 24, animation: "skShimmer 1.4s ease infinite", backgroundSize: "200% 100%", backgroundImage: `linear-gradient(90deg, ${t.border} 25%, ${t.noteBorder} 50%, ${t.border} 75%)` }} />
                 {[80, 65, 90, 55, 75].map((w, i) => (
                     <div key={i} style={{ height: 16, borderRadius: 6, background: t.border, marginBottom: 12, width: w + "%", animation: "skShimmer 1.4s ease infinite", animationDelay: i * 0.1 + "s", backgroundSize: "200% 100%", backgroundImage: `linear-gradient(90deg, ${t.border} 25%, ${t.noteBorder} 50%, ${t.border} 75%)` }} />
@@ -304,6 +509,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             </div>
         </div>
     );
+
+    // Lock gate shown before content if locked
+    const isNowLocked = !!localStorage.getItem(storageKey) && !unlocked;
 
     return (
         <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
@@ -333,7 +541,32 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${writingMode === 'lyrics' ? t.accent : t.border}`, background: writingMode === 'lyrics' ? t.accentDim : "transparent", cursor: "pointer", color: writingMode === 'lyrics' ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
                             🎵 Lyrics
                         </button>
-                        <button type="button" onClick={() => { const url = `${window.location.origin}?note=${notePageId}`; navigator.clipboard.writeText(url); alert("Link copied to clipboard! Share it with your friends to collaborate."); }}
+
+                        {/* Zoom controls */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 4px" }}>
+                            <button type="button" onClick={() => setZoom(z => Math.max(50, z - 10))}
+                                style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 13, fontFamily: t.mono, padding: "2px 5px", borderRadius: 4 }} title="Zoom out">−</button>
+                            <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, minWidth: 28, textAlign: "center" }}>{zoom}%</span>
+                            <button type="button" onClick={() => setZoom(z => Math.min(150, z + 10))}
+                                style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 13, fontFamily: t.mono, padding: "2px 5px", borderRadius: 4 }} title="Zoom in">+</button>
+                        </div>
+
+                        {/* Lock */}
+                        <button type="button" onClick={() => setShowLockModal(true)}
+                            title={localStorage.getItem(storageKey) ? "Note is locked" : "Lock this note"}
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${localStorage.getItem(storageKey) ? t.accent : t.border}`, background: localStorage.getItem(storageKey) ? t.accentDim : "transparent", cursor: "pointer", color: localStorage.getItem(storageKey) ? t.accent : t.t2, fontSize: 13, transition: "all .15s" }}>
+                            {localStorage.getItem(storageKey) ? "🔒" : "🔓"}
+                        </button>
+
+                        {/* Speech-to-text */}
+                        <button type="button" onClick={toggleSpeech}
+                            title="Speech to Text (Beta — Chrome/Edge only)"
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${isListening ? t.red : t.border}`, background: isListening ? t.red + "22" : "transparent", cursor: "pointer", color: isListening ? t.red : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s", animation: isListening ? "pulse 1s ease infinite" : "none" }}>
+                            🎤 {isListening ? "Listening…" : "Speak"}
+                        </button>
+
+                        {/* Share */}
+                        <button type="button" onClick={shareNote}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -348,137 +581,147 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     </div>
                 </div>
 
-                {/* Content */}
-                <div style={{ flex: 1, overflow: "auto" }} onClick={() => setEmojiOpen(false)}>
-                    <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})`, flexShrink: 0 }} />
-                    {writingMode && (
-                        <div style={{ textAlign: "center", padding: "8px 0", background: writingMode === 'script' ? t.inset : t.calloutBg, borderBottom: `1px solid ${t.border}`, fontSize: 11.5, color: writingMode === 'script' ? t.accent : t.amber || t.accent, fontFamily: t.mono, fontWeight: 600, letterSpacing: "0.3px" }}>
-                            {writingMode === 'script' ? '📽️ Script Mode — Tab to cycle block types' : '🎵 Lyrics Mode — Tab to cycle section types'}
-                        </div>
-                    )}
-
-                    <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
-                        {/* Emoji picker */}
-                        <div style={{ position: "relative", display: "inline-block", marginBottom: 6 }}>
-                            <button type="button" onClick={e => { e.stopPropagation(); setEmojiOpen(p => !p); }}
-                                style={{ fontSize: 52, background: "none", border: "none", cursor: "pointer", lineHeight: 1, padding: 4, borderRadius: 8, transition: "background .15s" }}
-                                onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
-                                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                                {pg.emoji || "📄"}
-                            </button>
-                            {emojiOpen && (
-                                <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, zIndex: 60, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10, boxShadow: t.shadow, display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 3, width: 230, maxHeight: 280, overflowY: "auto" }}
-                                    onClick={e => e.stopPropagation()}>
-                                    {EMOJIS.map(em => (
-                                        <button type="button" key={em} onClick={() => { updateNotePage(notePageId, { emoji: em }); setEmojiOpen(false); }}
-                                            style={{ fontSize: 19, background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, transition: "background .1s" }}
-                                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
-                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                                            {em}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Title */}
-                        <div contentEditable suppressContentEditableWarning ref={titleRef}
-                            data-ph="Untitled"
-                            onBlur={e => updateNotePage(notePageId, { title: e.target.innerText || "Untitled" })}
-                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("blk-0")?.focus(); } }}
-                            style={{ fontSize: 38, fontWeight: 700, color: t.noteText, lineHeight: 1.2, marginBottom: 20, fontFamily: "'Lora',serif", wordBreak: "break-word", minHeight: 46, cursor: "text" }}>
-                            {pg.title}
-                        </div>
-
-                        {/* Meta */}
-                        <div style={{ display: "flex", gap: 20, marginBottom: 28, paddingBottom: 18, borderBottom: `1px solid ${t.noteBorder}` }}>
-                            {[
-                                ["Created", pg.updatedAt],
-                                ["Words", wordCount.toLocaleString()],
-                                ["Read", readMins + " min"],
-                                ["Blocks", blocks.length + " blocks"],
-                                ["Sub-pages", (pg.childIds?.length || 0) + " pages"]
-                            ].map(([l, v]) => (
-                                <div key={l}>
-                                    <div style={{ fontSize: 9.5, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2, fontFamily: t.mono }}>{l}</div>
-                                    <div style={{ fontSize: 12, color: t.noteSubText }}>{v}</div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Blocks */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                            {blocks.map((blk, idx) => {
-                                let olIndex = 0;
-                                if (blk.type === 'ol') {
-                                    const key = `ol-${idx}`;
-                                    // Count consecutive ol blocks before this one
-                                    let count = 0;
-                                    for (let i = idx - 1; i >= 0; i--) {
-                                        if (blocks[i].type === 'ol') count++;
-                                        else break;
-                                    }
-                                    olIndex = count;
-                                }
-                                return (
-                                    <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
-                                        olIndex={olIndex}
-                                        onUpdate={ch => updBlk(idx, ch)}
-                                        onDelete={() => delBlk(idx)}
-                                        onAddAfter={type => addBlk(idx, type)}
-                                        onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
-                                        onSlashClose={() => setSlash(null)}
-                                        onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
-                                        onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))}
-                                        onPasteHTML={(html, text, i) => handlePasteHTML(html, text, i)} />
-                                );
-                            })}
-                        </div>
-
-                        {/* Sub-pages */}
-                        {subPages.length > 0 && (
-                            <div style={{ marginTop: 36 }}>
-                                <div style={{ fontSize: 10, fontWeight: 600, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10, fontFamily: t.mono }}>Sub-pages</div>
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
-                                    {subPages.map(sp => (
-                                        <div key={sp.id} onClick={() => navigateNote(sp.id)}
-                                            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: `1px solid ${t.noteBorder}`, cursor: "pointer", background: t.noteCard, transition: "all .15s" }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = t.noteHover; e.currentTarget.style.borderColor = t.accent + "44"; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = t.noteCard; e.currentTarget.style.borderColor = t.noteBorder; }}>
-                                            <span style={{ fontSize: 22 }}>{sp.emoji || "📄"}</span>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ fontSize: 13, fontWeight: 600, color: t.noteText, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.title || "Untitled"}</div>
-                                                <div style={{ fontSize: 10.5, color: t.noteMuted, marginTop: 1, fontFamily: t.mono }}>
-                                                    {sp.childIds?.length > 0 ? `${sp.childIds.length} sub-pages · ` : ""}Updated {sp.updatedAt}
-                                                </div>
-                                            </div>
-                                            <I d={IC.chev} sz={13} c={t.t3} />
-                                        </div>
-                                    ))}
-                                </div>
+                {/* Lock gate or content */}
+                {isNowLocked ? (
+                    <div style={{ flex: 1, overflow: "auto" }}>
+                        <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})` }} />
+                        <LockGate notePageId={notePageId} t={t} onUnlock={() => setUnlocked(true)} />
+                    </div>
+                ) : (
+                    <div style={{ flex: 1, overflow: "auto" }} onClick={() => setEmojiOpen(false)}>
+                        <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})`, flexShrink: 0 }} />
+                        {writingMode && (
+                            <div style={{ textAlign: "center", padding: "8px 0", background: writingMode === 'script' ? t.inset : t.calloutBg, borderBottom: `1px solid ${t.border}`, fontSize: 11.5, color: writingMode === 'script' ? t.accent : t.amber || t.accent, fontFamily: t.mono, fontWeight: 600, letterSpacing: "0.3px" }}>
+                                {writingMode === 'script' ? '📽️ Script Mode — Tab to cycle block types' : '🎵 Lyrics Mode — Tab to cycle section types'}
                             </div>
                         )}
 
-                        {/* Add sub-page CTA */}
-                        <button type="button" onClick={() => addNotePage(notePageId)}
-                            style={{
-                                marginTop: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                                padding: "18px 24px", borderRadius: 12, border: "none", cursor: "pointer",
-                                background: `linear-gradient(135deg, ${t.accent}22, ${t.blue || '#0072FF'}22)`,
-                                color: t.accent, fontSize: 15, fontWeight: 700, fontFamily: t.disp, width: "100%",
-                                transition: "all .2s", boxShadow: t.shadow
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = t.accentGlow; }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = t.shadow; }}>
-                            <I d={IC.plus} sz={18} c="currentColor" sw={2.5} />
-                            Create New Note Inside "{pg.title || "this page"}"
-                        </button>
+                        {/* zoom wrapper */}
+                        <div style={{ transformOrigin: "top center", transform: `scale(${zoom / 100})`, width: zoom !== 100 ? `${10000 / zoom}%` : "100%", transition: "transform .2s" }}>
+                            <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
+                                {/* Emoji picker */}
+                                <div style={{ position: "relative", display: "inline-block", marginBottom: 6 }}>
+                                    <button type="button" onClick={e => { e.stopPropagation(); setEmojiOpen(p => !p); }}
+                                        style={{ fontSize: 52, background: "none", border: "none", cursor: "pointer", lineHeight: 1, padding: 4, borderRadius: 8, transition: "background .15s" }}
+                                        onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                        {pg.emoji || "📄"}
+                                    </button>
+                                    {emojiOpen && (
+                                        <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, zIndex: 60, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10, boxShadow: t.shadow, display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 3, width: 230, maxHeight: 280, overflowY: "auto" }}
+                                            onClick={e => e.stopPropagation()}>
+                                            {EMOJIS.map(em => (
+                                                <button type="button" key={em} onClick={() => { updateNotePage(notePageId, { emoji: em }); setEmojiOpen(false); }}
+                                                    style={{ fontSize: 19, background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, transition: "background .1s" }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                                    {em}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Title */}
+                                <div contentEditable suppressContentEditableWarning ref={titleRef}
+                                    data-ph="Untitled"
+                                    onBlur={e => updateNotePage(notePageId, { title: e.target.innerText || "Untitled" })}
+                                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("blk-0")?.focus(); } }}
+                                    style={{ fontSize: 38, fontWeight: 700, color: t.noteText, lineHeight: 1.2, marginBottom: 20, fontFamily: "'Lora',serif", wordBreak: "break-word", minHeight: 46, cursor: "text" }}>
+                                    {pg.title}
+                                </div>
+
+                                {/* Meta */}
+                                <div style={{ display: "flex", gap: 20, marginBottom: 28, paddingBottom: 18, borderBottom: `1px solid ${t.noteBorder}` }}>
+                                    {[
+                                        ["Created", pg.updatedAt],
+                                        ["Words", wordCount.toLocaleString()],
+                                        ["Read", readMins + " min"],
+                                        ["Blocks", blocks.length + " blocks"],
+                                        ["Sub-pages", (pg.childIds?.length || 0) + " pages"]
+                                    ].map(([l, v]) => (
+                                        <div key={l}>
+                                            <div style={{ fontSize: 9.5, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2, fontFamily: t.mono }}>{l}</div>
+                                            <div style={{ fontSize: 12, color: t.noteSubText }}>{v}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Blocks */}
+                                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}
+                                    onDragEnd={() => { dragFromIdx.current = null; setDragOver(null); }}>
+                                    {blocks.map((blk, idx) => {
+                                        const olIndex = blk.type === 'ol' ? getOlIndex(blocks, idx) : 0;
+                                        return (
+                                            <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
+                                                olIndex={olIndex}
+                                                onUpdate={ch => { updBlk(idx, ch); activeBlkIdxRef.current = idx; }}
+                                                onDelete={() => delBlk(idx)}
+                                                onAddAfter={type => addBlk(idx, type)}
+                                                onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
+                                                onSlashClose={() => setSlash(null)}
+                                                onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
+                                                onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))}
+                                                onPasteHTML={(html, text, i) => handlePasteHTML(html, text, i)}
+                                                onConvert={type => convertBlk(idx, type)}
+                                                onDragStart={handleDragStart}
+                                                onDragOver={handleDragOver}
+                                                onDrop={handleDrop}
+                                                isDragging={dragFromIdx.current === idx}
+                                                isDragOver={dragOver === idx} />
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Sub-pages */}
+                                {subPages.length > 0 && (
+                                    <div style={{ marginTop: 36 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10, fontFamily: t.mono }}>Sub-pages</div>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
+                                            {subPages.map(sp => (
+                                                <div key={sp.id} onClick={() => navigateNote(sp.id)}
+                                                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: `1px solid ${t.noteBorder}`, cursor: "pointer", background: t.noteCard, transition: "all .15s" }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = t.noteHover; e.currentTarget.style.borderColor = t.accent + "44"; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = t.noteCard; e.currentTarget.style.borderColor = t.noteBorder; }}>
+                                                    <span style={{ fontSize: 22 }}>{sp.emoji || "📄"}</span>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={{ fontSize: 13, fontWeight: 600, color: t.noteText, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.title || "Untitled"}</div>
+                                                        <div style={{ fontSize: 10.5, color: t.noteMuted, marginTop: 1, fontFamily: t.mono }}>
+                                                            {sp.childIds?.length > 0 ? `${sp.childIds.length} sub-pages · ` : ""}Updated {sp.updatedAt}
+                                                        </div>
+                                                    </div>
+                                                    <I d={IC.chev} sz={13} c={t.t3} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Add sub-page CTA */}
+                                <button type="button" onClick={() => addNotePage(notePageId)}
+                                    style={{
+                                        marginTop: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                                        padding: "18px 24px", borderRadius: 12, border: "none", cursor: "pointer",
+                                        background: `linear-gradient(135deg, ${t.accent}22, ${t.blue || '#0072FF'}22)`,
+                                        color: t.accent, fontSize: 15, fontWeight: 700, fontFamily: t.disp, width: "100%",
+                                        transition: "all .2s", boxShadow: t.shadow
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = t.accentGlow; }}
+                                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = t.shadow; }}>
+                                    <I d={IC.plus} sz={18} c="currentColor" sw={2.5} />
+                                    Create New Note Inside "{pg.title || "this page"}"
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Slash menu */}
             {slash && <SlashMenu t={t} filter={slash.filter} pos={{ x: slash.x, y: slash.y }} onSelect={insertSlashType} onClose={() => setSlash(null)} blockTypes={slashBlockTypes} />}
+
+            {/* Lock modal */}
+            {showLockModal && <SetLockModal notePageId={notePageId} t={t} onClose={() => setShowLockModal(false)} />}
         </div>
     );
 }

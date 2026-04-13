@@ -114,7 +114,6 @@ function MainApp() {
     const [notif, setNotif] = useState(false);
     const [task, setTask] = useState(null);
     const [modal, setModal] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
     const [pageLoading, setPageLoading] = useState(false);
 
     const setPageWithPersist = (p) => {
@@ -208,8 +207,8 @@ function MainApp() {
                         setNotePageIdWithPersist(restoredNote && newPages[restoredNote] ? restoredNote : firstId);
                     }
                 }
-        } catch (e) { console.error(e); }
-    })();
+            } catch (e) { console.error(e); }
+        })();
     }, []);
 
     const themeCss = `
@@ -238,135 +237,133 @@ function MainApp() {
     .fadeUp { animation: fadeSlideIn 0.3s ease both; }
     `;
 
-const [isAddingPage, setIsAddingPage] = useState(false);
-const addingPageRef = useRef(false);
+    const [isAddingPage, setIsAddingPage] = useState(false);
+    const addingPageRef = useRef(false);
 
-const addNotePage = async (parentId, meta = {}) => {
-    if (addingPageRef.current) return;
-    addingPageRef.current = true;
-    setIsAddingPage(true);
-    const title = meta.title || "Untitled";
-    const emoji = meta.emoji || "📄";
-    const initBlocks = meta.initBlocks || [];
-    try {
-        const r = await notesApi.createPage({ title, emoji, parentId: parentId === 'root' ? null : parentId });
-        const id = r.data.id;
-        // Create initial blocks for template pages
-        for (let i = 0; i < initBlocks.length; i++) {
-            const b = initBlocks[i];
-            try { await notesApi.createBlock(id, { type: b.type, content: b.content || "", position: i, checked: !!b.checked }); } catch { }
+    const addNotePage = async (parentId, meta = {}) => {
+        if (addingPageRef.current) return;
+        addingPageRef.current = true;
+        setIsAddingPage(true);
+        const title = meta.title || "Untitled";
+        const emoji = meta.emoji || "📄";
+        const initBlocks = meta.initBlocks || [];
+        try {
+            const r = await notesApi.createPage({ title, emoji, parentId: parentId === 'root' ? null : parentId });
+            const id = r.data.id;
+            // Create initial blocks for template pages
+            for (let i = 0; i < initBlocks.length; i++) {
+                const b = initBlocks[i];
+                try { await notesApi.createBlock(id, { type: b.type, content: b.content || "", position: i, checked: !!b.checked }); } catch { }
+            }
+            setPages(prev => ({
+                ...prev,
+                [id]: { id, title, emoji, parentId, childIds: [], updatedAt: "Just now" },
+                [parentId]: { ...prev[parentId], childIds: [...(prev[parentId]?.childIds || []), id] },
+            }));
+            setExpanded(prev => ({ ...prev, [parentId]: true }));
+            setNotePageIdWithPersist(id);
+            setPageWithPersist("notes");
+            return id;
+        } catch (e) {
+        } finally {
+            addingPageRef.current = false;
+            setIsAddingPage(false);
         }
-        setPages(prev => ({
-            ...prev,
-            [id]: { id, title, emoji, parentId, childIds: [], updatedAt: "Just now" },
-            [parentId]: { ...prev[parentId], childIds: [...(prev[parentId]?.childIds || []), id] },
-        }));
-        setExpanded(prev => ({ ...prev, [parentId]: true }));
+    };
+
+    const deleteNotePage = async (id) => {
+        const pg = pages[id];
+        if (!pg || id === "root") return;
+        try {
+            await notesApi.deletePage(id);
+            setPages(prev => {
+                const next = { ...prev };
+                if (pg.parentId && next[pg.parentId])
+                    next[pg.parentId] = { ...next[pg.parentId], childIds: next[pg.parentId].childIds.filter(c => c !== id) };
+                const del = pid => { const p = next[pid]; if (!p) return; p.childIds?.forEach(del); delete next[pid]; };
+                del(id);
+                return next;
+            });
+            if (notePageId === id) setNotePageIdWithPersist(pg.parentId === "root" ? Object.keys(pages)[0] : pg.parentId);
+        } catch (e) { }
+    };
+
+    const updateNotePage = (id, changes) => {
+        setPages(prev => ({ ...prev, [id]: { ...prev[id], ...changes, updatedAt: "Just now" } }));
+        notesApi.updatePage(id, changes).catch(() => { });
+    };
+
+    const navigateNote = id => {
         setNotePageIdWithPersist(id);
         setPageWithPersist("notes");
-        return id;
-    } catch (e) {
-    } finally {
-        addingPageRef.current = false;
-        setIsAddingPage(false);
-    }
-};
+    };
 
-const deleteNotePage = async (id) => {
-    const pg = pages[id];
-    if (!pg || id === "root") return;
-    try {
-        await notesApi.deletePage(id);
-        setPages(prev => {
-            const next = { ...prev };
-            if (pg.parentId && next[pg.parentId])
-                next[pg.parentId] = { ...next[pg.parentId], childIds: next[pg.parentId].childIds.filter(c => c !== id) };
-            const del = pid => { const p = next[pid]; if (!p) return; p.childIds?.forEach(del); delete next[pid]; };
-            del(id);
-            return next;
-        });
-        if (notePageId === id) setNotePageIdWithPersist(pg.parentId === "root" ? Object.keys(pages)[0] : pg.parentId);
-    } catch (e) { }
-};
-
-const updateNotePage = (id, changes) => {
-    setPages(prev => ({ ...prev, [id]: { ...prev[id], ...changes, updatedAt: "Just now" } }));
-    notesApi.updatePage(id, changes).catch(() => { });
-};
-
-const navigateNote = id => {
-    setNotePageIdWithPersist(id);
-    setPageWithPersist("notes");
-};
-
-return (
-    <>
-        <style>{FONTS}{themeCss}</style>
-        {/* Hidden watermark DOM element */}
-        <div aria-hidden="true" style={{ position: "absolute", opacity: 0, pointerEvents: "none", userSelect: "none", zIndex: -1, fontSize: 0 }}>
-            Created and owned by Siddhant Pal. TaskFlow v1.0. All rights reserved 2025-2026.
-        </div>
-        <TopLoader active={pageLoading} color={t.accent} />
-        <ToastProvider t={t}>
-            <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}
-                className="app-root">
-
-                <Sidebar t={t} page={page} setPage={setPageWithPersist}
-                    pages={pages} expanded={expanded} setExpanded={setExpanded}
-                    notePageId={notePageId} navigateNote={navigateNote}
-                    addNotePage={addNotePage} deleteNotePage={deleteNotePage}
-                    className="sidebar-desktop" />
-
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-                    <Topbar t={t} themeKey={themeKey} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
-                        notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} setModal={setModal}
-                        searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-                    <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
-                        {page === "dashboard" && <Dashboard t={t} setPage={setPageWithPersist} setTask={setTask} />}
-                        {page === "tasks" && <Tasks t={t} setTask={setTask} searchQuery={searchQuery} />}
-                        {page === "notes" && notePageId && <NotesPage t={t} dark={themeKey.includes("dark") || themeKey === "midnight"} pages={pages} notePageId={notePageId}
-                            navigateNote={navigateNote} updateNotePage={updateNotePage}
-                            addNotePage={addNotePage} deleteNotePage={deleteNotePage}
-                            searchQuery={searchQuery} />}
-                        {page === "notes" && !notePageId && <NotesHome t={t} pages={pages} addNotePage={addNotePage} navigateNote={navigateNote} />}
-                        {page === "calendar" && <Calendar t={t} />}
-                        {page === "team" && <TeamPage t={t} />}
-                        {page === "friends" && <Friends t={t} />}
-                        {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
-                    </main>
-                </div>
-
-                {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
-                {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
-                {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
-                {showCredits && <CreditsModal onClose={() => setShowCredits(false)} />}
-                {showThemePicker && (
-                    <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
-                        onApplyPreset={applyPreset} onApplyCustom={applyCustom}
-                        onClose={() => setShowThemePicker(false)} />
-                )}
-
-                {/* Mobile bottom nav */}
-                <nav className="mobile-nav">
-                    {[
-                        { id: "dashboard", label: "Home", icon: IC.dash },
-                        { id: "tasks", label: "Tasks", icon: IC.task },
-                        { id: "notes", label: "Notes", icon: IC.note },
-                        { id: "calendar", label: "Cal", icon: IC.cal },
-                        { id: "team", label: "Team", icon: IC.team },
-                        { id: "friends", label: "Friends", icon: IC.user },
-                    ].map(n => (
-                        <button key={n.id} onClick={() => setPageWithPersist(n.id)}
-                            className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>
-                            <I d={n.icon} sz={20} c={page === n.id ? t.accent : t.t3} sw={page === n.id ? 2.2 : 1.7} />
-                            <span style={{ color: page === n.id ? t.accent : t.t3 }}>{n.label}</span>
-                        </button>
-                    ))}
-                </nav>
+    return (
+        <>
+            <style>{FONTS}{themeCss}</style>
+            {/* Hidden watermark DOM element */}
+            <div aria-hidden="true" style={{ position: "absolute", opacity: 0, pointerEvents: "none", userSelect: "none", zIndex: -1, fontSize: 0 }}>
+                Created and owned by Siddhant Pal. TaskFlow v1.0. All rights reserved 2025-2026.
             </div>
-        </ToastProvider>
-    </>
-);
+            <TopLoader active={pageLoading} color={t.accent} />
+            <ToastProvider t={t}>
+                <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}
+                    className="app-root">
+
+                    <Sidebar t={t} page={page} setPage={setPageWithPersist}
+                        pages={pages} expanded={expanded} setExpanded={setExpanded}
+                        notePageId={notePageId} navigateNote={navigateNote}
+                        addNotePage={addNotePage} deleteNotePage={deleteNotePage}
+                        className="sidebar-desktop" />
+
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+                        <Topbar t={t} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
+                            notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} setModal={setModal} />
+                        <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
+                            {page === "dashboard" && <Dashboard t={t} setPage={setPageWithPersist} setTask={setTask} />}
+                            {page === "tasks" && <Tasks t={t} setTask={setTask} />}
+                            {page === "notes" && notePageId && <NotesPage t={t} dark={themeKey.includes("dark") || themeKey === "midnight"} pages={pages} notePageId={notePageId}
+                                navigateNote={navigateNote} updateNotePage={updateNotePage}
+                                addNotePage={addNotePage} deleteNotePage={deleteNotePage} />}
+                            {page === "notes" && !notePageId && <NotesHome t={t} pages={pages} addNotePage={addNotePage} navigateNote={navigateNote} />}
+                            {page === "calendar" && <Calendar t={t} />}
+                            {page === "team" && <TeamPage t={t} />}
+                            {page === "friends" && <Friends t={t} />}
+                            {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
+                        </main>
+                    </div>
+
+                    {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
+                    {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
+                    {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
+                    {showCredits && <CreditsModal onClose={() => setShowCredits(false)} />}
+                    {showThemePicker && (
+                        <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
+                            onApplyPreset={applyPreset} onApplyCustom={applyCustom}
+                            onClose={() => setShowThemePicker(false)} />
+                    )}
+
+                    {/* Mobile bottom nav */}
+                    <nav className="mobile-nav">
+                        {[
+                            { id: "dashboard", label: "Home", icon: IC.dash },
+                            { id: "tasks", label: "Tasks", icon: IC.task },
+                            { id: "notes", label: "Notes", icon: IC.note },
+                            { id: "calendar", label: "Cal", icon: IC.cal },
+                            { id: "team", label: "Team", icon: IC.team },
+                            { id: "friends", label: "Friends", icon: IC.user },
+                        ].map(n => (
+                            <button key={n.id} onClick={() => setPageWithPersist(n.id)}
+                                className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>
+                                <I d={n.icon} sz={20} c={page === n.id ? t.accent : t.t3} sw={page === n.id ? 2.2 : 1.7} />
+                                <span style={{ color: page === n.id ? t.accent : t.t3 }}>{n.label}</span>
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+            </ToastProvider>
+        </>
+    );
 }
 
 export default function App() {
