@@ -25,16 +25,23 @@ function LockGate({ notePageId, t, onUnlock }) {
             <div style={{ fontSize: 48 }}>🔒</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>This note is locked</div>
             <div style={{ fontSize: 13, color: t.t3, fontFamily: t.disp }}>Enter your PIN to continue</div>
-            <div style={{ position: "relative" }}>
-                <input type={showPin ? "text" : "password"} maxLength={12} placeholder="PIN"
-                    value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
-                    onKeyDown={e => e.key === "Enter" && tryUnlock()}
-                    style={{ padding: "10px 40px 10px 16px", borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 24, textAlign: "center", outline: "none", letterSpacing: showPin ? 2 : 10, fontFamily: t.mono, width: 200 }} />
-                <button onClick={() => setShowPin(p => !p)}
-                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: t.t3, lineHeight: 1 }}>
-                    {showPin ? "🙈" : "👁"}
-                </button>
-            </div>
+            <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={12}
+                placeholder="Enter PIN"
+                value={pin}
+                onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={e => e.key === "Enter" && tryUnlock()}
+                style={{
+                    padding: "11px 18px", borderRadius: 10,
+                    border: `1.5px solid ${error ? t.red : t.border}`,
+                    background: t.inset, color: t.t1,
+                    fontSize: 22, outline: "none",
+                    fontFamily: t.mono, width: 200, textAlign: "center",
+                    letterSpacing: 6,
+                }}
+            />
             {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
             <button onClick={tryUnlock} style={{ padding: "9px 28px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 14 }}>Unlock</button>
         </div>
@@ -403,30 +410,59 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     };
 
     // ── Speech-to-Text ────────────────────────────────────────────────────────
+    const listeningRef = useRef(false); // separate flag avoids closure stale-state
+
     const toggleSpeech = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) { alert("Speech recognition is only supported in Chrome/Edge."); return; }
-        if (isListening) {
-            speechRef.current?.stop();
+
+        if (isListening || listeningRef.current) {
+            listeningRef.current = false;
+            speechRef.current?.abort();
             speechRef.current = null;
             setIsListening(false);
             return;
         }
 
-        const startRecog = () => {
+        listeningRef.current = true;
+        setIsListening(true);
+
+        const startNew = () => {
+            if (!listeningRef.current) return;
+
             const recog = new SpeechRecognition();
-            recog.continuous = true;
-            recog.interimResults = true;
-            recog.lang = "en-IN";
+            recog.continuous = false;   // single utterance — more reliable across browsers
+            recog.interimResults = false;
+            recog.lang = navigator.language || 'en-US';
             speechRef.current = recog;
 
-            recog.onstart = () => setIsListening(true);
+            recog.onresult = (event) => {
+                const transcript = Array.from(event.results)
+                    .map(r => r[0].transcript)
+                    .join(' ');
+                if (transcript.trim()) {
+                    const idx = activeBlkIdxRef.current;
+                    const el = document.getElementById('blk-' + idx);
+                    if (el) {
+                        const cur = el.innerText || '';
+                        const sep = cur.length && !cur.endsWith(' ') ? ' ' : '';
+                        const newContent = cur + sep + transcript.trim();
+                        el.innerText = newContent;
+                        // Place cursor at end
+                        const range = document.createRange();
+                        range.selectNodeContents(el);
+                        range.collapse(false);
+                        window.getSelection()?.removeAllRanges();
+                        window.getSelection()?.addRange(range);
+                        updBlk(idx, { content: newContent });
+                    }
+                }
+            };
 
-            // Auto-restart on end only if user hasn't stopped it manually
             recog.onend = () => {
-                if (speechRef.current) {
-                    // Still supposed to be listening — browser cut us off, restart
-                    try { startRecog(); } catch { setIsListening(false); }
+                // Restart after short delay if still active
+                if (listeningRef.current) {
+                    setTimeout(startNew, 150);
                 } else {
                     setIsListening(false);
                 }
@@ -435,33 +471,19 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             recog.onerror = (ev) => {
                 if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
                     alert('Microphone access denied. Please allow microphone in browser settings.');
-                    speechRef.current = null;
+                    listeningRef.current = false;
                     setIsListening(false);
                 }
-                // For 'no-speech' or 'network' errors we just let onend handle the restart
+                // other errors: just let onend restart
             };
 
-            recog.onresult = (event) => {
-                let final = "";
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) final += event.results[i][0].transcript;
-                }
-                if (final.trim()) {
-                    const idx = activeBlkIdxRef.current;
-                    const el = document.getElementById("blk-" + idx);
-                    if (el) {
-                        const cur = el.innerText || "";
-                        const newContent = cur + (cur.length && !cur.endsWith(" ") ? " " : "") + final.trim();
-                        el.innerText = newContent;
-                        updBlk(idx, { content: newContent });
-                    }
-                }
-            };
-
-            try { recog.start(); } catch { }
+            try { recog.start(); } catch (e) {
+                // Already started elsewhere — wait and retry
+                if (listeningRef.current) setTimeout(startNew, 300);
+            }
         };
 
-        startRecog();
+        startNew();
     };
 
     // ── Word count + reading time ─────────────────────────────────────────────
@@ -609,20 +631,18 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             </div>
                         )}
 
-                        {/* zoom wrapper — keeps content centered */}
+                        {/* zoom wrapper — overflow:visible so block handles at left:-44px are NOT clipped */}
                         <div style={{
-                            flex: 1,
-                            overflowX: 'hidden',
                             display: 'flex',
                             justifyContent: 'center',
+                            overflow: 'visible',
                         }}>
                             <div style={{
-                                width: `${(720 * zoom) / 100}px`,
+                                width: zoom === 100 ? '100%' : `${720 * zoom / 100}px`,
                                 maxWidth: '100%',
                                 flexShrink: 0,
-                                transform: `scale(${zoom / 100})`,
+                                transform: zoom !== 100 ? `scale(${zoom / 100})` : 'none',
                                 transformOrigin: 'top center',
-                                paddingBottom: `${80 * zoom / 100}px`,
                             }}>
                                 <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
                                     {/* Emoji picker */}
