@@ -98,12 +98,13 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                         <I d={IC.plus} sz={14} c="currentColor" />
                     </button>
                 </div>
-                {/* Search within notes */}
                 <div style={{ padding: "0 4px 4px", position: "relative" }}>
+                    <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", marginTop: -2, pointerEvents: "none", display: "flex" }}>
+                        <I d={IC.srch} sz={12} c={t.t3} />
+                    </div>
                     <input value={noteSearch} onChange={e => setNoteSearch(e.target.value)}
                         placeholder="Search notes..."
                         style={{ width: "100%", boxSizing: "border-box", padding: "5px 8px 5px 28px", borderRadius: 6, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 11.5, fontFamily: t.disp, outline: "none" }} />
-                    <I d={IC.srch} sz={12} c={t.t3} style={{ position: "absolute", left: 12, top: 9 }} />
                 </div>
                 {/* Tree or flat search results */}
                 {noteSearch ? (

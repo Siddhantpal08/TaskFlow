@@ -11,8 +11,7 @@ function LockGate({ notePageId, t, onUnlock }) {
     const storageKey = `tf_lock_${notePageId}`;
     const [pin, setPin] = useState("");
     const [error, setError] = useState("");
-    const [setting, setSetting] = useState(false);
-    const [newPin, setNewPin] = useState("");
+    const [showPin, setShowPin] = useState(false);
 
     const savedPin = localStorage.getItem(storageKey);
 
@@ -21,42 +20,23 @@ function LockGate({ notePageId, t, onUnlock }) {
         else { setError("Incorrect PIN"); setPin(""); }
     };
 
-    const savePin = () => {
-        if (newPin.length < 4) { setError("PIN must be at least 4 digits"); return; }
-        localStorage.setItem(storageKey, newPin);
-        setSetting(false);
-        setNewPin("");
-        setError("");
-    };
-
-    if (setting) return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 14 }}>
-            <div style={{ fontSize: 36 }}>🔒</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>Set a PIN</div>
-            <input type="password" maxLength={12} placeholder="New PIN (min 4 digits)"
-                value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={e => e.key === "Enter" && savePin()}
-                style={{ padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 18, textAlign: "center", outline: "none", letterSpacing: 8, fontFamily: t.mono, width: 200 }} />
-            {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
-            <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={savePin} style={{ padding: "9px 24px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>Save</button>
-                <button onClick={() => { setSetting(false); setError(""); }} style={{ padding: "9px 24px", borderRadius: 9, background: t.card, border: `1px solid ${t.border}`, color: t.t2, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>Cancel</button>
-            </div>
-        </div>
-    );
-
     return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 14 }}>
             <div style={{ fontSize: 48 }}>🔒</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>This note is locked</div>
             <div style={{ fontSize: 13, color: t.t3, fontFamily: t.disp }}>Enter your PIN to continue</div>
-            <input type="password" maxLength={12} placeholder="PIN"
-                value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={e => e.key === "Enter" && tryUnlock()}
-                style={{ padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 24, textAlign: "center", outline: "none", letterSpacing: 10, fontFamily: t.mono, width: 200 }} />
+            <div style={{ position: "relative" }}>
+                <input type={showPin ? "text" : "password"} maxLength={12} placeholder="PIN"
+                    value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
+                    onKeyDown={e => e.key === "Enter" && tryUnlock()}
+                    style={{ padding: "10px 40px 10px 16px", borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 24, textAlign: "center", outline: "none", letterSpacing: showPin ? 2 : 10, fontFamily: t.mono, width: 200 }} />
+                <button onClick={() => setShowPin(p => !p)}
+                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: t.t3, lineHeight: 1 }}>
+                    {showPin ? "🙈" : "👁"}
+                </button>
+            </div>
             {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
             <button onClick={tryUnlock} style={{ padding: "9px 28px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 14 }}>Unlock</button>
-            <button onClick={() => { setSetting(true); setError(""); }} style={{ background: "none", border: "none", color: t.t3, fontSize: 12, cursor: "pointer", fontFamily: t.disp, marginTop: 4 }}>Change / remove PIN</button>
         </div>
     );
 }
@@ -65,10 +45,12 @@ function LockGate({ notePageId, t, onUnlock }) {
 function SetLockModal({ notePageId, t, onClose }) {
     const storageKey = `tf_lock_${notePageId}`;
     const existing = localStorage.getItem(storageKey);
-    const [mode, setMode] = useState(existing ? "confirm" : "set"); // confirm = verify existing first
+    const [mode, setMode] = useState(existing ? "confirm" : "set");
     const [current, setCurrent] = useState("");
     const [newPin, setNewPin] = useState("");
     const [error, setError] = useState("");
+    const [showCur, setShowCur] = useState(false);
+    const [showNew, setShowNew] = useState(false);
 
     const handleSet = () => {
         if (mode === "confirm") {
@@ -85,23 +67,27 @@ function SetLockModal({ notePageId, t, onClose }) {
         onClose();
     };
 
+    const PinInput = ({ value, onChange, show, setShow, placeholder }) => (
+        <div style={{ position: "relative" }}>
+            <input type={show ? "text" : "password"} maxLength={12} placeholder={placeholder}
+                value={value} onChange={onChange}
+                onKeyDown={e => e.key === "Enter" && handleSet()}
+                style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: show ? 2 : 6, fontFamily: t.mono, width: "100%" }} />
+            <button onClick={() => setShow(p => !p)}
+                style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.t3 }}>
+                {show ? "🙈" : "👁"}
+            </button>
+        </div>
+    );
+
     return (
         <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div onClick={e => e.stopPropagation()} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: "28px 32px", minWidth: 300, display: "flex", flexDirection: "column", gap: 12, boxShadow: t.shadow }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>
                     {existing ? (mode === "confirm" ? "🔐 Verify Current PIN" : "🔐 Set New PIN") : "🔐 Lock this Note"}
                 </div>
-                {mode === "confirm" && (
-                    <input type="password" maxLength={12} placeholder="Current PIN"
-                        value={current} onChange={e => setCurrent(e.target.value.replace(/\D/g, ""))}
-                        style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: 6, fontFamily: t.mono }} />
-                )}
-                {mode === "set" && (
-                    <input type="password" maxLength={12} placeholder="New PIN (min 4 digits)"
-                        value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ""))}
-                        onKeyDown={e => e.key === "Enter" && handleSet()}
-                        style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: 6, fontFamily: t.mono }} />
-                )}
+                {mode === "confirm" && <PinInput value={current} onChange={e => setCurrent(e.target.value.replace(/\D/g, ""))} show={showCur} setShow={setShowCur} placeholder="Current PIN" />}
+                {mode === "set" && <PinInput value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ""))} show={showNew} setShow={setShowNew} placeholder="New PIN (min 4 digits)" />}
                 {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button onClick={handleSet} style={{ flex: 1, padding: "8px", borderRadius: 8, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>
@@ -422,33 +408,60 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         if (!SpeechRecognition) { alert("Speech recognition is only supported in Chrome/Edge."); return; }
         if (isListening) {
             speechRef.current?.stop();
+            speechRef.current = null;
             setIsListening(false);
             return;
         }
-        const recog = new SpeechRecognition();
-        recog.continuous = true;
-        recog.interimResults = true;
-        recog.lang = "en-IN";
-        speechRef.current = recog;
-        recog.onstart = () => setIsListening(true);
-        recog.onend = () => setIsListening(false);
-        recog.onresult = (event) => {
-            let final = "";
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                if (event.results[i].isFinal) final += event.results[i][0].transcript;
-            }
-            if (final.trim()) {
-                const idx = activeBlkIdxRef.current;
-                const el = document.getElementById("blk-" + idx);
-                if (el) {
-                    const cur = el.innerText || "";
-                    const newContent = cur + (cur.length && !cur.endsWith(" ") ? " " : "") + final.trim();
-                    el.innerText = newContent;
-                    updBlk(idx, { content: newContent });
+
+        const startRecog = () => {
+            const recog = new SpeechRecognition();
+            recog.continuous = true;
+            recog.interimResults = true;
+            recog.lang = "en-IN";
+            speechRef.current = recog;
+
+            recog.onstart = () => setIsListening(true);
+
+            // Auto-restart on end only if user hasn't stopped it manually
+            recog.onend = () => {
+                if (speechRef.current) {
+                    // Still supposed to be listening — browser cut us off, restart
+                    try { startRecog(); } catch { setIsListening(false); }
+                } else {
+                    setIsListening(false);
                 }
-            }
+            };
+
+            recog.onerror = (ev) => {
+                if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+                    alert('Microphone access denied. Please allow microphone in browser settings.');
+                    speechRef.current = null;
+                    setIsListening(false);
+                }
+                // For 'no-speech' or 'network' errors we just let onend handle the restart
+            };
+
+            recog.onresult = (event) => {
+                let final = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) final += event.results[i][0].transcript;
+                }
+                if (final.trim()) {
+                    const idx = activeBlkIdxRef.current;
+                    const el = document.getElementById("blk-" + idx);
+                    if (el) {
+                        const cur = el.innerText || "";
+                        const newContent = cur + (cur.length && !cur.endsWith(" ") ? " " : "") + final.trim();
+                        el.innerText = newContent;
+                        updBlk(idx, { content: newContent });
+                    }
+                }
+            };
+
+            try { recog.start(); } catch { }
         };
-        recog.start();
+
+        startRecog();
     };
 
     // ── Word count + reading time ─────────────────────────────────────────────
@@ -596,121 +609,135 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             </div>
                         )}
 
-                        {/* zoom wrapper */}
-                        <div style={{ transformOrigin: "top center", transform: `scale(${zoom / 100})`, width: zoom !== 100 ? `${10000 / zoom}%` : "100%", transition: "transform .2s" }}>
-                            <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
-                                {/* Emoji picker */}
-                                <div style={{ position: "relative", display: "inline-block", marginBottom: 6 }}>
-                                    <button type="button" onClick={e => { e.stopPropagation(); setEmojiOpen(p => !p); }}
-                                        style={{ fontSize: 52, background: "none", border: "none", cursor: "pointer", lineHeight: 1, padding: 4, borderRadius: 8, transition: "background .15s" }}
-                                        onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
-                                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                                        {pg.emoji || "📄"}
-                                    </button>
-                                    {emojiOpen && (
-                                        <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, zIndex: 60, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10, boxShadow: t.shadow, display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 3, width: 230, maxHeight: 280, overflowY: "auto" }}
-                                            onClick={e => e.stopPropagation()}>
-                                            {EMOJIS.map(em => (
-                                                <button type="button" key={em} onClick={() => { updateNotePage(notePageId, { emoji: em }); setEmojiOpen(false); }}
-                                                    style={{ fontSize: 19, background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, transition: "background .1s" }}
-                                                    onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
-                                                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                                                    {em}
-                                                </button>
-                                            ))}
+                        {/* zoom wrapper — keeps content centered */}
+                        <div style={{
+                            flex: 1,
+                            overflowX: 'hidden',
+                            display: 'flex',
+                            justifyContent: 'center',
+                        }}>
+                            <div style={{
+                                width: `${(720 * zoom) / 100}px`,
+                                maxWidth: '100%',
+                                flexShrink: 0,
+                                transform: `scale(${zoom / 100})`,
+                                transformOrigin: 'top center',
+                                paddingBottom: `${80 * zoom / 100}px`,
+                            }}>
+                                <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
+                                    {/* Emoji picker */}
+                                    <div style={{ position: "relative", display: "inline-block", marginBottom: 6 }}>
+                                        <button type="button" onClick={e => { e.stopPropagation(); setEmojiOpen(p => !p); }}
+                                            style={{ fontSize: 52, background: "none", border: "none", cursor: "pointer", lineHeight: 1, padding: 4, borderRadius: 8, transition: "background .15s" }}
+                                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                            {pg.emoji || "📄"}
+                                        </button>
+                                        {emojiOpen && (
+                                            <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, zIndex: 60, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10, boxShadow: t.shadow, display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 3, width: 230, maxHeight: 280, overflowY: "auto" }}
+                                                onClick={e => e.stopPropagation()}>
+                                                {EMOJIS.map(em => (
+                                                    <button type="button" key={em} onClick={() => { updateNotePage(notePageId, { emoji: em }); setEmojiOpen(false); }}
+                                                        style={{ fontSize: 19, background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, transition: "background .1s" }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                                        {em}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Title */}
+                                    <div contentEditable suppressContentEditableWarning ref={titleRef}
+                                        data-ph="Untitled"
+                                        onBlur={e => updateNotePage(notePageId, { title: e.target.innerText || "Untitled" })}
+                                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("blk-0")?.focus(); } }}
+                                        style={{ fontSize: 38, fontWeight: 700, color: t.noteText, lineHeight: 1.2, marginBottom: 20, fontFamily: "'Lora',serif", wordBreak: "break-word", minHeight: 46, cursor: "text" }}>
+                                        {pg.title}
+                                    </div>
+
+                                    {/* Meta */}
+                                    <div style={{ display: "flex", gap: 20, marginBottom: 28, paddingBottom: 18, borderBottom: `1px solid ${t.noteBorder}` }}>
+                                        {[
+                                            ["Created", pg.updatedAt],
+                                            ["Words", wordCount.toLocaleString()],
+                                            ["Read", readMins + " min"],
+                                            ["Blocks", blocks.length + " blocks"],
+                                            ["Sub-pages", (pg.childIds?.length || 0) + " pages"]
+                                        ].map(([l, v]) => (
+                                            <div key={l}>
+                                                <div style={{ fontSize: 9.5, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2, fontFamily: t.mono }}>{l}</div>
+                                                <div style={{ fontSize: 12, color: t.noteSubText }}>{v}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Blocks */}
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}
+                                        onDragEnd={() => { dragFromIdx.current = null; setDragOver(null); }}>
+                                        {blocks.map((blk, idx) => {
+                                            const olIndex = blk.type === 'ol' ? getOlIndex(blocks, idx) : 0;
+                                            return (
+                                                <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
+                                                    olIndex={olIndex}
+                                                    onUpdate={ch => { updBlk(idx, ch); activeBlkIdxRef.current = idx; }}
+                                                    onDelete={() => delBlk(idx)}
+                                                    onAddAfter={type => addBlk(idx, type)}
+                                                    onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
+                                                    onSlashClose={() => setSlash(null)}
+                                                    onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
+                                                    onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))}
+                                                    onPasteHTML={(html, text, i) => handlePasteHTML(html, text, i)}
+                                                    onConvert={type => convertBlk(idx, type)}
+                                                    onDragStart={handleDragStart}
+                                                    onDragOver={handleDragOver}
+                                                    onDrop={handleDrop}
+                                                    isDragging={dragFromIdx.current === idx}
+                                                    isDragOver={dragOver === idx} />
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Sub-pages */}
+                                    {subPages.length > 0 && (
+                                        <div style={{ marginTop: 36 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 600, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10, fontFamily: t.mono }}>Sub-pages</div>
+                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
+                                                {subPages.map(sp => (
+                                                    <div key={sp.id} onClick={() => navigateNote(sp.id)}
+                                                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: `1px solid ${t.noteBorder}`, cursor: "pointer", background: t.noteCard, transition: "all .15s" }}
+                                                        onMouseEnter={e => { e.currentTarget.style.background = t.noteHover; e.currentTarget.style.borderColor = t.accent + "44"; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.background = t.noteCard; e.currentTarget.style.borderColor = t.noteBorder; }}>
+                                                        <span style={{ fontSize: 22 }}>{sp.emoji || "📄"}</span>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontSize: 13, fontWeight: 600, color: t.noteText, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.title || "Untitled"}</div>
+                                                            <div style={{ fontSize: 10.5, color: t.noteMuted, marginTop: 1, fontFamily: t.mono }}>
+                                                                {sp.childIds?.length > 0 ? `${sp.childIds.length} sub-pages · ` : ""}Updated {sp.updatedAt}
+                                                            </div>
+                                                        </div>
+                                                        <I d={IC.chev} sz={13} c={t.t3} />
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
+
+                                    {/* Add sub-page CTA */}
+                                    <button type="button" onClick={() => addNotePage(notePageId)}
+                                        style={{
+                                            marginTop: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                                            padding: "18px 24px", borderRadius: 12, border: "none", cursor: "pointer",
+                                            background: `linear-gradient(135deg, ${t.accent}22, ${t.blue || '#0072FF'}22)`,
+                                            color: t.accent, fontSize: 15, fontWeight: 700, fontFamily: t.disp, width: "100%",
+                                            transition: "all .2s", boxShadow: t.shadow
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = t.accentGlow; }}
+                                        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = t.shadow; }}>
+                                        <I d={IC.plus} sz={18} c="currentColor" sw={2.5} />
+                                        Create New Note Inside "{pg.title || "this page"}"
+                                    </button>
                                 </div>
-
-                                {/* Title */}
-                                <div contentEditable suppressContentEditableWarning ref={titleRef}
-                                    data-ph="Untitled"
-                                    onBlur={e => updateNotePage(notePageId, { title: e.target.innerText || "Untitled" })}
-                                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("blk-0")?.focus(); } }}
-                                    style={{ fontSize: 38, fontWeight: 700, color: t.noteText, lineHeight: 1.2, marginBottom: 20, fontFamily: "'Lora',serif", wordBreak: "break-word", minHeight: 46, cursor: "text" }}>
-                                    {pg.title}
-                                </div>
-
-                                {/* Meta */}
-                                <div style={{ display: "flex", gap: 20, marginBottom: 28, paddingBottom: 18, borderBottom: `1px solid ${t.noteBorder}` }}>
-                                    {[
-                                        ["Created", pg.updatedAt],
-                                        ["Words", wordCount.toLocaleString()],
-                                        ["Read", readMins + " min"],
-                                        ["Blocks", blocks.length + " blocks"],
-                                        ["Sub-pages", (pg.childIds?.length || 0) + " pages"]
-                                    ].map(([l, v]) => (
-                                        <div key={l}>
-                                            <div style={{ fontSize: 9.5, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2, fontFamily: t.mono }}>{l}</div>
-                                            <div style={{ fontSize: 12, color: t.noteSubText }}>{v}</div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Blocks */}
-                                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}
-                                    onDragEnd={() => { dragFromIdx.current = null; setDragOver(null); }}>
-                                    {blocks.map((blk, idx) => {
-                                        const olIndex = blk.type === 'ol' ? getOlIndex(blocks, idx) : 0;
-                                        return (
-                                            <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
-                                                olIndex={olIndex}
-                                                onUpdate={ch => { updBlk(idx, ch); activeBlkIdxRef.current = idx; }}
-                                                onDelete={() => delBlk(idx)}
-                                                onAddAfter={type => addBlk(idx, type)}
-                                                onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
-                                                onSlashClose={() => setSlash(null)}
-                                                onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
-                                                onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))}
-                                                onPasteHTML={(html, text, i) => handlePasteHTML(html, text, i)}
-                                                onConvert={type => convertBlk(idx, type)}
-                                                onDragStart={handleDragStart}
-                                                onDragOver={handleDragOver}
-                                                onDrop={handleDrop}
-                                                isDragging={dragFromIdx.current === idx}
-                                                isDragOver={dragOver === idx} />
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Sub-pages */}
-                                {subPages.length > 0 && (
-                                    <div style={{ marginTop: 36 }}>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10, fontFamily: t.mono }}>Sub-pages</div>
-                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
-                                            {subPages.map(sp => (
-                                                <div key={sp.id} onClick={() => navigateNote(sp.id)}
-                                                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: `1px solid ${t.noteBorder}`, cursor: "pointer", background: t.noteCard, transition: "all .15s" }}
-                                                    onMouseEnter={e => { e.currentTarget.style.background = t.noteHover; e.currentTarget.style.borderColor = t.accent + "44"; }}
-                                                    onMouseLeave={e => { e.currentTarget.style.background = t.noteCard; e.currentTarget.style.borderColor = t.noteBorder; }}>
-                                                    <span style={{ fontSize: 22 }}>{sp.emoji || "📄"}</span>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div style={{ fontSize: 13, fontWeight: 600, color: t.noteText, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sp.title || "Untitled"}</div>
-                                                        <div style={{ fontSize: 10.5, color: t.noteMuted, marginTop: 1, fontFamily: t.mono }}>
-                                                            {sp.childIds?.length > 0 ? `${sp.childIds.length} sub-pages · ` : ""}Updated {sp.updatedAt}
-                                                        </div>
-                                                    </div>
-                                                    <I d={IC.chev} sz={13} c={t.t3} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Add sub-page CTA */}
-                                <button type="button" onClick={() => addNotePage(notePageId)}
-                                    style={{
-                                        marginTop: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                                        padding: "18px 24px", borderRadius: 12, border: "none", cursor: "pointer",
-                                        background: `linear-gradient(135deg, ${t.accent}22, ${t.blue || '#0072FF'}22)`,
-                                        color: t.accent, fontSize: 15, fontWeight: 700, fontFamily: t.disp, width: "100%",
-                                        transition: "all .2s", boxShadow: t.shadow
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = t.accentGlow; }}
-                                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = t.shadow; }}>
-                                    <I d={IC.plus} sz={18} c="currentColor" sw={2.5} />
-                                    Create New Note Inside "{pg.title || "this page"}"
-                                </button>
                             </div>
                         </div>
                     </div>

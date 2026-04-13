@@ -96,7 +96,7 @@ export default function NoteBlock({
 
     const handleKey = e => {
         // Ctrl+A / Cmd+A: select all text inside this block only
-        if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
             e.preventDefault();
             const el = ref.current;
             if (!el) return;
@@ -108,68 +108,97 @@ export default function NoteBlock({
             return;
         }
 
+        // Space key — auto-detect markdown list shortcuts
+        if (e.key === ' ' && blk.type === 'p') {
+            const curText = ref.current?.innerText || '';
+            if (/^\d+\.?$/.test(curText.trim())) {
+                // '1 ' or '1. ' → numbered list
+                e.preventDefault();
+                ref.current.innerText = '';
+                onUpdate({ type: 'ol', content: '' });
+                return;
+            }
+            if (curText.trim() === '-' || curText.trim() === '*') {
+                // '- ' or '* ' → bullet list
+                e.preventDefault();
+                ref.current.innerText = '';
+                onUpdate({ type: 'ul', content: '' });
+                return;
+            }
+            if (curText.trim() === '[]' || curText.trim() === '[ ]') {
+                // '[] ' → todo
+                e.preventDefault();
+                ref.current.innerText = '';
+                onUpdate({ type: 'todo', content: '' });
+                return;
+            }
+            if (curText.trim() === '>') {
+                // '> ' → quote
+                e.preventDefault();
+                ref.current.innerText = '';
+                onUpdate({ type: 'quote', content: '' });
+                return;
+            }
+        }
+
         // Tab/Shift+Tab — indent/dedent for list types
-        if (e.key === "Tab" && (blk.type === "ul" || blk.type === "ol")) {
+        if (e.key === 'Tab' && (blk.type === 'ul' || blk.type === 'ol')) {
             e.preventDefault();
             const cur = blk.indent || 0;
             if (e.shiftKey) {
                 if (cur > 0) onUpdate({ indent: cur - 1 });
-                else onUpdate({ type: "p", indent: 0 }); // exit list
+                else onUpdate({ type: 'p', indent: 0 }); // exit list
             } else {
                 onUpdate({ indent: Math.min(cur + 1, 4) });
             }
             return;
         }
 
-        if (e.key === "/") {
+        if (e.key === '/') {
             e.preventDefault();
             openSlashMenu();
             return;
         }
 
-        if (e.key === "Enter" && blk.type !== "code") {
-            const curText = ref.current?.innerText || "";
-            const sel = window.getSelection();
-            const atStart = sel && sel.anchorOffset === 0 && sel.toString() === "";
+        if (e.key === 'Enter' && blk.type !== 'code') {
+            const curText = ref.current?.innerText || '';
 
-            // Paragraph: Enter on empty block → new block; Enter on non-empty → let browser wrap (natural newline in contenteditable)
-            if (blk.type === "p") {
-                if (curText.trim() === "") {
+            if (blk.type === 'p') {
+                if (curText.trim() === '') {
                     e.preventDefault();
-                    onAddAfter("p");
+                    onAddAfter('p');
                 }
-                // else: allow default browser newline within block
                 return;
             }
 
             e.preventDefault();
 
-            // List types: if empty or at start of empty → exit list (convert to p or dedent)
-            if ((blk.type === "ul" || blk.type === "ol" || blk.type === "todo") && curText.trim() === "") {
+            // List Exit: only if the ENTIRE block is empty
+            if ((blk.type === 'ul' || blk.type === 'ol' || blk.type === 'todo') && curText.trim() === '') {
                 const indent = blk.indent || 0;
                 if (indent > 0) onUpdate({ indent: indent - 1 });
-                else onUpdate({ type: "p", indent: 0 });
+                else onUpdate({ type: 'p', content: '', indent: 0 });
                 return;
             }
 
-            // Continue list types on enter
-            if (blk.type === "ul") { onAddAfter("ul"); return; }
-            if (blk.type === "ol") { onAddAfter("ol"); return; }
-            if (blk.type === "todo") { onAddAfter("todo"); return; }
-            onAddAfter("p");
+            // Continue list types with a new sibling block
+            if (blk.type === 'ul') { onAddAfter('ul'); return; }
+            if (blk.type === 'ol') { onAddAfter('ol'); return; }
+            if (blk.type === 'todo') { onAddAfter('todo'); return; }
+            onAddAfter('p');
         }
 
-        if (e.key === "Backspace" && ref.current?.innerText.trim() === "") {
+        if (e.key === 'Backspace' && (ref.current?.innerText || '').trim() === '') {
             e.preventDefault();
             onDelete();
         }
-        if (e.key === "ArrowUp") {
+        if (e.key === 'ArrowUp') {
             const sel = window.getSelection();
             if (sel.anchorOffset === 0) { e.preventDefault(); onFocusPrev(); }
         }
-        if (e.key === "ArrowDown") {
+        if (e.key === 'ArrowDown') {
             const sel = window.getSelection();
-            if (sel.anchorOffset === (ref.current?.innerText.length || 0) || ref.current?.innerText === "") {
+            if (sel.anchorOffset === (ref.current?.innerText.length || 0) || ref.current?.innerText === '') {
                 e.preventDefault();
                 onFocusNext();
             }
@@ -416,41 +445,28 @@ export default function NoteBlock({
             <BlockHandle hov={hov} menuOpen={menuOpen} setMenuOpen={setMenuOpen}
                 onDelete={onDelete} onConvert={onConvert} t={t} blkType={blk.type} />
 
-            {/* Hover toolbar — floating BELOW the handle area, left-aligned so it never covers text */}
             {hov && (blk.type === 'p' || blk.type === 'h1' || blk.type === 'h2' || blk.type === 'h3') && (
                 <div style={{
-                    position: 'absolute', left: -44, top: '100%', marginTop: 2,
+                    position: 'absolute', left: -44, top: '50%', transform: 'translateY(-50%)',
                     display: 'flex', gap: 2, zIndex: 15, pointerEvents: 'all',
                 }}>
                     <div style={{
-                        display: 'flex', gap: 2, background: t.card, border: `1px solid ${t.border}`,
-                        borderRadius: 6, padding: '2px 4px', boxShadow: t.shadow,
+                        display: 'flex', gap: 1, background: t.card, border: `1px solid ${t.border}`,
+                        borderRadius: 6, padding: '2px 3px', boxShadow: t.shadow,
                     }}>
                         {['h1', 'h2', 'h3', 'p'].map(bt => (
                             <button key={bt}
                                 onMouseDown={e => { e.preventDefault(); onConvert?.(bt); }}
                                 style={{
                                     background: blk.type === bt ? t.accentDim : 'transparent', border: 'none',
-                                    color: blk.type === bt ? t.accent : t.t3, fontSize: 10, fontFamily: t.mono, cursor: 'pointer',
-                                    padding: '2px 5px', borderRadius: 4, textTransform: 'uppercase', transition: 'all .1s'
+                                    color: blk.type === bt ? t.accent : t.t3, fontSize: 9.5, fontFamily: t.mono, cursor: 'pointer',
+                                    padding: '2px 4px', borderRadius: 4, textTransform: 'uppercase', transition: 'all .1s',
+                                    fontWeight: blk.type === bt ? 700 : 400,
                                 }}>
                                 {bt}
                             </button>
                         ))}
                     </div>
-                    {blk.type === 'p' && (
-                        <button
-                            onMouseDown={e => { e.preventDefault(); openSlashMenu(); }}
-                            style={{
-                                background: t.card, border: `1px solid ${t.border}`, borderRadius: 6,
-                                padding: '2px 7px', fontSize: 10, color: t.t3, cursor: 'pointer',
-                                fontFamily: t.mono, display: 'flex', alignItems: 'center', gap: 4,
-                                whiteSpace: 'nowrap', boxShadow: t.shadow,
-                            }}
-                            title="Insert block (or type / to open)">
-                            / Commands
-                        </button>
-                    )}
                 </div>
             )}
 

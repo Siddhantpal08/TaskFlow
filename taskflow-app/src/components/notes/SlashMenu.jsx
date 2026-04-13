@@ -5,7 +5,7 @@ export default function SlashMenu({ t, filter, pos, onSelect, onClose, blockType
     const ALL_TYPES = blockTypes || BLOCK_TYPES;
     const [sel, setSel] = useState(0);
     const menuRef = useRef();
-    const MENU_W = 248;
+    const MENU_W = 240;
     const MENU_H = 320;
 
     const filtered = ALL_TYPES.filter(b =>
@@ -13,8 +13,8 @@ export default function SlashMenu({ t, filter, pos, onSelect, onClose, blockType
         b.type.toLowerCase().includes(filter.toLowerCase())
     );
 
-    // Compute screen-aware position
-    const left = Math.min(pos.x, window.innerWidth - MENU_W - 8);
+    // Always anchor to the RIGHT of the viewport so it never overlaps the text
+    const right = 8;
     const flipUp = pos.y + MENU_H > window.innerHeight - 16;
     const top = flipUp ? pos.y - MENU_H - 8 : pos.y;
 
@@ -40,14 +40,14 @@ export default function SlashMenu({ t, filter, pos, onSelect, onClose, blockType
         <>
             <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
             <div ref={menuRef} className="slideDown" style={{
-                position: "fixed", left, top, zIndex: 999,
+                position: "fixed", right, top, zIndex: 999,
                 background: t.card, border: `1px solid ${t.border}`,
                 borderRadius: 10, boxShadow: t.shadow, width: MENU_W,
                 overflow: "hidden", maxHeight: MENU_H, overflowY: "auto"
             }}>
                 <div style={{ padding: "6px 10px 5px", fontSize: 9.5, color: t.t3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: `1px solid ${t.border}`, fontFamily: t.mono, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>Block types</span>
-                    <span style={{ fontSize: 9, opacity: 0.5 }}>↑↓ to navigate · Enter to select</span>
+                    <span style={{ fontSize: 9, opacity: 0.5 }}>↑↓ navigate · Enter select</span>
                 </div>
                 {filtered.map((bt, i) => (
                     <div key={bt.type} id={`slash-item-${i}`} onClick={() => onSelect(bt.type)}
