@@ -131,15 +131,66 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const latestBlocksRef = useRef([]);
     const speechRef = useRef(null);
     const activeBlkIdxRef = useRef(0);
+    const listeningRef = useRef(false);
     // drag-and-drop
     const dragFromIdx = useRef(null);
     const [dragOver, setDragOver] = useState(null);
+    // loc- ID → real backend ID mapping (fixes save race condition)
+    const idMapRef = useRef({});
+    // undo/redo
+    const historyRef = useRef([]);
+    const futureRef = useRef([]);
+    const [canUndo, setCanUndo] = useState(false);
+    const [canRedo, setCanRedo] = useState(false);
 
     useEffect(() => { latestBlocksRef.current = blocks; }, [blocks]);
 
-    // Lock check
-    const storageKey = `tf_lock_${notePageId}`;
-    const isLocked = !!localStorage.getItem(storageKey) && !unlocked;
+    // ── History helpers ───────────────────────────────────────────────────────
+    const pushHistory = () => {
+        const snap = latestBlocksRef.current.map(b => ({ ...b }));
+        historyRef.current = [...historyRef.current.slice(-49), snap];
+        futureRef.current = [];
+        setCanUndo(true);
+        setCanRedo(false);
+    };
+
+    const undo = () => {
+        if (!historyRef.current.length) return;
+        const prev = historyRef.current.pop();
+        futureRef.current.push(latestBlocksRef.current.map(b => ({ ...b })));
+        setBlocks(prev);
+        setCanUndo(historyRef.current.length > 0);
+        setCanRedo(true);
+    };
+
+    const redo = () => {
+        if (!futureRef.current.length) return;
+        const next = futureRef.current.pop();
+        historyRef.current.push(latestBlocksRef.current.map(b => ({ ...b })));
+        setBlocks(next);
+        setCanUndo(true);
+        setCanRedo(futureRef.current.length > 0);
+    };
+
+    // Global keyboard undo/redo — only fires when focus is NOT inside contenteditable
+    useEffect(() => {
+        const handler = (e) => {
+            if (!(e.ctrlKey || e.metaKey)) return;
+            const inEditable = document.activeElement?.isContentEditable;
+            if (e.key === 'z' || e.key === 'Z') {
+                if (e.shiftKey) {
+                    if (!inEditable) { e.preventDefault(); redo(); }
+                } else {
+                    if (!inEditable) { e.preventDefault(); undo(); }
+                }
+            }
+            if ((e.key === 'y' || e.key === 'Y') && !e.shiftKey) {
+                if (!inEditable) { e.preventDefault(); redo(); }
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         setSlash(null);
@@ -200,16 +251,27 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         };
     }, [notePageId]);
 
-    const save = nb => setBlocks(nb);
-
     const addBlk = async (afterIdx, type = "p", content = "") => {
+        pushHistory();
         const b = mkBlock(type, content);
-        const nb = [...blocks]; nb.splice(afterIdx + 1, 0, b); save(nb);
+        const nb = [...blocks]; nb.splice(afterIdx + 1, 0, b); setBlocks(nb);
         setTimeout(() => document.getElementById("blk-" + (afterIdx + 1))?.focus(), 30);
         socketRef.current?.emit('note:block:add', { pageId: notePageId, block: b, afterIdx });
         try {
             const res = await notesApi.createBlock(notePageId, { type, content, position: afterIdx + 1 });
-            setBlocks(prev => prev.map(p => p.id === b.id ? { ...p, id: res.data.id } : p));
+            const realId = res.data.id;
+            idMapRef.current[b.id] = realId;
+            // Flush any typed content that came in while we were waiting for the real ID
+            const pendingTimer = debounceTimers.current[b.id];
+            if (pendingTimer) {
+                clearTimeout(pendingTimer);
+                delete debounceTimers.current[b.id];
+                const latestBlk = latestBlocksRef.current.find(bl => bl.id === b.id);
+                if (latestBlk && latestBlk.content) {
+                    notesApi.updateBlock(realId, { content: latestBlk.content, type: latestBlk.type, checked: !!latestBlk.checked }).catch(() => { });
+                }
+            }
+            setBlocks(prev => prev.map(p => p.id === b.id ? { ...p, id: realId } : p));
         } catch (e) { }
     };
 
@@ -217,26 +279,36 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const nb = [...blocks];
         const newBlk = { ...nb[idx], ...ch };
         nb[idx] = newBlk;
-        save(nb);
+        setBlocks(nb);
         socketRef.current?.emit('note:block:update', { pageId: notePageId, blockId: newBlk.id, changes: ch });
-        if (debounceTimers.current[newBlk.id]) clearTimeout(debounceTimers.current[newBlk.id]);
-        debounceTimers.current[newBlk.id] = setTimeout(() => {
-            delete debounceTimers.current[newBlk.id];
-            const latestBlk = latestBlocksRef.current.find(b => b.id === newBlk.id) || newBlk;
-            const currentIdx = latestBlocksRef.current.findIndex(b => b.id === newBlk.id);
-            if (currentIdx === -1) return;
-            if (latestBlk.id.toString().startsWith("loc-")) {
-                notesApi.createBlock(notePageId, { type: latestBlk.type, content: latestBlk.content, position: currentIdx }).then(res => {
-                    setBlocks(prev => prev.map(p => p.id === latestBlk.id ? { ...p, id: res.data.id } : p));
-                }).catch(() => { });
+        const timerId = newBlk.id;
+        if (debounceTimers.current[timerId]) clearTimeout(debounceTimers.current[timerId]);
+        debounceTimers.current[timerId] = setTimeout(() => {
+            delete debounceTimers.current[timerId];
+            // Resolve real ID if this was a loc- block
+            const resolvedId = idMapRef.current[newBlk.id] || newBlk.id;
+            const latestBlk = latestBlocksRef.current.find(b => b.id === resolvedId || b.id === newBlk.id) || newBlk;
+            const latestContent = latestBlk.content ?? newBlk.content;
+            const latestType = latestBlk.type ?? newBlk.type;
+            const latestChecked = latestBlk.checked ?? newBlk.checked;
+            if (resolvedId.toString().startsWith("loc-")) {
+                // Still a loc- ID AND no real ID mapped yet — create it
+                const currentIdx = latestBlocksRef.current.findIndex(b => b.id === newBlk.id);
+                if (currentIdx === -1) return;
+                notesApi.createBlock(notePageId, { type: latestType, content: latestContent, position: currentIdx })
+                    .then(res => {
+                        idMapRef.current[newBlk.id] = res.data.id;
+                        setBlocks(prev => prev.map(p => p.id === newBlk.id ? { ...p, id: res.data.id } : p));
+                    }).catch(() => { });
             } else {
-                notesApi.updateBlock(latestBlk.id, { content: latestBlk.content, checked: !!latestBlk.checked, type: latestBlk.type }).catch(() => { });
+                notesApi.updateBlock(resolvedId, { content: latestContent, checked: !!latestChecked, type: latestType }).catch(() => { });
             }
-        }, 800);
+        }, 600);
     };
 
-    // Convert a block to a different type (replace type in place)
+    // Convert a block type (with undo history)
     const convertBlk = (idx, newType) => {
+        pushHistory();
         updBlk(idx, { type: newType });
     };
 
@@ -266,8 +338,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     const delBlk = idx => {
         if (blocks.length <= 1) { updBlk(0, { content: "" }); return; }
+        pushHistory();
         const blk = blocks[idx];
-        const nb = blocks.filter((_, i) => i !== idx); save(nb);
+        const nb = blocks.filter((_, i) => i !== idx); setBlocks(nb);
         focusAtEnd("blk-" + Math.max(0, idx - 1));
         socketRef.current?.emit('note:block:delete', { pageId: notePageId, idx });
         if (!blk.id.toString().startsWith("loc-")) notesApi.deleteBlock(blk.id).catch(() => { });
@@ -275,12 +348,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     };
 
     const dupBlk = (idx) => {
+        pushHistory();
         const src = blocks[idx];
         const copy = { ...src, id: 'loc-' + Math.random().toString(36).slice(2, 9) };
-        const nb = [...blocks]; nb.splice(idx + 1, 0, copy); save(nb);
+        const nb = [...blocks]; nb.splice(idx + 1, 0, copy); setBlocks(nb);
         setTimeout(() => document.getElementById('blk-' + (idx + 1))?.focus(), 30);
         notesApi.createBlock(notePageId, { type: copy.type, content: copy.content, position: idx + 1 })
-            .then(res => setBlocks(prev => prev.map(b => b.id === copy.id ? { ...b, id: res.data.id } : b)))
+            .then(res => { idMapRef.current[copy.id] = res.data.id; setBlocks(prev => prev.map(b => b.id === copy.id ? { ...b, id: res.data.id } : b)); })
             .catch(() => { });
     };
 
@@ -420,8 +494,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     };
 
     // ── Speech-to-Text ────────────────────────────────────────────────────────
-    const listeningRef = useRef(false); // separate flag avoids closure stale-state
-
     const toggleSpeech = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) { alert("Speech recognition is only supported in Chrome/Edge."); return; }
@@ -575,6 +647,14 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </div>
                     ))}
                     <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+                        {/* Undo / Redo */}
+                        <div style={{ display: "flex", gap: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 2px" }}>
+                            <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
+                                style={{ background: "none", border: "none", color: canUndo ? t.t2 : t.t3, cursor: canUndo ? "pointer" : "default", fontSize: 14, padding: "2px 6px", borderRadius: 5, opacity: canUndo ? 1 : 0.4, transition: "opacity .15s" }}>↩</button>
+                            <button type="button" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"
+                                style={{ background: "none", border: "none", color: canRedo ? t.t2 : t.t3, cursor: canRedo ? "pointer" : "default", fontSize: 14, padding: "2px 6px", borderRadius: 5, opacity: canRedo ? 1 : 0.4, transition: "opacity .15s" }}>↪</button>
+                        </div>
+
                         {/* Writing mode toggles */}
                         <button type="button" onClick={() => setWritingMode(writingMode === 'script' ? null : 'script')}
                             title="Script Writing Mode"
