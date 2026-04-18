@@ -1,0 +1,166 @@
+BCA VI Semester – Project Synopsis
+TaskFlow
+Web Based Task, Notes & Event Management System
+with Peer-to-Peer Task Assignment & Delegation
+Frontend: React + Vite   |   Backend: Node.js + Express   |   Database: MySQL   |   Mobile: React Native
+Table of Contents
+1.  Introduction
+2.  Problem Statement
+3.  Proposed Solution
+4.  Objectives of the Project
+5.  Scope of the Project
+6.  Methodology
+7.  Target System & Market
+8.  ER Model
+9.  Use Case Diagram
+10.  Data Flow Diagram (DFD)
+11.  Features of the System
+12.  Impact of the Project
+13.  Limitations
+14.  Future Scope
+1. Introduction
+TaskFlow is a web-based task, notes, and event management system that enables any user to assign tasks to others, accept tasks from peers, and delegate sub-tasks further down the chain — creating a flexible, hierarchy-free collaboration model.
+Unlike traditional role-locked systems (where only an 'Admin' can assign tasks), TaskFlow gives every user the power to be an Assigner, a Recipient, or both — depending on the context. A single user can receive a task from their manager, break it down, and delegate sub-tasks to teammates. The full delegation chain is stored and visible to all involved parties.
+The system also includes personal productivity tools — personal to-do lists, notes management, and event scheduling — making it a complete one-stop workspace for individuals and teams alike.
+Key Highlights
+Peer-to-Peer Assignment: Any registered user can assign a task to any other user — no fixed role required.
+Delegation Chains: A recipient can sub-assign tasks further, forming a traceable delegation tree.
+Full Task Lifecycle: Tasks move through: Assigned → Accepted → In Progress → Completed, with notifications at each step.
+Personal Workspace: Every user has personal Todos, Notes, and Events integrated into the same platform.
+Smart Notifications: Email (NodeMailer) and mobile push (Firebase FCM) notifications for all task events.
+2. Problem Statement
+Students and small organizations commonly rely on WhatsApp, notebooks, or disconnected apps to manage and share work. This informal approach creates several real and measurable problems:
+No Unified Assignment System: There is no easy way for one person to formally assign a task to another and track its completion. Assignments made over chat are easily lost or forgotten.
+No Delegation Support: When a person wants to pass on a task they received, there is no structured way to do so. It gets lost in message threads with no record of who is responsible.
+Zero Accountability: Without a system, no one can verify who is responsible for a task, whether it was accepted, or if it was completed. There is no audit trail.
+Disconnected Tools: Tasks, notes, events, and reminders are spread across different apps (WhatsApp, Google Keep, Calendar, etc.) with no integration or central view.
+No Automated Notifications: There is no automated way to notify someone that a task was assigned, updated, accepted, or completed. All follow-ups are manual.
+No Work History: Past tasks, completed work, and delegation chains are invisible — no report or audit trail exists for past activity.
+3. Proposed Solution
+We propose TaskFlow — a peer-to-peer task management platform where any user can assign, accept, complete, or delegate tasks. The solution removes fixed role restrictions and makes task flow natural, structured, and fully trackable.
+Peer Task Assignment: Any registered user can create a task and assign it to any other user in the system with title, description, priority (High/Medium/Low), and due date.
+Task Delegation Chain: A recipient can further delegate the task (or create a sub-task from it) to another user. That user can delegate again. The full delegation path is recorded as a tree structure using a parent_task_id foreign key in the Task table.
+Accept / Complete Workflow: Recipients can explicitly accept a task (acknowledging responsibility), mark it in-progress, and mark it complete. The original assigner is notified at each stage.
+Personal Productivity Tools: Every user also has a private workspace — personal to-do list, notes editor, and event scheduler with reminder dates — all within the same platform.
+Notifications – Email & Mobile Push: NodeMailer sends automated emails for all task events (assignment, delegation, acceptance, completion). Firebase Cloud Messaging (FCM) delivers push notifications to the React Native mobile app in real time.
+Dark / Light Mode & Calendar View: The interface supports dark/light theme switching and a visual calendar view showing tasks, deadlines, and events in a monthly/weekly layout.
+4. Objectives of the Project
+The objective of TaskFlow is to build a flexible, peer-driven task management system where any user can assign, accept, and delegate tasks without the constraints of a fixed role hierarchy. The primary goals are:
+Peer-to-Peer Task Assignment: To allow any user to assign a task to any other user in the system without needing a predefined role or administrative permission.
+Multi-Level Delegation: To support task delegation chains where a recipient can further delegate the task to another user, with full tracking of the delegation path using a parent_task_id reference in the database.
+Accept & Complete Workflow: To implement a clear task lifecycle — Assigned → Accepted → In Progress → Completed — so both the assigner and recipient can monitor the status at every stage.
+Personal Productivity: To provide every user with personal task management (Todos), Notes, and Event scheduling in a single unified platform, eliminating the need for separate apps.
+Smart Notifications: To send real-time notifications via email (NodeMailer) and mobile push (Firebase FCM) whenever a task is assigned, delegated, accepted, or completed.
+Transparency & Accountability: To maintain a full audit trail of every task — who created it, who it was delegated to, what the current status is, and when each status change occurred.
+User-Friendly Interface: To deliver a responsive, accessible web and mobile interface with dark/light mode toggle and a visual calendar view for managing tasks and events.
+5. Scope of the Project
+5.1 Functional Scope
+User Authentication: Secure registration and login for all users. Each user has a profile with name, email, and hashed password.
+Task Assignment: Any user can create a task and assign it to any other registered user with title, description, priority, and due date.
+Delegation Support: A task recipient can delegate the task (or create a sub-task) to another user. The full delegation chain is recorded.
+Task Lifecycle Management: Tasks move through statuses — Pending → Accepted → In Progress → Completed. Assigners can monitor status in real time.
+Personal Todos: Users can manage their own private to-do list independent of assigned tasks.
+Notes Management: Create, edit, and delete personal notes for quick reference or documentation.
+Event Scheduling: Add personal events with date, time, and optional reminder alerts.
+Notification System: In-app, email (NodeMailer), and mobile push (FCM) notifications for all task events.
+Dark / Light Mode: UI theme switching for user comfort, stored in user preferences.
+Visual Calendar View: A calendar showing all tasks, deadlines, and events in monthly/weekly views.
+5.2 Non-Functional Scope
+Security: JWT-based authentication with bcrypt password hashing. Each user can only access their own tasks and data.
+Usability: Clean, intuitive web interface with a dark/light mode toggle and responsive layout for both desktop and mobile.
+Reliability: Consistent CRUD operations with database-level integrity constraints to prevent data loss or corruption.
+Notification Delivery: Email via SMTP (NodeMailer) and mobile push via Firebase Cloud Messaging (FCM).
+Scalability: Modular REST API design allows easy addition of new features like reporting, file attachments, or collaboration tools.
+Performance: Optimized database queries and efficient API responses for a smooth user experience.
+Auditability: Full delegation chain stored in the database — every assignment and delegation is logged with timestamps.
+6. Methodology
+The project is developed iteratively — starting with a working core and adding features one at a time. Each module is built, tested, and verified before the next one begins. This approach keeps the scope manageable and ensures each component is stable before integration.
+Development Steps
+Step 1 – Plan & Design: Define what the system should do. Draw ER diagram, flow diagrams, and sketch the UI screens. Finalize the database schema and API endpoints before writing any code.
+Step 2 – Build the Database: Create MySQL tables for Users, Tasks (with parent_task_id for delegation), Notes, Events, and Notifications based on the finalized ER model.
+Step 3 – Build the Backend: Create REST APIs using Node.js + Express for all features — authentication, task assignment, delegation, notes, events, and notification dispatch (email + push).
+Step 4 – Build the Frontend: Build the web interface using React + Vite and connect it to the backend APIs. Implement dark/light mode toggle and visual calendar view. Develop the React Native mobile app with push notification support.
+Step 5 – Test & Fix: Test each feature individually (unit testing), then test the system as a whole (integration testing). Verify the full delegation chain, notification delivery, and all user flows work correctly.
+7. Target System & Market
+TaskFlow is designed for real-world environments where people need to assign, delegate, and track tasks without the overhead of complex enterprise software. The system fills the gap between simple to-do apps and heavyweight project management tools like Jira or Asana.
+Primary Target Users
+Students & Project Groups: College students working on group projects who need to assign modules, track who is doing what, and follow up on completion — without needing a formal org structure.
+Small Teams & Startups: Teams of 5–50 people where a manager needs to assign tasks, a team member can delegate to a junior, and everyone can track progress in one place.
+Freelancers & Solopreneurs: Individuals who manage their own work and occasionally assign tasks to collaborators or contractors with clear deadlines and status tracking.
+Market & Relevance
+The global task management software market is valued at over $4 billion and growing rapidly, showing high demand for such tools.
+TaskFlow fills the gap between overly simple to-do apps (Todoist) and overly complex project management tools (Jira, Asana).
+The peer-to-peer delegation model is unique — no fixed hierarchy means the system adapts to any team structure.
+With notifications on both web and mobile, TaskFlow ensures users stay informed without needing to constantly check the app.
+8. ER Model – Entity Relationship Diagram
+The Entity-Relationship (ER) Diagram models all data entities in the TaskFlow system and defines their attributes and relationships. It forms the blueprint for the MySQL database schema.
+Entities & Attributes
+Relationships
+USER assigns TASK (1:N): One user can assign many tasks to other users.
+USER delegates TASK (1:N): One user can delegate many tasks, forming a delegation chain.
+TASK self-references for delegation: The parent_task_id field in TASK points to the parent task, creating a delegation tree.
+USER creates NOTE (1:N): One user can create many personal notes.
+USER creates EVENT (1:N): One user can create many calendar events.
+TASK triggers NOTIFICATION (1:N): Each task action (assign/delegate/accept/complete) triggers one or more notifications.
+ER Diagram
+9. Use Case Diagram
+In TaskFlow, every user can play multiple roles depending on context. The same person can be an Assigner for one task and a Recipient for another. There are no fixed roles assigned at registration — the role emerges from the action.
+Actors & Use Cases
+All users also share common personal use cases: Manage Personal Todos · Create Notes · Add Events · Toggle Dark/Light Theme · View Calendar.
+10. Data Flow Diagram (DFD)
+The Data Flow Diagram shows how data flows between external actors (Assigner, Recipient, Delegate) and the internal processes of the TaskFlow system, and where that data is stored.
+DFD Components
+External Entities: Assigner – creates and sends tasks to others. Recipient – receives, accepts, and completes tasks. Delegate – sub-assigns received tasks to another user.
+Processes: P1: User Authentication · P2: Task Assignment · P3: Delegation Management · P4: Notes Management · P5: Event Management · P6: Notification Dispatch (Email + Push)
+Data Stores: D1: User DB · D2: Task DB (with parent_task_id for delegation chain) · D3: Notes DB · D4: Event DB · D5: Notification DB
+Key Data Flows: Login credentials → P1 Auth → D1 User DB · Task data → P2 Task Assign → D2 Task DB · Delegation request → P3 → D2 Task DB · P6 Notifications → Email SMTP + FCM → Recipient's device
+DFD – Visual Diagram
+11. Features of the System
+11.1 Task Management Features
+Assign Task: Any user can create a task with title, description, priority (High/Medium/Low), and due date, and assign it to any other registered user.
+Delegate Task: A recipient can forward the task or create a sub-task from it and assign it to another user. The delegation chain is stored using parent_task_id and is visible to all stakeholders.
+Accept / Decline Task: Recipients can explicitly accept a task (acknowledging responsibility) or decline with a reason. Assigners are notified of the recipient's response immediately.
+Mark In-Progress & Complete: Recipients can update task status to In-Progress when they start work, and Complete when done. The assigner receives a notification at each status change.
+Delegation Chain View: All users involved in a delegation chain can view the full tree — from original assigner to current holder — giving everyone full transparency.
+11.2 Personal Productivity Features
+Personal Todos: Users can manage their own private to-do list — create, edit, delete, and mark tasks complete — independent of assigned tasks.
+Notes Manager: Create, edit, and delete personal notes with titles and rich content for quick reference and documentation.
+Event Scheduler: Schedule events with date, time, description, and optional reminder date. Events appear in the visual calendar view.
+Visual Calendar View: A monthly/weekly calendar view showing all tasks (by due date) and events, built using the FullCalendar library.
+Dark / Light Mode: UI theme switching using React context and CSS variables. User preference is saved and persists across sessions.
+11.3 Notification Features
+Email Notifications (NodeMailer): Automated emails are sent when a task is assigned, delegated, accepted, or completed. Emails include task details and a link to view the task in the app.
+Mobile Push Notifications (Firebase FCM): Real-time push alerts are delivered to the React Native mobile app via Firebase Cloud Messaging whenever a task action occurs — even when the app is in the background.
+12. Impact of the Project
+TaskFlow addresses real inefficiencies in how students and small teams coordinate work, replacing informal, unreliable methods with a structured, accountable system.
+Eliminates Informal Task Sharing: Replaces WhatsApp/chat-based task sharing with a structured system where nothing falls through the cracks.
+Full Accountability: Every task has a clear owner, a status, and a full history. No more ambiguity about who is responsible for what.
+Flexible Delegation: A manager can assign a large task, a team member can split and sub-assign it — exactly mirroring real-world delegation without requiring a rigid org chart.
+One Platform for Everything: Todos, notes, events, and task assignments are all in one place. No more switching between five different apps.
+Instant Awareness: Email and push notifications ensure users are immediately informed of task changes without manually checking the app.
+Transparent Chain of Work: The delegation tree is visible to all stakeholders, making it easy to spot bottlenecks and understand task flow.
+13. Limitations of the Project
+The current version of TaskFlow has the following known limitations:
+No Real-Time Collaboration: Users cannot simultaneously edit the same task or note. There is no live co-editing feature in this version.
+No In-App Chat: There is no built-in comment thread or messaging on tasks. Users must communicate outside the platform.
+Basic Reporting: Task completion can be viewed per user but there are no downloadable PDF/Excel reports in the current version.
+No File Attachments: Users cannot attach files, images, or documents directly to tasks or notes.
+Internet Required: The system requires an active internet connection. There is no offline mode or data sync.
+Delegation Depth: While delegation chains are supported architecturally, very deep chains (5+ levels) may be complex to visualize clearly in the current UI.
+14. Future Scope of the Project
+The following features and enhancements are planned for upcoming versions of TaskFlow. Several of these are technically straightforward and can be added within a semester.
+Real-Time Collaboration & Live Co-Editing: Using Socket.io (standard Node.js library), users will see live status updates, comment on tasks in real time, and collaborate on shared notes without page refreshes. Estimated effort: 1–2 weeks.
+In-App Chat on Tasks: A comment/chat thread attached to each task so assigners, recipients, and delegates can communicate without leaving the platform. Built on the same Socket.io infrastructure.
+PDF & Excel Reporting: Generate downloadable task completion reports per user or team. pdfkit (PDF) and exceljs (Excel) are easy-to-integrate Node.js libraries. Estimated effort: 2–3 days.
+Dark / Light Mode Toggle: UI theme switching using React context and CSS variables is already planned in the current design and will be one of the first features implemented.
+Visual Calendar View: A monthly/weekly calendar interface showing all tasks (by due date) and events, built using the FullCalendar library for React.
+File Attachments in Tasks: Allow users to upload documents or images as attachments to tasks and notes, stored via cloud storage (AWS S3 or Cloudinary).
+AI Task Suggestions & Delegation Hints: Use task history and workload data to suggest the best person to delegate to and recommend realistic due dates based on past completion patterns.
+Multi-Organization Support: Allow multiple separate organizations to use TaskFlow with isolated data environments, enabling the system to serve as a SaaS product.
+Conclusion
+TaskFlow is a simple, complete, and academically sound project that addresses a real problem faced by students and small teams every day. By removing fixed role constraints and implementing a peer-to-peer task assignment model with full delegation support, TaskFlow mirrors how work actually flows in the real world.
+The system is built on modern, industry-standard technologies (React, Node.js, MySQL, React Native) and covers all key phases of software development — from ER design and DFD to implementation and testing. It is fully implementable within a single semester with a clear path for future enhancements.
+"Perfect Execution > Big Dreams"
+Submitted by: Siddhant Pal  |  Shubham Mendhe
+Under the Guidance of: Dr. Sunita Dwivedi  |  Dr. Arvind Singh Rajput
+Course: Bachelor of Computer Applications (BCA) – VI Semester, 2024–25

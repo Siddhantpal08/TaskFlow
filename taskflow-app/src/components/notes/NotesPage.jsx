@@ -274,6 +274,16 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         if (debounceTimers.current[blk.id]) { clearTimeout(debounceTimers.current[blk.id]); delete debounceTimers.current[blk.id]; }
     };
 
+    const dupBlk = (idx) => {
+        const src = blocks[idx];
+        const copy = { ...src, id: 'loc-' + Math.random().toString(36).slice(2, 9) };
+        const nb = [...blocks]; nb.splice(idx + 1, 0, copy); save(nb);
+        setTimeout(() => document.getElementById('blk-' + (idx + 1))?.focus(), 30);
+        notesApi.createBlock(notePageId, { type: copy.type, content: copy.content, position: idx + 1 })
+            .then(res => setBlocks(prev => prev.map(b => b.id === copy.id ? { ...b, id: res.data.id } : b)))
+            .catch(() => { });
+    };
+
     // ── Drag-and-drop ─────────────────────────────────────────────────────────
     const handleDragStart = (idx) => { dragFromIdx.current = idx; };
     const handleDragOver = (idx) => { setDragOver(idx); };
@@ -703,6 +713,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                                     olIndex={olIndex}
                                                     onUpdate={ch => { updBlk(idx, ch); activeBlkIdxRef.current = idx; }}
                                                     onDelete={() => delBlk(idx)}
+                                                    onDuplicate={() => dupBlk(idx)}
                                                     onAddAfter={type => addBlk(idx, type)}
                                                     onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
                                                     onSlashClose={() => setSlash(null)}
