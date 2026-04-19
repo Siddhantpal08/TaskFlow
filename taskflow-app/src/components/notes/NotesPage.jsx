@@ -154,11 +154,40 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         setCanRedo(false);
     };
 
+    const syncDiffToBackend = (sourceBlocks, targetBlocks) => {
+        const sourceMap = new Map(sourceBlocks.map(b => [b.id, b]));
+        const targetMap = new Map(targetBlocks.map(b => [b.id, b]));
+
+        sourceBlocks.forEach(b => {
+            if (!targetMap.has(b.id)) {
+                const realId = idMapRef.current[b.id] || b.id;
+                if (!realId.toString().startsWith("loc-")) notesApi.deleteBlock(realId).catch(() => { });
+            }
+        });
+        targetBlocks.forEach((b, idx) => {
+            const s = sourceMap.get(b.id);
+            const realId = idMapRef.current[b.id] || b.id;
+            if (!s) {
+                if (realId.toString().startsWith("loc-")) {
+                    notesApi.createBlock(notePageId, { type: b.type, content: b.content, position: idx }).then(res => idMapRef.current[b.id] = res.data.id).catch(() => { });
+                } else {
+                    notesApi.createBlock(notePageId, { type: b.type, content: b.content, position: idx }).catch(() => { });
+                }
+            } else if (s.content !== b.content || s.type !== b.type || s.checked !== b.checked || sourceBlocks.indexOf(s) !== idx) {
+                if (!realId.toString().startsWith("loc-")) {
+                    notesApi.updateBlock(realId, { content: b.content, type: b.type, checked: !!b.checked, position: idx }).catch(() => { });
+                }
+            }
+        });
+    };
+
     const undo = () => {
         if (!historyRef.current.length) return;
         const prev = historyRef.current.pop();
-        futureRef.current.push(latestBlocksRef.current.map(b => ({ ...b })));
+        const current = latestBlocksRef.current;
+        futureRef.current.push(current.map(b => ({ ...b })));
         setBlocks(prev);
+        syncDiffToBackend(current, prev);
         setCanUndo(historyRef.current.length > 0);
         setCanRedo(true);
     };
@@ -166,11 +195,14 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const redo = () => {
         if (!futureRef.current.length) return;
         const next = futureRef.current.pop();
-        historyRef.current.push(latestBlocksRef.current.map(b => ({ ...b })));
+        const current = latestBlocksRef.current;
+        historyRef.current.push(current.map(b => ({ ...b })));
         setBlocks(next);
+        syncDiffToBackend(current, next);
         setCanUndo(true);
         setCanRedo(futureRef.current.length > 0);
     };
+
 
     // Global keyboard undo/redo — only fires when focus is NOT inside contenteditable
     useEffect(() => {
@@ -193,6 +225,10 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
+        historyRef.current = [];
+        futureRef.current = [];
+        setCanUndo(false);
+        setCanRedo(false);
         setSlash(null);
         setLoading(true);
         setUnlocked(false);
@@ -541,6 +577,12 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 }
             };
 
+            recog.onerror = (e) => {
+                if (e.error === 'no-speech') return; // ignore silence timeout
+                listeningRef.current = false;
+                setIsListening(false);
+            };
+
             recog.onend = () => {
                 // Restart after short delay if still active
                 if (listeningRef.current) {
@@ -793,6 +835,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                                 <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
                                                     olIndex={olIndex}
                                                     onUpdate={ch => { updBlk(idx, ch); activeBlkIdxRef.current = idx; }}
+                                                    onFocusBlock={i => activeBlkIdxRef.current = i}
                                                     onDelete={() => delBlk(idx)}
                                                     onDuplicate={() => dupBlk(idx)}
                                                     onAddAfter={type => addBlk(idx, type)}

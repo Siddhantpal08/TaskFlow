@@ -117,7 +117,7 @@ function LinkPreview({ content, t, onDismiss }) {
 export default function NoteBlock({
     blk, idx, t, dark, onUpdate, onDelete, onDuplicate, onAddAfter,
     onSlash, onSlashClose, onFocusPrev, onFocusNext, onPasteHTML, olIndex,
-    onDragStart, onDragOver, onDrop, isDragging, isDragOver, onConvert,
+    onDragStart, onDragOver, onDrop, isDragging, isDragOver, onConvert, onFocusBlock
 }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
@@ -147,6 +147,11 @@ export default function NoteBlock({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [blk.id]);
+
+    const handleFocus = () => {
+        setFocused(true);
+        onFocusBlock?.(idx);
+    };
 
     const handleBlur = () => {
         setFocused(false);
@@ -351,7 +356,7 @@ export default function NoteBlock({
                 <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>💡</span>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="Add a callout…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                    onFocus={() => setFocused(true)} onBlur={handleBlur}
+                    onFocus={handleFocus} onBlur={handleBlur}
                     style={{ flex: 1, fontSize: 13.5, color: t.calloutText, lineHeight: 1.65, fontFamily: t.disp, wordBreak: "break-word", outline: "none" }} />
             </div>
         </div>
@@ -366,7 +371,7 @@ export default function NoteBlock({
                 <div style={{ width: 3, borderRadius: 3, background: t.quoteBorder, flexShrink: 0 }} />
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="Add a quote…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                    onFocus={() => setFocused(true)} onBlur={handleBlur}
+                    onFocus={handleFocus} onBlur={handleBlur}
                     style={{ flex: 1, fontSize: 15, color: t.quoteText, lineHeight: 1.7, fontFamily: "'Lora',serif", fontStyle: "italic", padding: "4px 16px", wordBreak: "break-word", outline: "none" }} />
             </div>
         </div>
@@ -384,7 +389,7 @@ export default function NoteBlock({
                 </button>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="To-do…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                    onFocus={() => setFocused(true)} onBlur={handleBlur}
+                    onFocus={handleFocus} onBlur={handleBlur}
                     style={{ flex: 1, fontSize: 14, lineHeight: 1.65, wordBreak: "break-word", color: blk.checked ? t.noteMuted : t.noteText, fontFamily: t.disp, textDecoration: blk.checked ? "line-through" : "none", transition: "all .2s", outline: "none" }} />
             </div>
         </div>
@@ -459,7 +464,7 @@ export default function NoteBlock({
             <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                 data-ph={blk.type === "p" && !focused ? "" : placeholder}
                 onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
-                onFocus={() => setFocused(true)} onBlur={handleBlur}
+                onFocus={handleFocus} onBlur={handleBlur}
                 style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10 }} />
             {showPreview && !dismissedUrls.includes("all") && (
                 <LinkPreview content={blk.content} t={t}
