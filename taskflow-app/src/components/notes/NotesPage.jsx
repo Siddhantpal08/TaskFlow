@@ -628,6 +628,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     );
 
     // Lock gate shown before content if locked
+    const storageKey = `tf_lock_${notePageId}`;
     const isNowLocked = !!localStorage.getItem(storageKey) && !unlocked;
 
     return (
