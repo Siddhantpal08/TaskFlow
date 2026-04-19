@@ -22,12 +22,15 @@ const createBlockSchema = Joi.object({
     content: Joi.string().allow('', null).optional(),
     checked: Joi.boolean().truthy(1, '1').falsy(0, '0').default(false),
     position: Joi.number().integer().min(0).default(0),
+    indent: Joi.number().integer().min(0).max(4).default(0),
 });
 
 const updateBlockSchema = Joi.object({
     type: Joi.string().optional(),
     content: Joi.string().allow('', null).optional(),
     checked: Joi.boolean().truthy(1, '1').falsy(0, '0').optional(),
+    indent: Joi.number().integer().min(0).max(4).optional(),
+    position: Joi.number().integer().min(0).optional(),
 });
 
 const reorderSchema = Joi.object({

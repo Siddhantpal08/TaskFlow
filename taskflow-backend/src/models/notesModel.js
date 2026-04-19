@@ -53,15 +53,15 @@ const getPageWithBlocks = async (id, userId) => {
     if (!page) return null;
 
     let [blocks] = await db.query(
-        `SELECT id, page_id, type, content, checked, position
+        `SELECT id, page_id, type, content, checked, position, indent
          FROM notes_blocks WHERE page_id = ? ORDER BY position ASC`,
         [id]
     );
 
     if (blocks.length === 0) {
         const blockId = uuidv4();
-        await db.query(`INSERT INTO notes_blocks (id, page_id, type, content, position) VALUES (?, ?, 'p', '', 0)`, [blockId, id]);
-        blocks = [{ id: blockId, page_id: id, type: 'p', content: '', checked: 0, position: 0 }];
+        await db.query(`INSERT INTO notes_blocks (id, page_id, type, content, position, indent) VALUES (?, ?, 'p', '', 0, 0)`, [blockId, id]);
+        blocks = [{ id: blockId, page_id: id, type: 'p', content: '', checked: 0, position: 0, indent: 0 }];
     }
 
     // Get direct sub-page stubs
@@ -124,19 +124,19 @@ const reorderChildren = async (parentId, userId, orderedIds) => {
 
 // ─── Blocks ───────────────────────────────────────────────────────────────────
 
-const createBlock = async (pageId, { type = 'p', content = '', checked = 0, position = 0 }) => {
-    if (pageId === 'root') return { id: uuidv4(), page_id: 'root', type, content, checked: checked ? 1 : 0, position };
+const createBlock = async (pageId, { type = 'p', content = '', checked = 0, position = 0, indent = 0 }) => {
+    if (pageId === 'root') return { id: uuidv4(), page_id: 'root', type, content, checked: checked ? 1 : 0, position, indent };
     const id = uuidv4();
     await db.query(
-        `INSERT INTO notes_blocks (id, page_id, type, content, checked, position) VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, pageId, type, content, checked ? 1 : 0, position]
+        `INSERT INTO notes_blocks (id, page_id, type, content, checked, position, indent) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, pageId, type, content, checked ? 1 : 0, position, indent]
     );
     const [rows] = await db.query(`SELECT * FROM notes_blocks WHERE id = ?`, [id]);
     return rows[0];
 };
 
-const updateBlock = async (blockId, pageId, { content, checked, type }) => {
-    if (pageId === 'root') return { id: blockId, page_id: 'root', type: type || 'p', content: content || '', checked: checked ? 1 : 0 };
+const updateBlock = async (blockId, pageId, { content, checked, type, indent, position }) => {
+    if (pageId === 'root') return { id: blockId, page_id: 'root', type: type || 'p', content: content || '', checked: checked ? 1 : 0, indent: indent || 0 };
     // If a property is undefined, we leave it alone (by reusing existing value).
     // This allows partial updates from the frontend (e.g. only content changes).
     const updates = [];
@@ -153,6 +153,14 @@ const updateBlock = async (blockId, pageId, { content, checked, type }) => {
     if (type !== undefined) {
         updates.push('type = ?');
         values.push(type || 'p');
+    }
+    if (indent !== undefined) {
+        updates.push('indent = ?');
+        values.push(indent || 0);
+    }
+    if (position !== undefined) {
+        updates.push('position = ?');
+        values.push(position);
     }
 
     if (updates.length > 0) {

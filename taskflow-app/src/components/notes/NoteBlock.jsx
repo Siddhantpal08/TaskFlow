@@ -134,16 +134,16 @@ export default function NoteBlock({
         if (document.activeElement === ref.current) return; // never overwrite while user is typing
         if (blk.type === "link" || blk.type === "code") return;
         const want = blk.content || "";
-        if (ref.current.innerText !== want) {
-            ref.current.innerText = want;
+        if (ref.current.innerHTML !== want) {
+            ref.current.innerHTML = want;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [blk.id, blk.type]); // only re-sync when block identity or type changes, NOT on every content update
 
     // Focus management: populate on first mount
     useEffect(() => {
-        if (ref.current && ref.current.innerText !== (blk.content || "")) {
-            ref.current.innerText = blk.content || "";
+        if (ref.current && ref.current.innerHTML !== (blk.content || "")) {
+            ref.current.innerHTML = blk.content || "";
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [blk.id]);
@@ -240,7 +240,7 @@ export default function NoteBlock({
     };
 
     const handleInput = e => {
-        onUpdate({ content: e.currentTarget.innerText || "" });
+        onUpdate({ content: e.currentTarget.innerHTML || "" });
         onSlashClose();
     };
 
