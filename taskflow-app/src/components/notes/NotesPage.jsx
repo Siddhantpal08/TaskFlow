@@ -751,30 +751,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         return result;
     };
 
-    const shareNote = () => {
-        const ids = getAllDescendantIds(notePageId);
-        const url = `${window.location.origin}?note=${notePageId}`;
-        navigator.clipboard.writeText(url);
-        alert(`Link copied! This note (and ${ids.length - 1} sub-note${ids.length !== 2 ? 's' : ''}) will be accessible via the shared link.`);
-    };
-
-    // Skeleton loading
-    if (loading) return (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})`, flexShrink: 0 }} />
-            <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px", width: "100%" }}>
-                <div style={{ height: 46, borderRadius: 8, background: t.border, marginBottom: 24, animation: "skShimmer 1.4s ease infinite", backgroundSize: "200% 100%", backgroundImage: `linear-gradient(90deg, ${t.border} 25%, ${t.noteBorder} 50%, ${t.border} 75%)` }} />
-                {[80, 65, 90, 55, 75].map((w, i) => (
-                    <div key={i} style={{ height: 16, borderRadius: 6, background: t.border, marginBottom: 12, width: w + "%", animation: "skShimmer 1.4s ease infinite", animationDelay: i * 0.1 + "s", backgroundSize: "200% 100%", backgroundImage: `linear-gradient(90deg, ${t.border} 25%, ${t.noteBorder} 50%, ${t.border} 75%)` }} />
-                ))}
-            </div>
-        </div>
-    );
-
-    // Lock gate shown before content if locked
-    const storageKey = `tf_lock_${notePageId}`;
-    const isNowLocked = !!localStorage.getItem(storageKey) && !unlocked;
-
     // Global Selection Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -871,6 +847,30 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         window.addEventListener('mouseup', onUp);
     };
 
+    const shareNote = () => {
+        const ids = getAllDescendantIds(notePageId);
+        const url = `${window.location.origin}?note=${notePageId}`;
+        navigator.clipboard.writeText(url);
+        alert(`Link copied! This note (and ${ids.length - 1} sub-note${ids.length !== 2 ? 's' : ''}) will be accessible via the shared link.`);
+    };
+
+    // Skeleton loading
+    if (loading) return (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})`, flexShrink: 0 }} />
+            <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px", width: "100%" }}>
+                <div style={{ height: 46, borderRadius: 8, background: t.border, marginBottom: 24, animation: "skShimmer 1.4s ease infinite", backgroundSize: "200% 100%", backgroundImage: `linear-gradient(90deg, ${t.border} 25%, ${t.noteBorder} 50%, ${t.border} 75%)` }} />
+                {[80, 65, 90, 55, 75].map((w, i) => (
+                    <div key={i} style={{ height: 16, borderRadius: 6, background: t.border, marginBottom: 12, width: w + "%", animation: "skShimmer 1.4s ease infinite", animationDelay: i * 0.1 + "s", backgroundSize: "200% 100%", backgroundImage: `linear-gradient(90deg, ${t.border} 25%, ${t.noteBorder} 50%, ${t.border} 75%)` }} />
+                ))}
+            </div>
+        </div>
+    );
+
+    // Lock gate shown before content if locked
+    const storageKey = `tf_lock_${notePageId}`;
+    const isNowLocked = !!localStorage.getItem(storageKey) && !unlocked;
+
     return (
         <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
             <style>
@@ -909,12 +909,32 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </div>
 
                         {/* Writing mode toggles */}
-                        <button type="button" onClick={() => setWritingMode(writingMode === 'script' ? null : 'script')}
-                            title="Script Writing Mode"
+                        <button type="button" onClick={() => {
+                            if (writingMode === 'script') {
+                                if (blocks.some(b => SCRIPT_TYPES.has(b.type))) {
+                                    alert("This document contains script blocks and cannot be reverted back to a standard note.");
+                                    return;
+                                }
+                                setWritingMode(null);
+                            } else {
+                                setWritingMode('script');
+                            }
+                        }}
+                            title="Screenplay / Script Mode"
                             style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${writingMode === 'script' ? t.accent : t.border}`, background: writingMode === 'script' ? t.accentDim : "transparent", cursor: "pointer", color: writingMode === 'script' ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
                             📽️ Script
                         </button>
-                        <button type="button" onClick={() => setWritingMode(writingMode === 'lyrics' ? null : 'lyrics')}
+                        <button type="button" onClick={() => {
+                            if (writingMode === 'lyrics') {
+                                if (blocks.some(b => LYRICS_TYPES.has(b.type))) {
+                                    alert("This document contains lyrics blocks and cannot be reverted back to a standard note.");
+                                    return;
+                                }
+                                setWritingMode(null);
+                            } else {
+                                setWritingMode('lyrics');
+                            }
+                        }}
                             title="Song Lyrics Mode"
                             style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${writingMode === 'lyrics' ? t.accent : t.border}`, background: writingMode === 'lyrics' ? t.accentDim : "transparent", cursor: "pointer", color: writingMode === 'lyrics' ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
                             🎵 Lyrics
