@@ -114,6 +114,45 @@ const deletePageRecursive = async (id, userId) => {
     return allIds.length;
 };
 
+/**
+ * Recursively clone a page, its blocks, and all descendant pages.
+ */
+const duplicatePageRecursive = async (pageId, userId, isRootCall = true, targetParentId = null) => {
+    const original = await getPageById(pageId, userId);
+    if (!original) throw new Error('Page not found');
+
+    const newPageId = uuidv4();
+    const title = isRootCall ? `${original.title} (Copy)` : original.title;
+    const parentId = isRootCall ? original.parent_id : targetParentId;
+
+    await db.query(
+        `INSERT INTO notes_pages (id, user_id, parent_id, title, emoji, position) VALUES (?, ?, ?, ?, ?, ?)`,
+        [newPageId, userId, parentId, title, original.emoji, original.position + (isRootCall ? 1 : 0)]
+    );
+
+    const [blocks] = await db.query(
+        `SELECT type, content, checked, position, indent FROM notes_blocks WHERE page_id = ? ORDER BY position ASC`,
+        [pageId]
+    );
+
+    for (const b of blocks) {
+        await db.query(
+            `INSERT INTO notes_blocks (id, page_id, type, content, checked, position, indent) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [uuidv4(), newPageId, b.type, b.content, b.checked, b.position, b.indent]
+        );
+    }
+
+    const [children] = await db.query(
+        `SELECT id FROM notes_pages WHERE parent_id = ? AND user_id = ? ORDER BY position ASC`,
+        [pageId, userId]
+    );
+    for (const child of children) {
+        await duplicatePageRecursive(child.id, userId, false, newPageId);
+    }
+
+    return isRootCall ? getPageById(newPageId, userId) : newPageId;
+};
+
 /** Reorder sibling pages by updating their position values */
 const reorderChildren = async (parentId, userId, orderedIds) => {
     const updates = orderedIds.map((id, index) =>
@@ -192,6 +231,7 @@ module.exports = {
     getPageWithBlocks,
     updatePage,
     deletePageRecursive,
+    duplicatePageRecursive,
     reorderChildren,
     createBlock,
     updateBlock,

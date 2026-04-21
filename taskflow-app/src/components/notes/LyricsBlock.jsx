@@ -99,7 +99,7 @@ export default function LyricsBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
                         fontWeight: isChorus ? 600 : 400,
                         fontStyle: isBridge ? "italic" : "normal",
                         lineHeight: 1.95,
-                        fontFamily: "'Lora', serif",
+                        fontFamily: `var(--doc-font, 'Lora', serif)`,
                         color: textColor,
                         outline: "none",
                         wordBreak: "break-word",

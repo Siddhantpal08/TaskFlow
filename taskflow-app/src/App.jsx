@@ -288,6 +288,22 @@ function MainApp() {
         } catch (e) { }
     };
 
+    const duplicateNotePage = async (id) => {
+        try {
+            const r = await notesApi.duplicatePage(id);
+            const treeRes = await notesApi.getPages();
+            const newPages = { root: { id: "root", title: "Workspace Home", emoji: "🏠", parentId: null, childIds: [], updatedAt: "Server Sync" } };
+            const walk = (node, parentId) => {
+                newPages[node.id] = { id: node.id, title: node.title, emoji: node.emoji || "📄", parentId: parentId || "root", childIds: [], updatedAt: "Server Sync" };
+                newPages[parentId || "root"].childIds.push(node.id);
+                node.children?.forEach(c => walk(c, node.id));
+            };
+            treeRes.data.forEach(r => walk(r, null));
+            setPages(newPages);
+            navigateNote(r.data.id);
+        } catch (e) { console.error("Failed to duplicate:", e); }
+    };
+
     const updateNotePage = (id, changes) => {
         setPages(prev => ({ ...prev, [id]: { ...prev[id], ...changes, updatedAt: "Just now" } }));
         notesApi.updatePage(id, changes).catch(() => { });
@@ -314,6 +330,7 @@ function MainApp() {
                         pages={pages} expanded={expanded} setExpanded={setExpanded}
                         notePageId={notePageId} navigateNote={navigateNote}
                         addNotePage={addNotePage} deleteNotePage={deleteNotePage}
+                        duplicateNotePage={duplicateNotePage}
                         className="sidebar-desktop" />
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>

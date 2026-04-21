@@ -85,6 +85,7 @@ export default function Calendar({ t }) {
     const [viewMonth, setViewMonth] = useState(now.getMonth()); // 0-indexed
     const [showAdd, setShowAdd] = useState(false);
     const [clickedDate, setClickedDate] = useState(null);
+    const [eventToDelete, setEventToDelete] = useState(null);
 
     const today = now.getDate();
     const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
@@ -188,13 +189,15 @@ export default function Calendar({ t }) {
         setShowAdd(true);
     };
 
-    const handleDeleteEvent = async (evId) => {
-        if (!window.confirm('Delete this event?')) return;
+    const handleConfirmDelete = async () => {
+        if (!eventToDelete) return;
         try {
-            await deleteEvent(evId);
+            await deleteEvent(eventToDelete.id);
             toastSuccess('Event deleted.');
         } catch (e) {
             toastError(e.message || 'Failed to delete event.');
+        } finally {
+            setEventToDelete(null);
         }
     };
 
@@ -277,7 +280,7 @@ export default function Calendar({ t }) {
                                     </div>
                                     <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>{label} · {ev.event_time ? ev.event_time.slice(0, 5) : 'All Day'}</div>
                                 </div>
-                                <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 12, padding: '2px 4px', lineHeight: 1 }} title="Delete event" className="hvrI">✕</button>
+                                <button onClick={() => setEventToDelete(ev)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 12, padding: '2px 4px', lineHeight: 1 }} title="Delete event" className="hvrI">✕</button>
                             </div>
                         );
                     })}
@@ -288,6 +291,19 @@ export default function Calendar({ t }) {
             </div>
 
             {showAdd && <AddEventModal t={t} date={clickedDate} onClose={() => setShowAdd(false)} onAdd={createEvent} />}
+            {eventToDelete && (
+                <div onClick={() => setEventToDelete(null)} style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div onClick={e => e.stopPropagation()} className="popIn" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: 24, width: 320, boxShadow: t.shadow, textAlign: 'center' }}>
+                        <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, marginBottom: 8 }}>Delete Event?</div>
+                        <div style={{ fontSize: 13, color: t.t3, marginBottom: 20 }}>Are you sure you want to delete <span style={{ color: t.accent }}>"{eventToDelete.title}"</span>?</div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => setEventToDelete(null)} style={{ flex: 1, background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>Cancel</button>
+                            <button onClick={handleConfirmDelete} style={{ flex: 1, background: t.red, border: 'none', borderRadius: 8, padding: '9px', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -41,25 +41,16 @@ const joinTeam = async (userId, joinCode) => {
 };
 
 const leaveTeam = async (userId, teamId) => {
-    // Check if user is an admin. If they are the ONLY admin, they shouldn't just leave, 
-    // but for now, the user requested an approval to leave. So only members request leave.
-    const [member] = await db.query(`SELECT role FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
-    if (!member.length) throw new Error('Not a member of this team');
+    await db.query(`DELETE FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
 
-    if (member[0].role === 'admin') {
-        // Admins can just leave or delete the team if no one is left
-        await db.query(`DELETE FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
-        const [remaining] = await db.query(`SELECT COUNT(*) as count FROM team_members WHERE team_id = ?`, [teamId]);
-        if (remaining[0].count === 0) {
-            await db.query(`DELETE FROM teams WHERE team_id = ?`, [teamId]);
-        }
-    } else {
-        // Members must request to leave
-        const [existingReq] = await db.query(`SELECT id FROM team_leave_requests WHERE user_id = ? AND team_id = ? AND status = 'pending'`, [userId, teamId]);
-        if (existingReq.length > 0) throw new Error('A leave request is already pending.');
-
-        await db.query(`INSERT INTO team_leave_requests (team_id, user_id, status) VALUES (?, ?, 'pending')`, [teamId, userId]);
+    // Cleanup if team became empty
+    const [remaining] = await db.query(`SELECT COUNT(*) as count FROM team_members WHERE team_id = ?`, [teamId]);
+    if (remaining[0].count === 0) {
+        await db.query(`DELETE FROM teams WHERE team_id = ?`, [teamId]);
     }
+
+    // Clean up any pending requests they had
+    await db.query(`DELETE FROM team_leave_requests WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
 };
 
 const getLeaveRequests = async (teamId) => {

@@ -116,8 +116,8 @@ function LinkPreview({ content, t, onDismiss }) {
 // ── Main NoteBlock component ────────────────────────────────────────────────
 export default function NoteBlock({
     blk, idx, t, dark, onUpdate, onDelete, onDuplicate, onAddAfter,
-    onSlash, onSlashClose, onFocusPrev, onFocusNext, onPasteHTML, olIndex,
-    onDragStart, onDragOver, onDrop, isDragging, isDragOver, onConvert, onFocusBlock
+    onSlash, onSlashClose, onFocusPrev, onFocusNext, onPasteHTML, olIndex, sectionNumber,
+    onDragStart, onDragOver, onDrop, isDragging, isDragOver, onConvert, onFocusBlock, isSelected
 }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
@@ -281,7 +281,8 @@ export default function NoteBlock({
         opacity: isDragging ? 0.4 : 1,
         outline: isDragOver ? `2px dashed ${t.accent}` : "none",
         borderRadius: 6,
-        transition: "opacity .15s, outline .1s",
+        transition: "opacity .15s, outline .1s, background .1s",
+        background: isSelected ? (dark ? "rgba(0,114,255,0.2)" : "rgba(0,114,255,0.1)") : "transparent"
     };
     const indentPx = (blk.indent || 0) * 22;
 
@@ -307,14 +308,14 @@ export default function NoteBlock({
         <div style={wrapperStyle} {...dragProps} {...hoverProps}>
             {contextMenuEl}
             <BlockHandle hov={hov} t={t} dragHandleProps={dragHandleProps} />
-            <ScriptBlock blk={blk} idx={idx} t={t} onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter} onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} />
+            <ScriptBlock blk={blk} idx={idx} t={t} onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter} onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} sectionNumber={sectionNumber} />
         </div>
     );
     if (LYRICS_TYPES.has(blk.type)) return (
         <div style={wrapperStyle} {...dragProps} {...hoverProps}>
             {contextMenuEl}
             <BlockHandle hov={hov} t={t} dragHandleProps={dragHandleProps} />
-            <LyricsBlock blk={blk} idx={idx} t={t} onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter} onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} />
+            <LyricsBlock blk={blk} idx={idx} t={t} onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter} onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} sectionNumber={sectionNumber} />
         </div>
     );
 
@@ -357,7 +358,7 @@ export default function NoteBlock({
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="Add a callout…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                     onFocus={handleFocus} onBlur={handleBlur}
-                    style={{ flex: 1, fontSize: 13.5, color: t.calloutText, lineHeight: 1.65, fontFamily: t.disp, wordBreak: "break-word", outline: "none" }} />
+                    style={{ flex: 1, fontSize: 13.5, color: t.calloutText, lineHeight: 1.65, fontFamily: `var(--doc-font, ${t.disp})`, wordBreak: "break-word", outline: "none" }} />
             </div>
         </div>
     );
@@ -372,7 +373,7 @@ export default function NoteBlock({
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="Add a quote…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                     onFocus={handleFocus} onBlur={handleBlur}
-                    style={{ flex: 1, fontSize: 15, color: t.quoteText, lineHeight: 1.7, fontFamily: "'Lora',serif", fontStyle: "italic", padding: "4px 16px", wordBreak: "break-word", outline: "none" }} />
+                    style={{ flex: 1, fontSize: 15, color: t.quoteText, lineHeight: 1.7, fontFamily: `var(--doc-font, 'Lora', serif)`, fontStyle: "italic", padding: "4px 16px", wordBreak: "break-word", outline: "none" }} />
             </div>
         </div>
     );
@@ -385,12 +386,12 @@ export default function NoteBlock({
             <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "3px 0" }}>
                 <button onClick={() => onUpdate({ checked: !blk.checked })}
                     style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 3, border: `1.5px solid ${blk.checked ? t.accent : t.noteBorder}`, background: blk.checked ? t.accent : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s" }}>
-                    {blk.checked && <I d={IC.chk} sz={9} c={dark ? "#000" : "#fff"} sw={3} />}
+                    {!!blk.checked && <I d={IC.chk} sz={9} c={dark ? "#000" : "#fff"} sw={3} />}
                 </button>
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="To-do…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                     onFocus={handleFocus} onBlur={handleBlur}
-                    style={{ flex: 1, fontSize: 14, lineHeight: 1.65, wordBreak: "break-word", color: blk.checked ? t.noteMuted : t.noteText, fontFamily: t.disp, textDecoration: blk.checked ? "line-through" : "none", transition: "all .2s", outline: "none" }} />
+                    style={{ flex: 1, fontSize: 14, lineHeight: 1.65, wordBreak: "break-word", color: blk.checked ? t.noteMuted : t.noteText, fontFamily: `var(--doc-font, ${t.disp})`, textDecoration: blk.checked ? "line-through" : "none", transition: "all .2s", outline: "none" }} />
             </div>
         </div>
     );
@@ -407,7 +408,7 @@ export default function NoteBlock({
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="List item…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                     onFocus={() => setFocused(true)} onBlur={handleBlur}
-                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: t.disp, outline: "none" }} />
+                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: `var(--doc-font, ${t.disp})`, outline: "none" }} />
             </div>
         </div>
     );
@@ -424,7 +425,7 @@ export default function NoteBlock({
                 <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
                     data-ph="List item…" onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                     onFocus={() => setFocused(true)} onBlur={handleBlur}
-                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: t.disp, outline: "none" }} />
+                    style={{ flex: 1, fontSize: 14.5, lineHeight: 1.8, wordBreak: "break-word", color: t.noteSubText, fontFamily: `var(--doc-font, ${t.disp})`, outline: "none" }} />
             </div>
         </div>
     );
@@ -449,10 +450,10 @@ export default function NoteBlock({
 
     // ── TEXT BLOCKS (h1, h2, h3, p) ──
     const textStyles = {
-        h1: { fontSize: 28, fontWeight: 700, lineHeight: 1.25, fontFamily: "'Lora',serif", color: t.noteText, paddingTop: 18, paddingBottom: 3 },
-        h2: { fontSize: 20, fontWeight: 700, lineHeight: 1.3, fontFamily: t.disp, color: t.noteText, paddingTop: 12, paddingBottom: 2 },
-        h3: { fontSize: 16, fontWeight: 600, lineHeight: 1.4, fontFamily: t.disp, color: t.noteText, paddingTop: 8, paddingBottom: 1 },
-        p: { fontSize: 14.5, fontWeight: 400, lineHeight: 1.8, fontFamily: t.disp, color: t.noteSubText, paddingTop: 1, paddingBottom: 1 },
+        h1: { fontSize: 28, fontWeight: 700, lineHeight: 1.25, fontFamily: `var(--doc-font, 'Lora', serif)`, color: t.noteText, paddingTop: 18, paddingBottom: 3 },
+        h2: { fontSize: 20, fontWeight: 700, lineHeight: 1.3, fontFamily: `var(--doc-font, ${t.disp})`, color: t.noteText, paddingTop: 12, paddingBottom: 2 },
+        h3: { fontSize: 16, fontWeight: 600, lineHeight: 1.4, fontFamily: `var(--doc-font, ${t.disp})`, color: t.noteText, paddingTop: 8, paddingBottom: 1 },
+        p: { fontSize: 14.5, fontWeight: 400, lineHeight: 1.8, fontFamily: `var(--doc-font, ${t.disp})`, color: t.noteSubText, paddingTop: 1, paddingBottom: 1 },
     };
     const st = textStyles[blk.type] || textStyles.p;
     const placeholder = blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "";

@@ -12,6 +12,10 @@ function LockGate({ notePageId, t, onUnlock }) {
     const [pin, setPin] = useState("");
     const [error, setError] = useState("");
     const [showPin, setShowPin] = useState(false);
+    const [forgotMode, setForgotMode] = useState(false);
+    const [otpSent, setOtpSent] = useState(false);
+    const [otp, setOtp] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const savedPin = localStorage.getItem(storageKey);
 
@@ -20,30 +24,100 @@ function LockGate({ notePageId, t, onUnlock }) {
         else { setError("Incorrect PIN"); setPin(""); }
     };
 
+    const handleForgot = async () => {
+        setLoading(true); setError("");
+        try {
+            const { authApi } = await import("../../api/auth");
+            await authApi.requestPinReset();
+            setOtpSent(true);
+        } catch (e) {
+            setError(e.response?.data?.message || "Failed to send OTP.");
+        } finally { setLoading(false); }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (otp.length !== 6) { setError("Enter 6-digit OTP"); return; }
+        setLoading(true); setError("");
+        try {
+            const { authApi } = await import("../../api/auth");
+            await authApi.verifyPinReset(otp);
+            localStorage.removeItem(storageKey);
+            onUnlock(); // successfully removed PIN, proceed
+        } catch (e) {
+            setError(e.response?.data?.message || "Invalid OTP.");
+        } finally { setLoading(false); }
+    };
+
     return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 14 }}>
-            <div style={{ fontSize: 48 }}>🔒</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>This note is locked</div>
-            <div style={{ fontSize: 13, color: t.t3, fontFamily: t.disp }}>Enter your PIN to continue</div>
-            <input
-                type="tel"
-                inputMode="numeric"
-                maxLength={12}
-                placeholder="Enter PIN"
-                value={pin}
-                onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={e => e.key === "Enter" && tryUnlock()}
-                style={{
-                    padding: "11px 18px", borderRadius: 10,
-                    border: `1.5px solid ${error ? t.red : t.border}`,
-                    background: t.inset, color: t.t1,
-                    fontSize: 22, outline: "none",
-                    fontFamily: t.mono, width: 200, textAlign: "center",
-                    letterSpacing: 6,
-                }}
-            />
-            {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
-            <button onClick={tryUnlock} style={{ padding: "9px 28px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 14 }}>Unlock</button>
+            <div style={{ fontSize: 48 }}>{forgotMode ? "📧" : "🔒"}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>{forgotMode ? (otpSent ? "Enter OTP" : "Forgot PIN") : "This note is locked"}</div>
+            <div style={{ fontSize: 13, color: t.t3, fontFamily: t.disp, textAlign: "center", maxWidth: 300 }}>
+                {forgotMode
+                    ? (otpSent ? "Check your email for the 6-digit code to remove the lock." : "We'll send an OTP to your email to remove the lock from this browser.")
+                    : "Enter your PIN to continue"}
+            </div>
+
+            {!forgotMode ? (
+                <>
+                    <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={12}
+                        placeholder="Enter PIN"
+                        value={pin}
+                        onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
+                        onKeyDown={e => e.key === "Enter" && tryUnlock()}
+                        style={{
+                            padding: "11px 18px", borderRadius: 10,
+                            border: `1.5px solid ${error ? t.red : t.border}`,
+                            background: t.inset, color: t.t1,
+                            fontSize: 22, outline: "none",
+                            fontFamily: t.mono, width: 200, textAlign: "center",
+                            letterSpacing: "6px", textIndent: "6px",
+                        }}
+                    />
+                    {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                        <button onClick={tryUnlock} style={{ padding: "9px 28px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 14 }}>Unlock</button>
+                        <button onClick={() => setForgotMode(true)} style={{ background: "none", border: "none", color: t.t3, fontSize: 12, cursor: "pointer", fontFamily: t.disp }}>Forgot PIN?</button>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {otpSent ? (
+                        <>
+                            <input
+                                type="text"
+                                maxLength={6}
+                                placeholder="000000"
+                                value={otp}
+                                onChange={e => setOtp(e.target.value.replace(/\D/g, ""))}
+                                onKeyDown={e => e.key === "Enter" && handleVerifyOtp()}
+                                style={{
+                                    padding: "11px 18px", borderRadius: 10,
+                                    border: `1.5px solid ${error ? t.red : t.border}`,
+                                    background: t.inset, color: t.t1,
+                                    fontSize: 22, outline: "none",
+                                    fontFamily: t.mono, width: 200, textAlign: "center",
+                                    letterSpacing: "8px", textIndent: "8px",
+                                }}
+                            />
+                            {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
+                            <button onClick={handleVerifyOtp} disabled={loading} style={{ padding: "9px 28px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 14, marginTop: 4 }}>
+                                {loading ? "Verifying…" : "Reset PIN"}
+                            </button>
+                        </>
+                    ) : (
+                        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                            <button onClick={() => { setForgotMode(false); setError(""); }} style={{ padding: "9px 18px", borderRadius: 9, background: t.card, border: `1px solid ${t.border}`, color: t.t2, fontFamily: t.disp, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Cancel</button>
+                            <button onClick={handleForgot} disabled={loading} style={{ padding: "9px 20px", borderRadius: 9, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>
+                                {loading ? "Sending..." : "Send OTP"}
+                            </button>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 }
@@ -79,7 +153,7 @@ function SetLockModal({ notePageId, t, onClose }) {
             <input type={show ? "text" : "password"} maxLength={12} placeholder={placeholder}
                 value={value} onChange={onChange}
                 onKeyDown={e => e.key === "Enter" && handleSet()}
-                style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: show ? 2 : 6, fontFamily: t.mono, width: "100%" }} />
+                style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: show ? "2px" : "6px", textIndent: show ? "2px" : "6px", fontFamily: t.mono, width: "100%" }} />
             <button onClick={() => setShow(p => !p)}
                 style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.t3 }}>
                 {show ? "🙈" : "👁"}
@@ -121,10 +195,18 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [slash, setSlash] = useState(null);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [writingMode, setWritingMode] = useState(null); // null | 'script' | 'lyrics'
+    const [docTheme, setDocTheme] = useState(() => localStorage.getItem("tf_docTheme") || 'light');
+    const [useTypewriter, setUseTypewriter] = useState(() => localStorage.getItem("tf_docFont") === 'true');
     const [zoom, setZoom] = useState(100);
+
+    const toggleDocTheme = () => { const nv = docTheme === 'light' ? 'dark' : 'light'; setDocTheme(nv); localStorage.setItem("tf_docTheme", nv); };
+    const toggleDocFont = () => { const nv = !useTypewriter; setUseTypewriter(nv); localStorage.setItem("tf_docFont", nv.toString()); };
     const [isListening, setIsListening] = useState(false);
     const [showLockModal, setShowLockModal] = useState(false);
     const [unlocked, setUnlocked] = useState(false);
+    const [selectedBlockIds, setSelectedBlockIds] = useState(new Set());
+    const [dragBox, setDragBox] = useState(null); // { x1, y1, x2, y2 }
+
     const titleRef = useRef();
     const socketRef = useRef(null);
     const debounceTimers = useRef({});
@@ -142,6 +224,19 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const futureRef = useRef([]);
     const [canUndo, setCanUndo] = useState(false);
     const [canRedo, setCanRedo] = useState(false);
+    const [hasSpeechSupport, setHasSpeechSupport] = useState(false);
+
+    useEffect(() => {
+        const checkSpeech = async () => {
+            const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+            let isBrave = false;
+            if (navigator.brave && navigator.brave.isBrave) {
+                isBrave = await navigator.brave.isBrave();
+            }
+            setHasSpeechSupport(isSupported && !isBrave);
+        };
+        checkSpeech();
+    }, []);
 
     useEffect(() => { latestBlocksRef.current = blocks; }, [blocks]);
 
@@ -531,10 +626,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     };
 
     // ── Speech-to-Text ────────────────────────────────────────────────────────
-    // Support Check
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const hasSpeechSupport = !!SpeechRecognition;
-
     const toggleSpeech = () => {
         if (!hasSpeechSupport) { alert("Speech recognition is only supported in Chrome/Edge."); return; }
 
@@ -627,7 +718,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         : writingMode === 'lyrics' ? LYRICS_BLOCK_TYPES
             : BLOCK_TYPES;
 
-    // Compute ol-index for numbered list items (per indent level)
     const getOlIndex = (blocks, idx) => {
         const indent = blocks[idx].indent || 0;
         let count = 0;
@@ -636,6 +726,16 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             else if ((blocks[i].indent || 0) < indent) break;
             else if ((blocks[i].indent || 0) > indent) continue;
             else break;
+        }
+        return count;
+    };
+
+    const getSectionNumber = (blocks, idx) => {
+        const type = blocks[idx].type;
+        if (!['scene-heading', 'verse', 'chorus', 'hook', 'bridge'].includes(type)) return null;
+        let count = 1;
+        for (let i = 0; i < idx; i++) {
+            if (blocks[i].type === type) count++;
         }
         return count;
     };
@@ -675,8 +775,116 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const storageKey = `tf_lock_${notePageId}`;
     const isNowLocked = !!localStorage.getItem(storageKey) && !unlocked;
 
+    // Global Selection Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.target.closest('[contenteditable]') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            // Bulk Delete
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                setSelectedBlockIds(curr => {
+                    if (curr.size === 0) return curr;
+                    e.preventDefault();
+                    setBlocks(p => {
+                        const remaining = p.filter(x => !curr.has(x.id));
+                        const toDel = p.filter(x => curr.has(x.id));
+                        if (remaining.length === 0) remaining.push({ id: crypto.randomUUID(), type: 'p', content: '', indent: 0 });
+
+                        if (socketRef.current?.readyState === WebSocket.OPEN) {
+                            toDel.forEach(b => socketRef.current.send(JSON.stringify({ type: 'delete', blockId: b.id })));
+                        }
+                        setTimeout(() => setSelectedBlockIds(new Set()), 0);
+                        return remaining;
+                    });
+                    return curr;
+                });
+            }
+            // Ctrl+A (Select All)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                setBlocks(p => {
+                    setSelectedBlockIds(new Set(p.map(x => x.id)));
+                    return p;
+                });
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    // Drag-to-select logic
+    const handleWrapperMouseDown = (e) => {
+        if (e.button !== 0) return; // only left click
+        if (e.target.closest('.blkr') || e.target.closest('button') || e.target.closest('.tf-no-drag')) {
+            if (!e.shiftKey && !e.ctrlKey && !e.metaKey && selectedBlockIds.size > 0 && !e.target.closest('.blkr')) {
+                setSelectedBlockIds(new Set());
+            }
+            return;
+        }
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        setDragBox({ x1: startX, y1: startY, x2: startX, y2: startY });
+        const isShift = e.shiftKey || e.ctrlKey || e.metaKey;
+        if (!isShift) setSelectedBlockIds(new Set());
+
+        const removeListeners = () => {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+        };
+
+        const initialSelected = isShift ? new Set(selectedBlockIds) : new Set();
+
+        const onMove = (me) => {
+            me.preventDefault(); // prevent text selection while dragging box
+            setDragBox({ x1: startX, y1: startY, x2: me.clientX, y2: me.clientY });
+
+            const boxRect = {
+                left: Math.min(startX, me.clientX),
+                right: Math.max(startX, me.clientX),
+                top: Math.min(startY, me.clientY),
+                bottom: Math.max(startY, me.clientY),
+            };
+
+            setBlocks(prev => {
+                const ns = new Set(initialSelected);
+                prev.forEach((blk, idx) => {
+                    const el = document.getElementById(`blk-wrapper-${idx}`);
+                    if (el) {
+                        const r = el.getBoundingClientRect();
+                        const overlaps = !(boxRect.right < r.left || boxRect.left > r.right || boxRect.bottom < r.top || boxRect.top > r.bottom);
+                        if (overlaps) ns.add(blk.id);
+                        else if (!isShift) ns.delete(blk.id);
+                    }
+                });
+                setSelectedBlockIds(ns);
+                return prev;
+            });
+        };
+
+        const onUp = () => {
+            setDragBox(null);
+            removeListeners();
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    };
+
     return (
         <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
+            <style>
+                {`
+                @media print {
+                    body * { visibility: hidden !important; }
+                    .tf-print-area, .tf-print-area * { visibility: visible !important; }
+                    .tf-print-area { position: absolute; left: 0; top: 0; width: 100%; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #fff !important; color: #000 !important; }
+                    /* hide UI elements */
+                    .tf-print-area button { display: none !important; }
+                    @page { margin: 20mm; }
+                }
+                `}
+            </style>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 {/* Breadcrumb bar */}
                 <div style={{ display: "flex", alignItems: "center", padding: "9px 28px", borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0, gap: 0, flexWrap: "wrap" }}>
@@ -711,6 +919,27 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${writingMode === 'lyrics' ? t.accent : t.border}`, background: writingMode === 'lyrics' ? t.accentDim : "transparent", cursor: "pointer", color: writingMode === 'lyrics' ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
                             🎵 Lyrics
                         </button>
+
+                        {/* Document tools */}
+                        {writingMode && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 3, paddingLeft: 4, marginLeft: 4, borderLeft: `1px solid ${t.border}` }}>
+                                <button type="button" onClick={toggleDocTheme}
+                                    title="Toggle Light/Dark Page"
+                                    style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px 6px", borderRadius: 6, border: `1px solid ${t.border}`, background: docTheme === 'light' ? '#fff' : '#1e1e1e', cursor: "pointer", color: docTheme === 'light' ? '#000' : '#fff', fontSize: 13, transition: "all .15s" }}>
+                                    {docTheme === 'light' ? '🌙' : '☀️'}
+                                </button>
+                                <button type="button" onClick={toggleDocFont}
+                                    title="Toggle Typewriter Font"
+                                    style={{ display: "flex", alignItems: "center", padding: "4px 8px", borderRadius: 6, border: `1px solid ${useTypewriter ? t.accent : t.border}`, background: useTypewriter ? t.accentDim : "transparent", cursor: "pointer", color: useTypewriter ? t.accent : t.t2, fontSize: 11, fontFamily: useTypewriter ? "'Courier', monospace" : t.disp, transition: "all .15s" }}>
+                                    Courier
+                                </button>
+                                <button type="button" onClick={() => window.print()}
+                                    title="Export to PDF"
+                                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
+                                    ⬇️ Export PDF
+                                </button>
+                            </div>
+                        )}
 
                         {/* Zoom controls */}
                         <div style={{ display: "flex", alignItems: "center", gap: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 4px" }}>
@@ -760,10 +989,10 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         <LockGate notePageId={notePageId} t={t} onUnlock={() => setUnlocked(true)} />
                     </div>
                 ) : (
-                    <div style={{ flex: 1, overflow: "auto" }} onClick={() => setEmojiOpen(false)}>
+                    <div className="tf-scroll-wrapper" style={{ flex: 1, overflow: "auto", background: writingMode ? '#020408' : 'transparent', transition: "background .3s ease" }} onClick={() => setEmojiOpen(false)} onMouseDown={handleWrapperMouseDown}>
                         <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})`, flexShrink: 0 }} />
                         {writingMode && (
-                            <div style={{ textAlign: "center", padding: "8px 0", background: writingMode === 'script' ? t.inset : t.calloutBg, borderBottom: `1px solid ${t.border}`, fontSize: 11.5, color: writingMode === 'script' ? t.accent : t.amber || t.accent, fontFamily: t.mono, fontWeight: 600, letterSpacing: "0.3px" }}>
+                            <div style={{ textAlign: "center", padding: "8px 0", background: writingMode === 'script' ? t.inset : t.calloutBg, borderBottom: `1px solid ${t.border}`, fontSize: 11.5, color: writingMode === 'script' ? t.accent : t.amber || t.accent, fontFamily: t.mono, fontWeight: 600, letterSpacing: "0.3px", zIndex: 10, position: "sticky", top: 0 }}>
                                 {writingMode === 'script' ? '📽️ Script Mode — Tab to cycle block types' : '🎵 Lyrics Mode — Tab to cycle section types'}
                             </div>
                         )}
@@ -773,15 +1002,31 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             display: 'flex',
                             justifyContent: 'center',
                             overflow: 'visible',
+                            padding: writingMode ? "48px 0" : 0
                         }}>
                             <div style={{
-                                width: zoom === 100 ? '100%' : `${720 * zoom / 100}px`,
+                                width: zoom === 100 ? (writingMode ? "210mm" : "100%") : (writingMode ? `calc(210mm * ${zoom / 100})` : `${720 * zoom / 100}px`),
                                 maxWidth: '100%',
                                 flexShrink: 0,
                                 transform: zoom !== 100 ? `scale(${zoom / 100})` : 'none',
                                 transformOrigin: 'top center',
                             }}>
-                                <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 60px 80px", position: "relative" }}>
+                                <div className="tf-print-area" style={{
+                                    maxWidth: writingMode ? "none" : 720,
+                                    width: "100%",
+                                    margin: "0 auto",
+                                    padding: writingMode ? "80px 96px" : "32px 60px 80px",
+                                    position: "relative",
+                                    background: writingMode ? (docTheme === 'light' ? '#FFFFFF' : '#1A1C22') : 'transparent',
+                                    color: writingMode ? (docTheme === 'light' ? '#000000' : '#E2EFFF') : t.noteText,
+                                    minHeight: writingMode ? "297mm" : "auto",
+                                    boxShadow: writingMode ? "0 16px 48px rgba(0,0,0,0.4)" : "none",
+                                    borderRadius: writingMode ? 2 : 0,
+                                    border: writingMode ? `1px solid ${docTheme === 'light' ? '#DDDDDD' : '#333333'}` : "none",
+                                    fontFamily: writingMode && useTypewriter ? "'Courier New', Courier, monospace" : (writingMode ? t.disp : undefined),
+                                    transition: "background .3s ease, color .3s ease",
+                                    '--doc-font': writingMode && useTypewriter ? "'Courier New', Courier, monospace" : (writingMode ? t.disp : undefined)
+                                }}>
                                     {/* Emoji picker */}
                                     <div style={{ position: "relative", display: "inline-block", marginBottom: 6 }}>
                                         <button type="button" onClick={e => { e.stopPropagation(); setEmojiOpen(p => !p); }}
@@ -835,25 +1080,36 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                         onDragEnd={() => { dragFromIdx.current = null; setDragOver(null); }}>
                                         {blocks.map((blk, idx) => {
                                             const olIndex = blk.type === 'ol' ? getOlIndex(blocks, idx) : 0;
+                                            const sectionNumber = getSectionNumber(blocks, idx);
                                             return (
-                                                <NoteBlock key={blk.id} blk={blk} idx={idx} t={t} dark={dark}
-                                                    olIndex={olIndex}
-                                                    onUpdate={ch => { updBlk(idx, ch); activeBlkIdxRef.current = idx; }}
-                                                    onFocusBlock={i => activeBlkIdxRef.current = i}
-                                                    onDelete={() => delBlk(idx)}
-                                                    onDuplicate={() => dupBlk(idx)}
-                                                    onAddAfter={type => addBlk(idx, type)}
-                                                    onSlash={(rect, filter) => setSlash({ idx, x: rect.left, y: rect.bottom + 4, filter })}
-                                                    onSlashClose={() => setSlash(null)}
-                                                    onFocusPrev={() => focusAtEnd("blk-" + Math.max(0, idx - 1))}
-                                                    onFocusNext={() => focusAtStart("blk-" + Math.min(blocks.length - 1, idx + 1))}
-                                                    onPasteHTML={(html, text, i) => handlePasteHTML(html, text, i)}
-                                                    onConvert={type => convertBlk(idx, type)}
-                                                    onDragStart={handleDragStart}
-                                                    onDragOver={handleDragOver}
-                                                    onDrop={handleDrop}
-                                                    isDragging={dragFromIdx.current === idx}
-                                                    isDragOver={dragOver === idx} />
+                                                <div id={`blk-wrapper-${idx}`} key={blk.id}>
+                                                    <NoteBlock blk={blk} idx={idx} t={t} dark={dark}
+                                                        olIndex={olIndex} sectionNumber={sectionNumber} isSelected={selectedBlockIds.has(blk.id)}
+                                                        onUpdate={ch => { updBlk(idx, ch); activeBlkIdxRef.current = idx; }}
+                                                        onFocusBlock={i => activeBlkIdxRef.current = i}
+                                                        onDelete={() => delBlk(idx)}
+                                                        onDuplicate={() => dupBlk(idx)}
+                                                        onAddAfter={type => addBlk(idx, type)}
+                                                        onSlash={(r, q) => setSlash({ x: r.left, y: r.bottom + 4, idx, q })}
+                                                        onSlashClose={() => setSlash(null)}
+                                                        onFocusPrev={() => document.getElementById("blk-" + (idx - 1))?.focus()}
+                                                        onFocusNext={() => document.getElementById("blk-" + (idx + 1))?.focus()}
+                                                        onPasteHTML={(h, t) => handlePasteHTML(idx, h, t)}
+                                                        isDragging={dragFromIdx.current === idx}
+                                                        isDragOver={dragOverIdx === idx}
+                                                        onDragStart={(i) => { dragFromIdx.current = i; }}
+                                                        onDragOver={(i) => setDragOver(i)}
+                                                        onDrop={(i) => moveBlk(dragFromIdx.current, i)}
+                                                        onConvert={type => {
+                                                            const nb = [...blocks]; nb[idx] = { ...nb[idx], type };
+                                                            if (socketRef.current?.readyState === WebSocket.OPEN) {
+                                                                socketRef.current.send(JSON.stringify({ type: 'update', block: nb[idx] }));
+                                                            }
+                                                            setBlocks(nb);
+                                                            setTimeout(() => document.getElementById("blk-" + idx)?.focus(), 30);
+                                                        }}
+                                                    />
+                                                </div>
                                             );
                                         })}
                                     </div>

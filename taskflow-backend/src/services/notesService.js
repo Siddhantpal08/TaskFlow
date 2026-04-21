@@ -68,6 +68,14 @@ const deletePage = async (pageId, userId) => {
     return { deletedCount: count };
 };
 
+const duplicatePage = async (pageId, userId) => {
+    const page = await notesModel.getPageById(pageId, userId);
+    if (!page) throw new AppError('Page not found.', 404);
+    if (page.user_id !== userId) throw new AppError('Only the owner can duplicate this page.', 403);
+
+    return notesModel.duplicatePageRecursive(pageId, userId, true);
+};
+
 const reorderChildren = async (parentId, userId, orderedIds) => {
     // Validate all provided IDs belong to this user
     const checks = orderedIds.map((id) => notesModel.getPageById(id, userId));
@@ -115,6 +123,7 @@ module.exports = {
     getPage,
     updatePage,
     deletePage,
+    duplicatePage,
     reorderChildren,
     createBlock,
     updateBlock,

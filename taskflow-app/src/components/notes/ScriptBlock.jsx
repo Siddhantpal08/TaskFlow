@@ -3,37 +3,37 @@ import { SCRIPT_ORDER } from "../../data/notes.js";
 
 const SCRIPT_STYLES = {
     "scene-heading": {
-        fontFamily: "'Courier New', Courier, monospace",
+        fontFamily: "var(--doc-font, 'Courier New', Courier, monospace)",
         fontSize: 13.5, fontWeight: 700, textTransform: "uppercase",
         letterSpacing: "0.5px", color: null,
         borderBottom: "1px solid", paddingBottom: 4, paddingTop: 20, marginBottom: 4,
         tag: "Scene Heading",
     },
     "action": {
-        fontFamily: "'Courier New', Courier, monospace",
+        fontFamily: "var(--doc-font, 'Courier New', Courier, monospace)",
         fontSize: 13, fontWeight: 400, paddingTop: 10, paddingBottom: 4,
         tag: "Action",
     },
     "character": {
-        fontFamily: "'Courier New', Courier, monospace",
+        fontFamily: "var(--doc-font, 'Courier New', Courier, monospace)",
         fontSize: 13, fontWeight: 700, textTransform: "uppercase",
         textAlign: "center", letterSpacing: "1px", paddingTop: 18, paddingBottom: 0,
         tag: "Character",
     },
     "dialogue": {
-        fontFamily: "'Courier New', Courier, monospace",
+        fontFamily: "var(--doc-font, 'Courier New', Courier, monospace)",
         fontSize: 13, fontWeight: 400, paddingTop: 2, paddingBottom: 4,
         textAlign: "center", maxWidth: "60%", margin: "0 auto",
         tag: "Dialogue",
     },
     "parenthetical": {
-        fontFamily: "'Courier New', Courier, monospace",
+        fontFamily: "var(--doc-font, 'Courier New', Courier, monospace)",
         fontSize: 12.5, fontStyle: "italic", textAlign: "center",
         paddingTop: 2, paddingBottom: 2, tag: "Parenthetical",
         beforeText: "(", afterText: ")",
     },
     "transition": {
-        fontFamily: "'Courier New', Courier, monospace",
+        fontFamily: "var(--doc-font, 'Courier New', Courier, monospace)",
         fontSize: 12.5, fontWeight: 700, textTransform: "uppercase",
         textAlign: "right", letterSpacing: "0.5px", paddingTop: 14, paddingBottom: 6,
         tag: "Transition",
@@ -49,7 +49,7 @@ const SCRIPT_ORDER_LABELS = [
     { type: "transition", label: "Transition" },
 ];
 
-export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfter, onFocusPrev, onFocusNext }) {
+export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfter, onFocusPrev, onFocusNext, sectionNumber }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
     const [showTypePicker, setShowTypePicker] = useState(false);
@@ -178,6 +178,20 @@ export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
                     transition: "padding-top .15s",
                 }}
             />
+            {/* Auto Scene Number */}
+            {blk.type === "scene-heading" && sectionNumber && (
+                <div style={{
+                    position: "absolute",
+                    left: -32,
+                    top: (hov || showTypePicker) ? (st.paddingTop || 4) + 29 : (st.paddingTop || 4) + 1,
+                    fontSize: 10,
+                    color: t.accent,
+                    fontFamily: t.mono,
+                    fontWeight: 700
+                }}>
+                    SC {sectionNumber}
+                </div>
+            )}
         </div>
     );
 }

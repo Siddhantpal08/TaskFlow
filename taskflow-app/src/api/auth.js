@@ -28,6 +28,12 @@ export const authApi = {
     verifyPasswordReset: (email, otp, newPassword) =>
         api.post('/auth/reset-password/verify', { email, otp, newPassword }),
 
+    requestPinReset: () =>
+        api.post('/auth/request-pin-reset', {}),
+
+    verifyPinReset: (otp) =>
+        api.post('/auth/verify-pin-reset', { otp }),
+
     getMe: () =>
         api.get('/users/me'),
 };

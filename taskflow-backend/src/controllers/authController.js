@@ -344,4 +344,21 @@ const verifyPasswordReset = asyncWrapper(async (req, res, next) => {
     });
 });
 
-module.exports = { register, verifyEmail, resendOtp, googleLogin, login, refresh, logout, requestPasswordReset, verifyPasswordReset };
+// ─── Reset Local Note PIN ────────────────────────────────────────────────────
+
+const requestPinReset = asyncWrapper(async (req, res, next) => {
+    const user = await userModel.getUserById(req.user.id);
+    const otp = createOtp(user.email);
+    await sendOtpEmail(user.email, otp);
+    res.status(200).json({ success: true, message: 'OTP sent to your email.' });
+});
+
+const verifyPinReset = asyncWrapper(async (req, res, next) => {
+    const { otp } = req.body;
+    const user = await userModel.getUserById(req.user.id);
+    const result = verifyOtp(user.email, otp);
+    if (!result.valid) return next(new AppError(result.reason, 422));
+    res.status(200).json({ success: true, message: 'PIN has been reset.' });
+});
+
+module.exports = { register, verifyEmail, resendOtp, googleLogin, login, refresh, logout, requestPasswordReset, verifyPasswordReset, requestPinReset, verifyPinReset };

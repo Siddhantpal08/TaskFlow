@@ -42,7 +42,8 @@ export default function AssignModal({ t, onClose }) {
             <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 40, backdropFilter: "blur(3px)" }} />
             <div className="popIn" style={{
                 position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
-                width: 440, zIndex: 50, background: t.surf, border: `1px solid ${t.border}`, borderRadius: 16,
+                width: 440, maxHeight: "90vh", display: "flex", flexDirection: "column",
+                zIndex: 50, background: t.surf, border: `1px solid ${t.border}`, borderRadius: 16,
                 boxShadow: "0 32px 70px #00000066", overflow: "hidden"
             }}>
                 <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -54,7 +55,7 @@ export default function AssignModal({ t, onClose }) {
                         <I d={IC.x} sz={17} c={t.t2} />
                     </button>
                 </div>
-                <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
                     <div>
                         <label style={{ fontSize: 10, color: t.t3, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>Title</label>
                         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Set up authentication module…"

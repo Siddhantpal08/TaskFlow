@@ -33,18 +33,13 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
     }, [team]);
 
     const handleLeave = async () => {
-        const actionText = team.role === 'admin' ? "leave" : "request to leave";
-        if (!window.confirm(`Are you sure you want to ${actionText} ${team.name}?`)) return;
+        if (!window.confirm(`Are you sure you want to leave ${team.name}?`)) return;
         try {
             const res = await teamApi.leaveTeam(team.id);
-            toastSuccess(res.data?.message || "Leave request submitted.");
-
-            // If they actually left (admin), go back
-            if (team.role === 'admin') {
-                const { useData: localUseData } = await import('../context/DataContext.jsx');
-                onLeave();
-                refreshTeams();
-            }
+            toastSuccess(res.data?.message || "Successfully left the team.");
+            const { useData: localUseData } = await import('../context/DataContext.jsx');
+            onLeave();
+            refreshTeams();
         } catch (e) {
             toastError(e.response?.data?.message || e.message || "Failed to leave team.");
         }
@@ -77,7 +72,7 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                 <h3 style={{ fontSize: 16, color: t.t1, margin: 0, fontFamily: t.disp }}>Members</h3>
                 <button onClick={handleLeave} style={{ background: `${t.red}12`, border: `1px solid ${t.red}44`, color: t.red, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
-                    {team.role === 'admin' ? 'Leave Team' : 'Request to Leave'}
+                    Leave Team
                 </button>
             </div>
 

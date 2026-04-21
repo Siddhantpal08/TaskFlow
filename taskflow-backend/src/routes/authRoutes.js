@@ -9,6 +9,8 @@ const {
     logout,
     requestPasswordReset,
     verifyPasswordReset,
+    requestPinReset,
+    verifyPinReset,
 } = require('../controllers/authController');
 const { validate } = require('../middleware/validate');
 const { authenticate } = require('../middleware/auth');
@@ -51,5 +53,7 @@ router.post('/refresh', refresh);
 router.post('/logout', logout); // optionally authenticate for online-status update
 router.post('/reset-password', authLimiter, validate(resetRequestSchema), requestPasswordReset);
 router.post('/reset-password/verify', authLimiter, validate(resetVerifySchema), verifyPasswordReset);
+router.post('/request-pin-reset', authenticate, authLimiter, requestPinReset);
+router.post('/verify-pin-reset', authenticate, authLimiter, verifyPinReset);
 
 module.exports = router;

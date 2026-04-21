@@ -80,6 +80,12 @@ const deletePage = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: result });
 });
 
+/** POST /api/v1/notes/pages/:id/duplicate */
+const duplicatePage = asyncWrapper(async (req, res) => {
+    const page = await notesService.duplicatePage(req.params.id, req.user.id);
+    res.status(201).json({ success: true, data: page });
+});
+
 /** PATCH /api/v1/notes/pages/:id/reorder */
 const reorderChildren = asyncWrapper(async (req, res) => {
     const data = validateBody(reorderSchema, req.body);
@@ -110,6 +116,6 @@ const deleteBlock = asyncWrapper(async (req, res) => {
 });
 
 module.exports = {
-    getPageTree, createPage, getPage, updatePage, deletePage, reorderChildren,
+    getPageTree, createPage, getPage, updatePage, deletePage, duplicatePage, reorderChildren,
     createBlock, updateBlock, deleteBlock,
 };

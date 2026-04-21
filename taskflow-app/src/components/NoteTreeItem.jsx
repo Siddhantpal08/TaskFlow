@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { I, IC } from "./ui/Icon.jsx";
 
 export default function NoteTreeItem({ pageId, pages, expanded, toggleExp, activeId, isNotePage,
-    navigateNote, addNotePage, deleteNotePage, depth, t }) {
+    navigateNote, addNotePage, deleteNotePage, duplicateNotePage, depth, t }) {
 
     const pg = pages[pageId];
     if (!pg) return null;
@@ -9,13 +11,29 @@ export default function NoteTreeItem({ pageId, pages, expanded, toggleExp, activ
     const isExp = expanded[pageId];
     const hasKids = pg.childIds?.length > 0;
 
+    const [cmPos, setCmPos] = useState(null);
+
+    const handleContextMenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setCmPos({ x: e.clientX, y: e.clientY });
+    };
+
+    useEffect(() => {
+        const handleClick = () => setCmPos(null);
+        if (cmPos) window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, [cmPos]);
+
     return (
         <div>
-            <div className="nsi" style={{
-                display: "flex", alignItems: "center", borderRadius: 7,
-                cursor: "pointer", background: isActive ? t.noteActive : "transparent",
-                marginBottom: 1, transition: "background .12s", paddingLeft: depth * 14
-            }}>
+            <div className="nsi"
+                onContextMenu={handleContextMenu}
+                style={{
+                    display: "flex", alignItems: "center", borderRadius: 7,
+                    cursor: "pointer", background: isActive ? t.noteActive : "transparent",
+                    marginBottom: 1, transition: "background .12s", paddingLeft: depth * 14
+                }}>
                 <button onClick={e => toggleExp(pageId, e)}
                     style={{
                         width: 18, height: 26, display: "flex", alignItems: "center", justifyContent: "center",
@@ -55,8 +73,43 @@ export default function NoteTreeItem({ pageId, pages, expanded, toggleExp, activ
                 <NoteTreeItem key={cid} pageId={cid} pages={pages} expanded={expanded}
                     toggleExp={toggleExp} activeId={activeId} isNotePage={isNotePage}
                     navigateNote={navigateNote} addNotePage={addNotePage}
-                    deleteNotePage={deleteNotePage} depth={depth + 1} t={t} />
+                    deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage} depth={depth + 1} t={t} />
             ))}
+
+            {cmPos && createPortal(
+                <div style={{
+                    position: "fixed", top: cmPos.y, left: cmPos.x, zIndex: 9999,
+                    background: t.card, border: `1px solid ${t.border}`, borderRadius: 8,
+                    padding: "4px", display: "flex", flexDirection: "column", gap: 2,
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.3)", minWidth: 160
+                }} onClick={e => e.stopPropagation()}>
+                    <button onClick={() => { duplicateNotePage(pageId); setCmPos(null); }}
+                        style={{
+                            display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                            borderRadius: 6, border: "none", background: "transparent",
+                            color: t.t1, fontSize: 13, fontFamily: t.disp, cursor: "pointer", textAlign: "left"
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = t.accentDim}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                        📑 Duplicate Page
+                    </button>
+                    {depth > 0 && (
+                        <button onClick={() => { deleteNotePage(pageId); setCmPos(null); }}
+                            style={{
+                                display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                                borderRadius: 6, border: "none", background: "transparent",
+                                color: "#FF3D5A", fontSize: 13, fontFamily: t.disp, cursor: "pointer", textAlign: "left"
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#FF3D5A22"}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                        >
+                            🗑️ Delete Page
+                        </button>
+                    )}
+                </div>,
+                document.body
+            )}
         </div>
     );
 }

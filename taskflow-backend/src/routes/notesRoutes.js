@@ -3,7 +3,7 @@ const { authenticate } = require('../middleware/auth');
 const { notesLimiter } = require('../middleware/rateLimiter');
 const { sanitizeBlock } = require('../middleware/sanitize');
 const {
-    getPageTree, createPage, getPage, updatePage, deletePage, reorderChildren,
+    getPageTree, createPage, getPage, updatePage, deletePage, duplicatePage, reorderChildren,
     createBlock, updateBlock, deleteBlock,
 } = require('../controllers/notesController');
 
@@ -17,6 +17,7 @@ router.post('/pages', createPage);
 router.get('/pages/:id', getPage);
 router.put('/pages/:id', updatePage);
 router.delete('/pages/:id', deletePage);
+router.post('/pages/:id/duplicate', duplicatePage);
 router.patch('/pages/:id/reorder', reorderChildren);
 
 // Block write routes — rate-limited + sanitized
