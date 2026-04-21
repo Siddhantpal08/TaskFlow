@@ -164,8 +164,10 @@ app.get('/db-repair', async (req, res) => {
         const r2 = await db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL').catch(e => e.message);
         const r3 = await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL').catch(e => e.message);
         const r4 = await db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL').catch(e => e.message);
+        const r5 = await db.query('ALTER TABLE notes_blocks ADD COLUMN indent INT DEFAULT 0').catch(e => e.message);
+        const r6 = await db.query('ALTER TABLE notes_blocks MODIFY COLUMN type VARCHAR(20) DEFAULT "p"').catch(e => e.message);
 
-        res.json({ tables: { q1, q2 }, alter: { r1, r2, r3, r4 } });
+        res.json({ tables: { q1, q2 }, alter: { r1, r2, r3, r4, r5, r6 } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -182,6 +184,8 @@ app.get('/api/v1/diagnose-db', async (req, res) => {
         try { await db.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL'); success.push("google_id"); } catch (e) { errors.push({ col: "google_id", err: e.message }); }
         try { await db.query('ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NULL'); success.push("avatar_url"); } catch (e) { errors.push({ col: "avatar_url", err: e.message }); }
         try { await db.query('ALTER TABLE users ADD COLUMN bio TEXT NULL'); success.push("bio"); } catch (e) { errors.push({ col: "bio", err: e.message }); }
+        try { await db.query('ALTER TABLE notes_blocks ADD COLUMN indent INT DEFAULT 0'); success.push("indent"); } catch (e) { errors.push({ col: "indent", err: e.message }); }
+        try { await db.query('ALTER TABLE notes_blocks MODIFY COLUMN type VARCHAR(20) DEFAULT "p"'); success.push("type"); } catch (e) { errors.push({ col: "type", err: e.message }); }
 
         res.json({ success, errors });
     } catch (err) {

@@ -50,10 +50,11 @@ CREATE TABLE IF NOT EXISTS notes_pages (
 CREATE TABLE IF NOT EXISTS notes_blocks (
   id          VARCHAR(36)  PRIMARY KEY,
   page_id     VARCHAR(36)  NOT NULL,
-  type        ENUM('h1','h2','h3','p','todo','quote','callout','code') DEFAULT 'p',
+  type        VARCHAR(20)  DEFAULT 'p',
   content     TEXT,
   checked     TINYINT(1) DEFAULT 0,      -- for todo blocks
   position    INT UNSIGNED DEFAULT 0,
+  indent      INT UNSIGNED DEFAULT 0,
   FOREIGN KEY (page_id) REFERENCES notes_pages(id) ON DELETE CASCADE
 );
 

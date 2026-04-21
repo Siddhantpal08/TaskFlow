@@ -531,9 +531,12 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     };
 
     // ── Speech-to-Text ────────────────────────────────────────────────────────
+    // Support Check
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const hasSpeechSupport = !!SpeechRecognition;
+
     const toggleSpeech = () => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) { alert("Speech recognition is only supported in Chrome/Edge."); return; }
+        if (!hasSpeechSupport) { alert("Speech recognition is only supported in Chrome/Edge."); return; }
 
         if (isListening || listeningRef.current) {
             listeningRef.current = false;
@@ -549,17 +552,19 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const startNew = () => {
             if (!listeningRef.current) return;
 
-            const recog = new window.SpeechRecognition();
+            const recog = new SpeechRecognition();
             recog.continuous = true;   // stream until explicitly stopped
             recog.interimResults = false;
             recog.lang = navigator.language || 'en-US';
             speechRef.current = recog;
 
             recog.onresult = (event) => {
-                const transcript = Array.from(event.results)
-                    // only take the *latest* finalized result if continuous
-                    .map(r => r[r.length - 1].transcript)
-                    .join(' ');
+                // Only take the newly finalized result added in this event 
+                // instead of joining all historical results which causes repetition
+                const latestResult = event.results[event.resultIndex];
+                if (!latestResult) return;
+
+                const transcript = latestResult[0].transcript;
 
                 if (transcript.trim()) {
                     const idx = activeBlkIdxRef.current;
@@ -724,11 +729,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </button>
 
                         {/* Speech-to-text */}
-                        <button type="button" onClick={toggleSpeech}
-                            title="Speech to Text (Beta — Chrome/Edge only)"
-                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${isListening ? t.red : t.border}`, background: isListening ? t.red + "22" : "transparent", cursor: "pointer", color: isListening ? t.red : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s", animation: isListening ? "pulse 1s ease infinite" : "none" }}>
-                            🎤 {isListening ? "Listening…" : "Speak"}
-                        </button>
+                        {hasSpeechSupport && (
+                            <button type="button" onClick={toggleSpeech}
+                                title="Speech to Text (Beta)"
+                                style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${isListening ? t.red : t.border}`, background: isListening ? t.red + "22" : "transparent", cursor: "pointer", color: isListening ? t.red : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s", animation: isListening ? "pulse 1s ease infinite" : "none" }}>
+                                🎤 {isListening ? "Listening…" : "Speak"}
+                            </button>
+                        )}
 
                         {/* Share */}
                         <button type="button" onClick={shareNote}
