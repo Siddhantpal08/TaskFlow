@@ -169,13 +169,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             const realId = idMapRef.current[b.id] || b.id;
             if (!s) {
                 if (realId.toString().startsWith("loc-")) {
-                    notesApi.createBlock(notePageId, { type: b.type, content: b.content, position: idx }).then(res => idMapRef.current[b.id] = res.data.id).catch(() => { });
+                    notesApi.createBlock(notePageId, { type: b.type, content: b.content, position: idx, indent: b.indent || 0 }).then(res => idMapRef.current[b.id] = res.data.id).catch(() => { });
                 } else {
-                    notesApi.createBlock(notePageId, { type: b.type, content: b.content, position: idx }).catch(() => { });
+                    notesApi.createBlock(notePageId, { type: b.type, content: b.content, position: idx, indent: b.indent || 0 }).catch(() => { });
                 }
-            } else if (s.content !== b.content || s.type !== b.type || s.checked !== b.checked || sourceBlocks.indexOf(s) !== idx) {
+            } else if (s.content !== b.content || s.type !== b.type || s.checked !== b.checked || s.indent !== b.indent || sourceBlocks.indexOf(s) !== idx) {
                 if (!realId.toString().startsWith("loc-")) {
-                    notesApi.updateBlock(realId, { content: b.content, type: b.type, checked: !!b.checked, position: idx }).catch(() => { });
+                    notesApi.updateBlock(realId, { content: b.content, type: b.type, checked: !!b.checked, position: idx, indent: b.indent || 0 }).catch(() => { });
                 }
             }
         });
@@ -268,9 +268,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     if (blkToFlush) {
                         if (blkId.toString().startsWith("loc-")) {
                             const idx = currentBlocks.findIndex(b => b.id === blkId);
-                            fetch(`${BASE}/notes/pages/${notePageId}/blocks`, { method: 'POST', headers: authHeader, body: JSON.stringify({ type: blkToFlush.type, content: blkToFlush.content, position: idx }), keepalive: true }).catch(() => { });
+                            fetch(`${BASE}/notes/pages/${notePageId}/blocks`, { method: 'POST', headers: authHeader, body: JSON.stringify({ type: blkToFlush.type, content: blkToFlush.content, position: idx, indent: blkToFlush.indent || 0 }), keepalive: true }).catch(() => { });
                         } else {
-                            fetch(`${BASE}/notes/blocks/${blkId}`, { method: 'PUT', headers: authHeader, body: JSON.stringify({ content: blkToFlush.content, checked: blkToFlush.checked, type: blkToFlush.type }), keepalive: true }).catch(() => { });
+                            fetch(`${BASE}/notes/blocks/${blkId}`, { method: 'PUT', headers: authHeader, body: JSON.stringify({ content: blkToFlush.content, checked: blkToFlush.checked, type: blkToFlush.type, indent: blkToFlush.indent || 0 }), keepalive: true }).catch(() => { });
                         }
                     }
                 }
@@ -294,7 +294,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         setTimeout(() => document.getElementById("blk-" + (afterIdx + 1))?.focus(), 30);
         socketRef.current?.emit('note:block:add', { pageId: notePageId, block: b, afterIdx });
         try {
-            const res = await notesApi.createBlock(notePageId, { type, content, position: afterIdx + 1 });
+            const res = await notesApi.createBlock(notePageId, { type, content, position: afterIdx + 1, indent: 0 });
             const realId = res.data.id;
             idMapRef.current[b.id] = realId;
             // Flush any typed content that came in while we were waiting for the real ID
@@ -304,7 +304,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 delete debounceTimers.current[b.id];
                 const latestBlk = latestBlocksRef.current.find(bl => bl.id === b.id);
                 if (latestBlk && latestBlk.content) {
-                    notesApi.updateBlock(realId, { content: latestBlk.content, type: latestBlk.type, checked: !!latestBlk.checked }).catch(() => { });
+                    notesApi.updateBlock(realId, { content: latestBlk.content, type: latestBlk.type, checked: !!latestBlk.checked, indent: latestBlk.indent || 0 }).catch(() => { });
                 }
             }
             setBlocks(prev => prev.map(p => p.id === b.id ? { ...p, id: realId } : p));
@@ -327,17 +327,18 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             const latestContent = latestBlk.content ?? newBlk.content;
             const latestType = latestBlk.type ?? newBlk.type;
             const latestChecked = latestBlk.checked ?? newBlk.checked;
+            const latestIndent = latestBlk.indent ?? newBlk.indent ?? 0;
             if (resolvedId.toString().startsWith("loc-")) {
                 // Still a loc- ID AND no real ID mapped yet — create it
                 const currentIdx = latestBlocksRef.current.findIndex(b => b.id === newBlk.id);
                 if (currentIdx === -1) return;
-                notesApi.createBlock(notePageId, { type: latestType, content: latestContent, position: currentIdx })
+                notesApi.createBlock(notePageId, { type: latestType, content: latestContent, position: currentIdx, indent: latestIndent })
                     .then(res => {
                         idMapRef.current[newBlk.id] = res.data.id;
                         setBlocks(prev => prev.map(p => p.id === newBlk.id ? { ...p, id: res.data.id } : p));
                     }).catch(() => { });
             } else {
-                notesApi.updateBlock(resolvedId, { content: latestContent, checked: !!latestChecked, type: latestType }).catch(() => { });
+                notesApi.updateBlock(resolvedId, { content: latestContent, checked: !!latestChecked, type: latestType, indent: latestIndent }).catch(() => { });
             }
         }, 600);
     };
@@ -409,7 +410,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         // Persist reorder — update each moved block's position
         nb.forEach((blk, i) => {
             if (!blk.id.toString().startsWith("loc-")) {
-                notesApi.updateBlock(blk.id, { content: blk.content, type: blk.type, checked: !!blk.checked, position: i }).catch(() => { });
+                notesApi.updateBlock(blk.id, { content: blk.content, type: blk.type, checked: !!blk.checked, position: i, indent: blk.indent || 0 }).catch(() => { });
             }
         });
     }, []);
@@ -548,25 +549,27 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const startNew = () => {
             if (!listeningRef.current) return;
 
-            const recog = new SpeechRecognition();
-            recog.continuous = false;   // single utterance — more reliable across browsers
+            const recog = new window.SpeechRecognition();
+            recog.continuous = true;   // stream until explicitly stopped
             recog.interimResults = false;
             recog.lang = navigator.language || 'en-US';
             speechRef.current = recog;
 
             recog.onresult = (event) => {
                 const transcript = Array.from(event.results)
-                    .map(r => r[0].transcript)
+                    // only take the *latest* finalized result if continuous
+                    .map(r => r[r.length - 1].transcript)
                     .join(' ');
+
                 if (transcript.trim()) {
                     const idx = activeBlkIdxRef.current;
                     const el = document.getElementById('blk-' + idx);
                     if (el) {
-                        const cur = el.innerText || '';
+                        const cur = el.innerHTML || '';
                         const sep = cur.length && !cur.endsWith(' ') ? ' ' : '';
                         const newContent = cur + sep + transcript.trim();
-                        el.innerText = newContent;
-                        // Place cursor at end
+                        el.innerHTML = newContent;
+                        // Place cursor at end safely
                         const range = document.createRange();
                         range.selectNodeContents(el);
                         range.collapse(false);
@@ -577,14 +580,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 }
             };
 
-            recog.onerror = (e) => {
-                if (e.error === 'no-speech') return; // ignore silence timeout
-                listeningRef.current = false;
-                setIsListening(false);
-            };
-
             recog.onend = () => {
-                // Restart after short delay if still active
+                // If it wasn't manually stopped, restart it to keep listening
                 if (listeningRef.current) {
                     setTimeout(startNew, 150);
                 } else {
@@ -593,12 +590,12 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             };
 
             recog.onerror = (ev) => {
+                if (ev.error === 'no-speech') return; // ignore silence
                 if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
                     alert('Microphone access denied. Please allow microphone in browser settings.');
                     listeningRef.current = false;
                     setIsListening(false);
                 }
-                // other errors: just let onend restart
             };
 
             try { recog.start(); } catch (e) {
