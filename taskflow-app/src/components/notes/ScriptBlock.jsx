@@ -49,7 +49,7 @@ const SCRIPT_ORDER_LABELS = [
     { type: "transition", label: "Transition" },
 ];
 
-export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfter, onFocusPrev, onFocusNext, sectionNumber }) {
+export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfter, onFocusPrev, onFocusNext, sectionNumber, onSlash }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
     const [showTypePicker, setShowTypePicker] = useState(false);
@@ -87,6 +87,27 @@ export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
             else if (blk.type === "parenthetical") next = "dialogue";
             else if (blk.type === "transition") next = "scene-heading";
             onAddAfter(next);
+        }
+        if (e.key === "Tab") {
+            e.preventDefault();
+            const types = Array.from(SCRIPT_ORDER_LABELS.map(o => o.type));
+            const _idx = types.indexOf(blk.type);
+            if (_idx !== -1) {
+                const nextType = types[(_idx + (e.shiftKey ? -1 : 1) + types.length) % types.length];
+                setType(nextType);
+            }
+            return;
+        }
+        if (e.key === "/") {
+            const txt = ref.current?.innerText.trim();
+            if (txt === "") {
+                e.preventDefault();
+                if (onSlash) {
+                    const rect = ref.current?.getBoundingClientRect();
+                    if (rect) onSlash(rect, "");
+                }
+            }
+            return;
         }
         if (e.key === "Backspace" && ref.current?.innerText.trim() === "") { e.preventDefault(); onDelete(); }
         if (e.key === "ArrowUp") { const s = window.getSelection(); if (s.anchorOffset === 0) { e.preventDefault(); onFocusPrev(); } }

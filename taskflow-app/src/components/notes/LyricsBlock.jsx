@@ -15,7 +15,7 @@ const SECTION_COLORS = {
     outro: "muted",
 };
 
-export default function LyricsBlock({ blk, idx, t, onUpdate, onDelete, onAddAfter, onFocusPrev, onFocusNext, sectionNumber }) {
+export default function LyricsBlock({ blk, idx, t, onUpdate, onDelete, onAddAfter, onFocusPrev, onFocusNext, sectionNumber, onSlash }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
 
@@ -38,6 +38,17 @@ export default function LyricsBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
             onAddAfter(blk.type); // continue same section type
         }
         if (e.key === "Backspace" && ref.current?.innerText.trim() === "") { e.preventDefault(); onDelete(); }
+        if (e.key === "/") {
+            const txt = ref.current?.innerText.trim();
+            if (txt === "") {
+                e.preventDefault();
+                if (onSlash) {
+                    const rect = ref.current?.getBoundingClientRect();
+                    if (rect) onSlash(rect, "");
+                }
+            }
+            return;
+        }
         if (e.key === "ArrowUp") { const s = window.getSelection(); if (s.anchorOffset === 0) { e.preventDefault(); onFocusPrev(); } }
         if (e.key === "ArrowDown") { const s = window.getSelection(); if (s.anchorOffset === (ref.current?.innerText.length || 0)) { e.preventDefault(); onFocusNext(); } }
     };

@@ -322,14 +322,14 @@ export default function NoteBlock({
         <div style={wrapperStyle} {...dragProps} {...hoverProps}>
             {contextMenuEl}
             <BlockHandle hov={hov} t={t} dragHandleProps={dragHandleProps} />
-            <ScriptBlock blk={blk} idx={idx} t={t} onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter} onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} sectionNumber={sectionNumber} />
+            <ScriptBlock blk={blk} idx={idx} t={t} onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter} onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} sectionNumber={sectionNumber} onSlash={openSlashMenu} />
         </div>
     );
     if (LYRICS_TYPES.has(blk.type)) return (
         <div style={wrapperStyle} {...dragProps} {...hoverProps}>
             {contextMenuEl}
             <BlockHandle hov={hov} t={t} dragHandleProps={dragHandleProps} />
-            <LyricsBlock blk={blk} idx={idx} t={t} onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter} onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} sectionNumber={sectionNumber} />
+            <LyricsBlock blk={blk} idx={idx} t={t} onUpdate={onUpdate} onDelete={onDelete} onAddAfter={onAddAfter} onFocusPrev={onFocusPrev} onFocusNext={onFocusNext} sectionNumber={sectionNumber} onSlash={openSlashMenu} />
         </div>
     );
 
@@ -480,7 +480,7 @@ export default function NoteBlock({
                 data-ph={blk.type === "p" && !focused ? "" : placeholder}
                 onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                 onFocus={handleFocus} onBlur={handleBlur}
-                style={{ ...st, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10 }} />
+                style={{ ...st, color: writingMode ? "var(--doc-color, inherit)" : st.color, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10 }} />
             {showPreview && !dismissedUrls.includes("all") && (
                 <LinkPreview content={blk.content} t={t}
                     onDismiss={url => {

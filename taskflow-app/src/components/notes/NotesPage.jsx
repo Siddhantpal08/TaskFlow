@@ -4,6 +4,7 @@ import { EMOJIS, mkBlock, BLOCK_TYPES, SCRIPT_BLOCK_TYPES, LYRICS_BLOCK_TYPES, S
 import NoteBlock from "./NoteBlock.jsx";
 import SlashMenu from "./SlashMenu.jsx";
 import { notesApi } from "../../api/notes.js";
+import { toastError } from "../ui/Toast.jsx";
 import { io } from "socket.io-client";
 
 // ── Lock Gate ──────────────────────────────────────────────────────────────────
@@ -959,7 +960,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         {/* Writing mode toggles */}
                         <button type="button" onClick={() => {
                             if (writingMode === 'script') {
-                                alert("This document is now a script and cannot be reverted.");
+                                toastError("This document is now a script and cannot be reverted.");
                             } else {
                                 setWritingMode('script');
                             }
@@ -970,7 +971,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </button>
                         <button type="button" onClick={() => {
                             if (writingMode === 'lyrics') {
-                                alert("This document is now a lyrics sheet and cannot be reverted.");
+                                toastError("This document is now a lyrics sheet and cannot be reverted.");
                             } else {
                                 setWritingMode('lyrics');
                             }
@@ -1116,7 +1117,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                         data-ph="Untitled"
                                         onBlur={e => updateNotePage(notePageId, { title: e.target.innerText || "Untitled" })}
                                         onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("blk-0")?.focus(); } }}
-                                        style={{ fontSize: 38, fontWeight: 700, color: t.noteText, lineHeight: 1.2, marginBottom: 20, fontFamily: "'Lora',serif", wordBreak: "break-word", minHeight: 46, cursor: "text" }}>
+                                        style={{ fontSize: 38, fontWeight: 700, color: writingMode ? 'var(--doc-color)' : t.noteText, lineHeight: 1.2, marginBottom: 20, fontFamily: "'Lora',serif", wordBreak: "break-word", minHeight: 46, cursor: "text" }}>
                                         {pg.title}
                                     </div>
 
