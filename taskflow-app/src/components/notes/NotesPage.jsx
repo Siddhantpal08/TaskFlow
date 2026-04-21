@@ -1116,7 +1116,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                                         onFocusNext={() => document.getElementById("blk-" + (idx + 1))?.focus()}
                                                         onPasteHTML={(h, t) => handlePasteHTML(idx, h, t)}
                                                         isDragging={dragFromIdx.current === idx}
-                                                        isDragOver={dragOverIdx === idx}
+                                                        isDragOver={dragOver === idx}
                                                         onDragStart={(i) => { dragFromIdx.current = i; }}
                                                         onDragOver={(i) => setDragOver(i)}
                                                         onDrop={(i) => moveBlk(dragFromIdx.current, i)}
