@@ -117,7 +117,8 @@ function LinkPreview({ content, t, onDismiss }) {
 export default function NoteBlock({
     blk, idx, t, dark, onUpdate, onDelete, onDuplicate, onAddAfter,
     onSlash, onSlashClose, onFocusPrev, onFocusNext, onPasteHTML, olIndex, sectionNumber,
-    onDragStart, onDragOver, onDrop, isDragging, isDragOver, onConvert, onFocusBlock, isSelected
+    onDragStart, onDragOver, onDrop, isDragging, isDragOver, onConvert, onFocusBlock, isSelected,
+    writingMode, docTheme
 }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
@@ -196,8 +197,21 @@ export default function NoteBlock({
             return;
         }
 
+        // Tab to switch script blocks
+        if (e.key === "Tab" && writingMode === 'script') {
+            e.preventDefault();
+            const types = Array.from(SCRIPT_TYPES);
+            const _idx = types.indexOf(blk.type);
+            if (_idx !== -1) {
+                const nextType = types[(_idx + (e.shiftKey ? -1 : 1) + types.length) % types.length];
+                onUpdate({ type: nextType });
+            }
+            return;
+        }
+
         // Slash command
         if (e.key === "/" && blk.type === "p") {
+            if (writingMode) return; // disable slash commands in strict script/lyrics mode
             e.preventDefault();
             openSlashMenu();
             return;

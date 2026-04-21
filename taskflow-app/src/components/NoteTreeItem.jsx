@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { I, IC } from "./ui/Icon.jsx";
 
 export default function NoteTreeItem({ pageId, parentId, pages, expanded, toggleExp, activeId, isNotePage,
-    navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, depth, t }) {
+    navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, updateNotePage, depth, t }) {
 
     const pg = pages[pageId];
     if (!pg) return null;
@@ -13,6 +13,26 @@ export default function NoteTreeItem({ pageId, parentId, pages, expanded, toggle
 
     const [cmPos, setCmPos] = useState(null);
     const [dragOver, setDragOver] = useState(false);
+
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [editName, setEditName] = useState(pg.title || "");
+    const titleRef = useRef();
+
+    useEffect(() => {
+        if (isRenaming) {
+            titleRef.current?.focus();
+            titleRef.current?.select();
+        }
+    }, [isRenaming]);
+
+    const submitRename = () => {
+        setIsRenaming(false);
+        if (editName.trim() && editName !== pg.title) {
+            updateNotePage(pageId, { title: editName });
+        } else {
+            setEditName(pg.title || "");
+        }
+    };
 
     const handleDrop = (e) => {
         e.preventDefault();
@@ -80,12 +100,31 @@ export default function NoteTreeItem({ pageId, parentId, pages, expanded, toggle
                     </svg>
                 </button>
                 <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 5, padding: "4px 4px 4px 2px", minWidth: 0 }}
-                    onClick={() => navigateNote(pageId)}>
+                    onClick={() => { if (!isRenaming) navigateNote(pageId); }}>
                     <span style={{ fontSize: 13, flexShrink: 0 }}>{pg.emoji || "📄"}</span>
-                    <span style={{
-                        fontSize: 12.5, color: isActive ? t.accent : t.t2, fontWeight: isActive ? 600 : 400,
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1
-                    }}>{pg.title || "Untitled"}</span>
+                    {isRenaming ? (
+                        <input
+                            ref={titleRef}
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onBlur={submitRename}
+                            onKeyDown={e => {
+                                if (e.key === "Enter") submitRename();
+                                if (e.key === "Escape") { setIsRenaming(false); setEditName(pg.title || ""); }
+                            }}
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                                flex: 1, fontSize: 12.5, color: t.t1, background: t.inset,
+                                border: `1px solid ${t.accent}`, borderRadius: 4, padding: "2px 4px", outline: "none",
+                                fontFamily: t.disp, minWidth: 0
+                            }}
+                        />
+                    ) : (
+                        <span style={{
+                            fontSize: 12.5, color: isActive ? t.accent : t.t2, fontWeight: isActive ? 600 : 400,
+                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1
+                        }}>{pg.title || "Untitled"}</span>
+                    )}
                 </div>
                 <div className="nsa" style={{ display: "flex", opacity: 0, transition: "opacity .15s", gap: 1, paddingRight: 4, flexShrink: 0 }}>
                     <button onClick={e => { e.stopPropagation(); addNotePage(pageId); }}
@@ -107,7 +146,7 @@ export default function NoteTreeItem({ pageId, parentId, pages, expanded, toggle
                     toggleExp={toggleExp} activeId={activeId} isNotePage={isNotePage}
                     navigateNote={navigateNote} addNotePage={addNotePage}
                     deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage}
-                    reorderNotePage={reorderNotePage} depth={depth + 1} t={t} />
+                    reorderNotePage={reorderNotePage} updateNotePage={updateNotePage} depth={depth + 1} t={t} />
             ))}
 
             {cmPos && createPortal(
@@ -127,6 +166,17 @@ export default function NoteTreeItem({ pageId, parentId, pages, expanded, toggle
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
                         📑 Duplicate Page
+                    </button>
+                    <button onClick={() => { setIsRenaming(true); setCmPos(null); }}
+                        style={{
+                            display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                            borderRadius: 6, border: "none", background: "transparent",
+                            color: t.t1, fontSize: 13, fontFamily: t.disp, cursor: "pointer", textAlign: "left"
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = t.accentDim}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                        ✏️ Rename
                     </button>
                     {depth > 0 && (
                         <button onClick={() => { deleteNotePage(pageId); setCmPos(null); }}

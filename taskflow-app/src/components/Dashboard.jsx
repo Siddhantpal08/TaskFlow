@@ -63,7 +63,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                     </div>
                 </div>
                 <div style={{ fontFamily: t.mono, fontSize: 10, color: t.t3, textAlign: "right", lineHeight: 2 }}>
-                    <div style={{ color: t.accent }}>TaskFlow v1.0</div>
+                    <div style={{ color: t.accent }}>TaskFlow v2.0</div>
                 </div>
             </div>
 

@@ -38,12 +38,12 @@ export default function AssignModal({ t, onClose }) {
     };
 
     return (
-        <>
-            <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 40, backdropFilter: "blur(3px)" }} />
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.6)", backdropFilter: "blur(3px)" }} />
             <div className="popIn" style={{
-                position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+                position: "relative",
                 width: 440, maxHeight: "90vh", display: "flex", flexDirection: "column",
-                zIndex: 50, background: t.surf, border: `1px solid ${t.border}`, borderRadius: 16,
+                zIndex: 51, background: t.surf, border: `1px solid ${t.border}`, borderRadius: 16,
                 boxShadow: "0 32px 70px #00000066", overflow: "hidden"
             }}>
                 <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -105,6 +105,6 @@ export default function AssignModal({ t, onClose }) {
                     </button>
                 </div>
             </div>
-        </>
+        </div>
     );
 }

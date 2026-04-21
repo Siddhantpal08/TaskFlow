@@ -47,10 +47,10 @@ export default function LyricsBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
     const isBridge = blk.type === "bridge";
     const isMuted = blk.type === "outro";
 
-    const textColor = isMuted ? t.noteMuted
+    const textColor = "var(--doc-color, " + (isMuted ? t.noteMuted
         : isChorus ? t.noteText
             : isBridge ? t.noteSubText
-                : t.noteSubText;
+                : t.noteSubText) + ")";
 
     const borderColor = isChorus ? t.accent
         : isBridge ? t.blue || t.accent

@@ -330,7 +330,7 @@ function MainApp() {
             <style>{FONTS}{themeCss}</style>
             {/* Hidden watermark DOM element */}
             <div aria-hidden="true" style={{ position: "absolute", opacity: 0, pointerEvents: "none", userSelect: "none", zIndex: -1, fontSize: 0 }}>
-                Created and owned by Siddhant Pal. TaskFlow v1.0. All rights reserved 2025-2026.
+                Created and owned by Siddhant Pal. TaskFlow v2.0. All rights reserved 2025-2026.
             </div>
             <TopLoader active={pageLoading} color={t.accent} />
             <ToastProvider t={t}>
@@ -342,6 +342,7 @@ function MainApp() {
                         notePageId={notePageId} navigateNote={navigateNote}
                         addNotePage={addNotePage} deleteNotePage={deleteNotePage}
                         duplicateNotePage={duplicateNotePage} reorderNotePage={reorderNotePage}
+                        updateNotePage={updateNotePage}
                         className="sidebar-desktop" />
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>

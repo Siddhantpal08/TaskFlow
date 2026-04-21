@@ -73,8 +73,7 @@ function LockGate({ notePageId, t, onUnlock }) {
                             border: `1.5px solid ${error ? t.red : t.border}`,
                             background: t.inset, color: t.t1,
                             fontSize: 22, outline: "none",
-                            fontFamily: t.mono, width: 200, textAlign: "center",
-                            letterSpacing: "6px",
+                            fontFamily: t.mono, width: 200, textAlign: "center"
                         }}
                     />
                     {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
@@ -99,8 +98,7 @@ function LockGate({ notePageId, t, onUnlock }) {
                                     border: `1.5px solid ${error ? t.red : t.border}`,
                                     background: t.inset, color: t.t1,
                                     fontSize: 22, outline: "none",
-                                    fontFamily: t.mono, width: 200, textAlign: "center",
-                                    letterSpacing: "8px",
+                                    fontFamily: t.mono, width: 200, textAlign: "center"
                                 }}
                             />
                             {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
@@ -153,7 +151,7 @@ function SetLockModal({ notePageId, t, onClose }) {
             <input type={show ? "text" : "password"} maxLength={12} placeholder={placeholder}
                 value={value} onChange={onChange}
                 onKeyDown={e => e.key === "Enter" && handleSet()}
-                style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: show ? "2px" : "6px", fontFamily: t.mono, width: "100%" }} />
+                style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", fontFamily: t.mono, width: "100%" }} />
             <button onClick={() => setShow(p => !p)}
                 style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.t3 }}>
                 {show ? "🙈" : "👁"}
@@ -239,6 +237,19 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     }, []);
 
     useEffect(() => { latestBlocksRef.current = blocks; }, [blocks]);
+
+    const initializedMode = useRef(false);
+    useEffect(() => {
+        if (!initializedMode.current && blocks.length > 0) {
+            if (blocks.some(b => SCRIPT_TYPES.has(b.type))) {
+                setWritingMode('script');
+                initializedMode.current = true;
+            } else if (blocks.some(b => LYRICS_TYPES.has(b.type))) {
+                setWritingMode('lyrics');
+                initializedMode.current = true;
+            }
+        }
+    }, [blocks]);
 
     // ── History helpers ───────────────────────────────────────────────────────
     const pushHistory = () => {
@@ -948,11 +959,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         {/* Writing mode toggles */}
                         <button type="button" onClick={() => {
                             if (writingMode === 'script') {
-                                if (blocks.some(b => SCRIPT_TYPES.has(b.type))) {
-                                    alert("This document contains script blocks and cannot be reverted back to a standard note.");
-                                    return;
-                                }
-                                setWritingMode(null);
+                                alert("This document is now a script and cannot be reverted.");
                             } else {
                                 setWritingMode('script');
                             }
@@ -963,11 +970,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </button>
                         <button type="button" onClick={() => {
                             if (writingMode === 'lyrics') {
-                                if (blocks.some(b => LYRICS_TYPES.has(b.type))) {
-                                    alert("This document contains lyrics blocks and cannot be reverted back to a standard note.");
-                                    return;
-                                }
-                                setWritingMode(null);
+                                alert("This document is now a lyrics sheet and cannot be reverted.");
                             } else {
                                 setWritingMode('lyrics');
                             }
@@ -1144,6 +1147,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                             return (
                                                 <div id={`blk-wrapper-${idx}`} key={blk.id}>
                                                     <NoteBlock blk={blk} idx={idx} t={t} dark={dark}
+                                                        writingMode={writingMode} docTheme={docTheme}
                                                         olIndex={olIndex} sectionNumber={sectionNumber} isSelected={selectedBlockIds.has(blk.id)}
                                                         onUpdate={ch => { updBlk(idx, ch); activeBlkIdxRef.current = idx; }}
                                                         onFocusBlock={i => activeBlkIdxRef.current = i}
@@ -1197,21 +1201,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                             </div>
                                         </div>
                                     )}
-
-                                    {/* Add sub-page CTA */}
-                                    <button type="button" onClick={() => addNotePage(notePageId)}
-                                        style={{
-                                            marginTop: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                                            padding: "18px 24px", borderRadius: 12, border: "none", cursor: "pointer",
-                                            background: `linear-gradient(135deg, ${t.accent}22, ${t.blue || '#0072FF'}22)`,
-                                            color: t.accent, fontSize: 15, fontWeight: 700, fontFamily: t.disp, width: "100%",
-                                            transition: "all .2s", boxShadow: t.shadow
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = t.accentGlow; }}
-                                        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = t.shadow; }}>
-                                        <I d={IC.plus} sz={18} c="currentColor" sw={2.5} />
-                                        Create New Note Inside "{pg.title || "this page"}"
-                                    </button>
                                 </div>
                             </div>
                         </div>

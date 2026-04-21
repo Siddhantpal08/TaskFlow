@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { I, IC } from "./ui/Icon.jsx";
+import { Av } from "./ui/Av.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { teamApi } from '../api/team.js';
@@ -155,8 +156,8 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
                     return (
                         <div key={u.id} className="hvrC" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 18, textAlign: "center", boxShadow: t.shadow, transition: "all .2s" }}>
                             <div style={{ display: "flex", justifyContent: "center", marginBottom: 11 }}>
-                                <div style={{ width: 48, height: 48, borderRadius: '50%', background: `linear-gradient(135deg, ${t.accent}40, #0072FF40)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: t.accent, border: isMe ? `2px solid ${t.accent}` : 'none' }}>
-                                    {u.avatar_initials}
+                                <div style={{ padding: isMe ? 2 : 0, borderRadius: '50%', border: isMe ? `2px solid ${t.accent}` : '2px solid transparent', display: 'inline-flex' }}>
+                                    <Av u={{ ...u, avatar: u.avatar || u.avatarUrl || u.avatar_url, initials: u.avatar_initials || u.initials || u.name?.slice(0, 2) }} sz={46} />
                                 </div>
                             </div>
                             <div style={{ fontSize: 13.5, fontWeight: 700, color: t.t1 }}>{u.name}</div>

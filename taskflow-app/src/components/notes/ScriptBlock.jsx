@@ -93,10 +93,10 @@ export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
         if (e.key === "ArrowDown") { const s = window.getSelection(); if (s.anchorOffset === (ref.current?.innerText.length || 0)) { e.preventDefault(); onFocusNext(); } }
     };
 
-    const textColor = blk.type === "scene-heading" ? t.accent
+    const textColor = "var(--doc-color, " + (blk.type === "scene-heading" ? t.accent
         : blk.type === "transition" ? t.t2
             : blk.type === "parenthetical" ? t.noteMuted
-                : t.noteText;
+                : t.noteText) + ")";
 
     return (
         <div style={{ position: "relative", margin: "2px 0" }}

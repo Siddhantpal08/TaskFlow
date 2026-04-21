@@ -33,6 +33,7 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     const [form, setForm] = useState({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '', assigned_to: task.assigned_to, status: task.status });
     const [delegateTo, setDelegateTo] = useState('');
     const [saving, setSaving] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
     const isCreator = user?.id === task.assigned_by || amIAdmin;
@@ -76,15 +77,21 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     };
 
     // ── Delete ──────────────────────────────────────────────────────────────────
-    const handleDelete = async () => {
+    const handleDeleteClick = () => {
         if (!isCreator && task.status !== 'done') return toastError('Only the creator can delete this task unless it is done.');
-        if (!window.confirm('Delete this task?')) return;
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
         try {
+            setSaving(true);
             await deleteTask(task.id);
             toastSuccess('Task deleted.');
             onClose();
         } catch (e) {
             toastError(e.message || 'Failed to delete task.');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -255,13 +262,32 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                         )}
 
                         {canEdit && (
-                            <button onClick={handleDelete} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red }}>
+                            <button onClick={handleDeleteClick} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red }}>
                                 Delete Task
                             </button>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Custom Delete Modal Overlay */}
+            {showDeleteModal && (
+                <div onClick={() => setShowDeleteModal(false)} style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div onClick={e => e.stopPropagation()} className="popIn" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: 24, width: 320, boxShadow: t.shadow, textAlign: 'center' }}>
+                        <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, marginBottom: 8 }}>Delete Task?</div>
+                        <div style={{ fontSize: 13, color: t.t3, marginBottom: 20, lineHeight: 1.5 }}>
+                            Are you sure you want to delete <span style={{ color: t.accent }}>"{task.title}"</span>? This action cannot be undone.
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => setShowDeleteModal(false)} style={{ flex: 1, background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>Cancel</button>
+                            <button onClick={handleConfirmDelete} disabled={saving} style={{ flex: 1, background: t.red, border: 'none', borderRadius: 8, padding: '9px', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                {saving ? "Deleting..." : "Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
