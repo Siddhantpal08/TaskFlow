@@ -309,6 +309,17 @@ function MainApp() {
         notesApi.updatePage(id, changes).catch(() => { });
     };
 
+    const reorderNotePage = (parentId, orderedIds) => {
+        setPages(prev => {
+            if (!prev[parentId]) return prev;
+            return {
+                ...prev,
+                [parentId]: { ...prev[parentId], childIds: orderedIds }
+            };
+        });
+        notesApi.reorderPages(parentId, orderedIds).catch(console.error);
+    };
+
     const navigateNote = id => {
         setNotePageIdWithPersist(id);
         setPageWithPersist("notes");
@@ -330,7 +341,7 @@ function MainApp() {
                         pages={pages} expanded={expanded} setExpanded={setExpanded}
                         notePageId={notePageId} navigateNote={navigateNote}
                         addNotePage={addNotePage} deleteNotePage={deleteNotePage}
-                        duplicateNotePage={duplicateNotePage}
+                        duplicateNotePage={duplicateNotePage} reorderNotePage={reorderNotePage}
                         className="sidebar-desktop" />
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>

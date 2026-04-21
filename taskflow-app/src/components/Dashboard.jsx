@@ -50,7 +50,12 @@ export default function Dashboard({ t, setPage, setTask }) {
             }}>
                 <div>
                     <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.5px", color: t.t1 }}>
-                        Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {firstName} 👋
+                        Good {(() => {
+                            const hr = new Date().getHours();
+                            if (hr >= 5 && hr < 12) return 'morning';
+                            if (hr >= 12 && hr < 17) return 'afternoon';
+                            return 'evening';
+                        })()}, {firstName} 👋
                     </div>
                     <div style={{ fontSize: 13, color: t.t2, marginTop: 3 }}>
                         <span style={{ color: t.red, fontWeight: 600 }}>{dueSoon} tasks due soon</span>

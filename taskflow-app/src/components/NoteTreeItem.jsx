@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { I, IC } from "./ui/Icon.jsx";
 
-export default function NoteTreeItem({ pageId, pages, expanded, toggleExp, activeId, isNotePage,
-    navigateNote, addNotePage, deleteNotePage, duplicateNotePage, depth, t }) {
+export default function NoteTreeItem({ pageId, parentId, pages, expanded, toggleExp, activeId, isNotePage,
+    navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, depth, t }) {
 
     const pg = pages[pageId];
     if (!pg) return null;
@@ -12,6 +12,28 @@ export default function NoteTreeItem({ pageId, pages, expanded, toggleExp, activ
     const hasKids = pg.childIds?.length > 0;
 
     const [cmPos, setCmPos] = useState(null);
+    const [dragOver, setDragOver] = useState(false);
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const sourceId = e.dataTransfer.getData('sourceId');
+        const srcParent = e.dataTransfer.getData('parentId');
+        if (srcParent !== parentId || !parentId) return;
+        if (sourceId === pageId) return;
+
+        const parentPage = pages[parentId];
+        if (!parentPage) return;
+        const oldChildren = [...parentPage.childIds];
+        const srcIdx = oldChildren.indexOf(sourceId);
+        const targetIdx = oldChildren.indexOf(pageId);
+        if (srcIdx === -1 || targetIdx === -1) return;
+
+        oldChildren.splice(srcIdx, 1);
+        const insertIdx = targetIdx;
+        oldChildren.splice(insertIdx, 0, sourceId);
+        reorderNotePage(parentId, oldChildren);
+    };
 
     const handleContextMenu = (e) => {
         e.preventDefault();
@@ -28,11 +50,22 @@ export default function NoteTreeItem({ pageId, pages, expanded, toggleExp, activ
     return (
         <div>
             <div className="nsi"
+                draggable
+                onDragStart={e => {
+                    e.dataTransfer.setData('sourceId', pageId);
+                    e.dataTransfer.setData('parentId', parentId);
+                }}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
                 onContextMenu={handleContextMenu}
                 style={{
                     display: "flex", alignItems: "center", borderRadius: 7,
                     cursor: "pointer", background: isActive ? t.noteActive : "transparent",
-                    marginBottom: 1, transition: "background .12s", paddingLeft: depth * 14
+                    marginBottom: 1, paddingLeft: depth * 14,
+                    borderTop: dragOver ? `2px solid ${t.accent}` : "2px solid transparent",
+                    borderBottom: "2px solid transparent",
+                    transition: "background .12s",
                 }}>
                 <button onClick={e => toggleExp(pageId, e)}
                     style={{
@@ -70,10 +103,11 @@ export default function NoteTreeItem({ pageId, pages, expanded, toggleExp, activ
                 </div>
             </div>
             {isExp && hasKids && pg.childIds.map(cid => (
-                <NoteTreeItem key={cid} pageId={cid} pages={pages} expanded={expanded}
+                <NoteTreeItem key={cid} pageId={cid} parentId={pageId} pages={pages} expanded={expanded}
                     toggleExp={toggleExp} activeId={activeId} isNotePage={isNotePage}
                     navigateNote={navigateNote} addNotePage={addNotePage}
-                    deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage} depth={depth + 1} t={t} />
+                    deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage}
+                    reorderNotePage={reorderNotePage} depth={depth + 1} t={t} />
             ))}
 
             {cmPos && createPortal(

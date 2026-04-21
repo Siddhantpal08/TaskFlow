@@ -167,6 +167,10 @@ export function DataProvider({ children }) {
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     };
 
+    const clearAllNotif = () => {
+        setNotifications([]);
+    };
+
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
     return (
@@ -175,7 +179,7 @@ export function DataProvider({ children }) {
             loading, unreadCount, refreshTeams,
             createTask, updateTaskStatus, updateTask, delegateTask, deleteTask,
             createEvent, deleteEvent, fetchEventsForMonth,
-            markNotifRead, markAllNotifRead,
+            markNotifRead, markAllNotifRead, clearAllNotif,
         }}>
             {children}
         </DataContext.Provider>

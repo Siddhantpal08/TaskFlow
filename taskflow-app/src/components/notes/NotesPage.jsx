@@ -74,7 +74,7 @@ function LockGate({ notePageId, t, onUnlock }) {
                             background: t.inset, color: t.t1,
                             fontSize: 22, outline: "none",
                             fontFamily: t.mono, width: 200, textAlign: "center",
-                            letterSpacing: "6px", textIndent: "6px",
+                            letterSpacing: "6px",
                         }}
                     />
                     {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
@@ -100,7 +100,7 @@ function LockGate({ notePageId, t, onUnlock }) {
                                     background: t.inset, color: t.t1,
                                     fontSize: 22, outline: "none",
                                     fontFamily: t.mono, width: 200, textAlign: "center",
-                                    letterSpacing: "8px", textIndent: "8px",
+                                    letterSpacing: "8px",
                                 }}
                             />
                             {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
@@ -153,7 +153,7 @@ function SetLockModal({ notePageId, t, onClose }) {
             <input type={show ? "text" : "password"} maxLength={12} placeholder={placeholder}
                 value={value} onChange={onChange}
                 onKeyDown={e => e.key === "Enter" && handleSet()}
-                style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: show ? "2px" : "6px", textIndent: show ? "2px" : "6px", fontFamily: t.mono, width: "100%" }} />
+                style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", letterSpacing: show ? "2px" : "6px", fontFamily: t.mono, width: "100%" }} />
             <button onClick={() => setShow(p => !p)}
                 style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.t3 }}>
                 {show ? "🙈" : "👁"}
@@ -774,8 +774,45 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     return curr;
                 });
             }
+            // Bulk Copy (Ctrl+C)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedBlockIds.size > 0 && !e.target.closest('[contenteditable]') && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                setBlocks(p => {
+                    const toCopy = p.filter(x => selectedBlockIds.has(x.id)).map(x => x.content).join('\n');
+                    navigator.clipboard.writeText(toCopy);
+                    return p;
+                });
+            }
+
+            // Bulk Duplicate (Ctrl+D)
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D') && selectedBlockIds.size > 0 && !e.target.closest('[contenteditable]') && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                setBlocks(p => {
+                    const st = [...p];
+                    const newBlocks = [];
+                    st.forEach(b => {
+                        if (selectedBlockIds.has(b.id)) {
+                            const clone = { ...b, id: crypto.randomUUID() };
+                            newBlocks.push(clone);
+                            if (socketRef.current?.readyState === WebSocket.OPEN) {
+                                socketRef.current.send(JSON.stringify({ type: 'create', block: clone }));
+                            }
+                        }
+                    });
+                    // Insert duplicates after the last selected block
+                    const lastIdx = [...p].findLastIndex(x => selectedBlockIds.has(x.id));
+                    if (lastIdx !== -1) {
+                        st.splice(lastIdx + 1, 0, ...newBlocks);
+                    }
+                    setTimeout(() => setSelectedBlockIds(new Set()), 0);
+                    return st;
+                });
+            }
+
             // Ctrl+A (Select All)
             if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                // IMPORTANT: Ensure it actually cancels default Ctrl+A if the user is not focused on an input/editable field.
+                if (e.target.closest('[contenteditable]') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
                 e.preventDefault();
                 setBlocks(p => {
                     setSelectedBlockIds(new Set(p.map(x => x.id)));
@@ -951,7 +988,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 <button type="button" onClick={toggleDocFont}
                                     title="Toggle Typewriter Font"
                                     style={{ display: "flex", alignItems: "center", padding: "4px 8px", borderRadius: 6, border: `1px solid ${useTypewriter ? t.accent : t.border}`, background: useTypewriter ? t.accentDim : "transparent", cursor: "pointer", color: useTypewriter ? t.accent : t.t2, fontSize: 11, fontFamily: useTypewriter ? "'Courier', monospace" : t.disp, transition: "all .15s" }}>
-                                    Courier
+                                    Typewriter Font
                                 </button>
                                 <button type="button" onClick={() => window.print()}
                                     title="Export to PDF"
@@ -1045,7 +1082,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                     border: writingMode ? `1px solid ${docTheme === 'light' ? '#DDDDDD' : '#333333'}` : "none",
                                     fontFamily: writingMode && useTypewriter ? "'Courier New', Courier, monospace" : (writingMode ? t.disp : undefined),
                                     transition: "background .3s ease, color .3s ease",
-                                    '--doc-font': writingMode && useTypewriter ? "'Courier New', Courier, monospace" : (writingMode ? t.disp : undefined)
+                                    '--doc-font': writingMode && useTypewriter ? "'Courier New', Courier, monospace" : (writingMode ? t.disp : undefined),
+                                    '--doc-color': writingMode ? (docTheme === 'light' ? '#000000' : '#E2EFFF') : undefined
                                 }}>
                                     {/* Emoji picker */}
                                     <div style={{ position: "relative", display: "inline-block", marginBottom: 6 }}>
@@ -1079,21 +1117,23 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                         {pg.title}
                                     </div>
 
-                                    {/* Meta */}
-                                    <div style={{ display: "flex", gap: 20, marginBottom: 28, paddingBottom: 18, borderBottom: `1px solid ${t.noteBorder}` }}>
-                                        {[
-                                            ["Created", pg.updatedAt],
-                                            ["Words", wordCount.toLocaleString()],
-                                            ["Read", readMins + " min"],
-                                            ["Blocks", blocks.length + " blocks"],
-                                            ["Sub-pages", (pg.childIds?.length || 0) + " pages"]
-                                        ].map(([l, v]) => (
-                                            <div key={l}>
-                                                <div style={{ fontSize: 9.5, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2, fontFamily: t.mono }}>{l}</div>
-                                                <div style={{ fontSize: 12, color: t.noteSubText }}>{v}</div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {/* Meta - hide in script mode */}
+                                    {!writingMode && (
+                                        <div style={{ display: "flex", gap: 20, marginBottom: 28, paddingBottom: 18, borderBottom: `1px solid ${t.noteBorder}` }}>
+                                            {[
+                                                ["Created", pg.updatedAt],
+                                                ["Words", wordCount.toLocaleString()],
+                                                ["Read", readMins + " min"],
+                                                ["Blocks", blocks.length + " blocks"],
+                                                ["Sub-pages", (pg.childIds?.length || 0) + " pages"]
+                                            ].map(([l, v]) => (
+                                                <div key={l}>
+                                                    <div style={{ fontSize: 9.5, color: t.noteMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2, fontFamily: t.mono }}>{l}</div>
+                                                    <div style={{ fontSize: 12, color: t.noteSubText }}>{v}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
 
                                     {/* Blocks */}
                                     <div style={{ display: "flex", flexDirection: "column", gap: 1 }}

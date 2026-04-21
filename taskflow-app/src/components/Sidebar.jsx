@@ -5,7 +5,7 @@ import NoteTreeItem from "./NoteTreeItem.jsx";
 import TFLogo from "./ui/TFLogo.jsx";
 
 export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded,
-    notePageId, navigateNote, addNotePage, deleteNotePage, duplicateNotePage, className }) {
+    notePageId, navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, className }) {
     const { user, logout } = useAuth();
     const [width, setWidth] = useState(230);
     const [noteSearch, setNoteSearch] = useState("");
@@ -120,10 +120,11 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                                 </div>
                             ))
                 ) : rootPage?.childIds?.map(id => (
-                    <NoteTreeItem key={id} pageId={id} pages={pages} expanded={expanded}
+                    <NoteTreeItem key={id} pageId={id} parentId="root" pages={pages} expanded={expanded}
                         toggleExp={toggleExp} activeId={notePageId} isNotePage={page === "notes"}
                         navigateNote={navigateNote} addNotePage={addNotePage}
-                        deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage} depth={0} t={t} />
+                        deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage}
+                        reorderNotePage={reorderNotePage} depth={0} t={t} />
                 ))}
             </div>
 

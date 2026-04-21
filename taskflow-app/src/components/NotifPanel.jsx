@@ -13,7 +13,7 @@ function timeAgo(iso) {
 }
 
 export default function NotifPanel({ t, onClose }) {
-    const { notifications, markNotifRead, markAllNotifRead } = useData();
+    const { notifications, markNotifRead, markAllNotifRead, clearAllNotif } = useData();
 
     return (
         <>
@@ -49,9 +49,12 @@ export default function NotifPanel({ t, onClose }) {
                     ))}
                 </div>
 
-                <div style={{ padding: "10px 15px", textAlign: "center" }}>
+                <div style={{ padding: "10px 15px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <button onClick={markAllNotifRead} style={{ background: "none", border: "none", cursor: "pointer", color: t.accent, fontSize: 12, fontWeight: 600, fontFamily: t.disp }}>
                         Mark all as read
+                    </button>
+                    <button onClick={clearAllNotif} style={{ background: "none", border: "none", cursor: "pointer", color: t.red, fontSize: 12, fontWeight: 600, fontFamily: t.disp }}>
+                        Clear all
                     </button>
                 </div>
             </div>
