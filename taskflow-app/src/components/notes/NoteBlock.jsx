@@ -118,7 +118,7 @@ export default function NoteBlock({
     blk, idx, t, dark, onUpdate, onDelete, onDuplicate, onAddAfter,
     onSlash, onSlashClose, onFocusPrev, onFocusNext, onPasteHTML, olIndex, sectionNumber,
     onDragStart, onDragOver, onDrop, isDragging, isDragOver, onConvert, onFocusBlock, isSelected,
-    writingMode, docTheme
+    writingMode, docTheme, onSelect
 }) {
     const ref = useRef();
     const [hov, setHov] = useState(false);
@@ -129,7 +129,8 @@ export default function NoteBlock({
     // drag-from-handle only
     const isDraggingFromHandle = useRef(false);
 
-    // Sync content from external state into DOM — only when NOT focused
+    // Sync content from external state into DOM — only on block ID change (mount) or
+    // when the block is NOT focused (e.g. remote socket update)
     useEffect(() => {
         if (!ref.current) return;
         if (document.activeElement === ref.current) return; // never overwrite while user is typing
@@ -139,7 +140,7 @@ export default function NoteBlock({
             ref.current.innerHTML = want;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [blk.id, blk.type]); // only re-sync when block identity or type changes, NOT on every content update
+    }, [blk.id]); // Only sync on ID change (mount/new block), NOT on type changes
 
     // Focus management: populate on first mount
     useEffect(() => {

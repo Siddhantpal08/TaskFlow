@@ -240,12 +240,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     useEffect(() => { latestBlocksRef.current = blocks; }, [blocks]);
 
+    // Auto-detect mode from block types only when no localStorage mode is set
     const initializedMode = useRef(false);
     useEffect(() => {
         if (!initializedMode.current && blocks.length > 0) {
             const wm = localStorage.getItem(`tf_wm_${notePageId}`);
             if (wm) {
-                setWritingMode(wm);
+                // Already set by page-load effect — just mark initialized
                 initializedMode.current = true;
             } else if (blocks.some(b => SCRIPT_TYPES.has(b.type))) {
                 setWritingMode('script');
@@ -255,6 +256,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 setWritingMode('lyrics');
                 localStorage.setItem(`tf_wm_${notePageId}`, 'lyrics');
                 initializedMode.current = true;
+            } else {
+                initializedMode.current = true; // normal page, no mode
             }
         }
     }, [blocks, notePageId]);
@@ -365,13 +368,16 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     useEffect(() => {
         historyRef.current = [];
         futureRef.current = [];
+        setBlocks([]);
         setCanUndo(false);
         setCanRedo(false);
         setSlash(null);
         setLoading(true);
         setUnlocked(false);
-        setWritingMode(localStorage.getItem(`tf_wm_${notePageId}`) || null);
-        initializedMode.current = false;
+        // Restore writing mode for this page immediately from localStorage
+        const savedMode = localStorage.getItem(`tf_wm_${notePageId}`) || null;
+        setWritingMode(savedMode);
+        initializedMode.current = true; // skip auto-detect if we already have a stored mode
         let active = true;
 
         notesApi.getPage(notePageId).then(res => {
@@ -656,19 +662,15 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const nb = [...blocks];
         // Always CONVERT the current block if it's empty, or INSERT after if not
         const currentContent = nb[slash.idx].content;
-        if (currentContent.trim() === "") {
+        if (!currentContent || currentContent.trim() === "" || currentContent === "<br>") {
             // Convert in place (don't add new block)
-            nb[slash.idx] = { ...nb[slash.idx], type, content: "" };
-            save(nb);
             updBlk(slash.idx, { type, content: "" });
             setSlash(null);
             setTimeout(() => document.getElementById("blk-" + slash.idx)?.focus(), 30);
         } else {
             // Insert a new block after with the chosen type
-            const b = mkBlock(type, ""); nb.splice(slash.idx + 1, 0, b); save(nb);
-            socketRef.current?.emit('note:block:add', { pageId: notePageId, block: b, afterIdx: slash.idx });
+            addBlk(slash.idx, type, "");
             setSlash(null);
-            setTimeout(() => document.getElementById("blk-" + (slash.idx + 1))?.focus(), 30);
         }
     };
 
@@ -1198,7 +1200,21 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                             const olIndex = blk.type === 'ol' ? getOlIndex(blocks, idx) : 0;
                                             const sectionNumber = getSectionNumber(blocks, idx);
                                             return (
-                                                <div id={`blk-wrapper-${idx}`} key={blk.id}>
+                                                <div id={`blk-wrapper-${idx}`} key={blk.id}
+                                                    onClick={e => {
+                                                        if (e.shiftKey) {
+                                                            e.preventDefault();
+                                                            setSelectedBlockIds(prev => {
+                                                                const next = new Set(prev);
+                                                                if (next.has(blk.id)) next.delete(blk.id);
+                                                                else next.add(blk.id);
+                                                                return next;
+                                                            });
+                                                        } else if (!e.target.closest('[contenteditable]')) {
+                                                            setSelectedBlockIds(new Set());
+                                                        }
+                                                    }}
+                                                >
                                                     <NoteBlock blk={blk} idx={idx} t={t} dark={dark}
                                                         writingMode={writingMode} docTheme={docTheme}
                                                         olIndex={olIndex} sectionNumber={sectionNumber} isSelected={selectedBlockIds.has(blk.id)}
@@ -1211,20 +1227,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                                         onSlashClose={() => setSlash(null)}
                                                         onFocusPrev={() => document.getElementById("blk-" + (idx - 1))?.focus()}
                                                         onFocusNext={() => document.getElementById("blk-" + (idx + 1))?.focus()}
-                                                        onPasteHTML={(h, t) => handlePasteHTML(idx, h, t)}
+                                                        onPasteHTML={(h, txt) => handlePasteHTML(h, txt, idx)}
                                                         isDragging={dragFromIdx.current === idx}
                                                         isDragOver={dragOver === idx}
                                                         onDragStart={(i) => { dragFromIdx.current = i; }}
                                                         onDragOver={(i) => setDragOver(i)}
                                                         onDrop={(i) => moveBlk(dragFromIdx.current, i)}
-                                                        onConvert={type => {
-                                                            const nb = [...blocks]; nb[idx] = { ...nb[idx], type };
-                                                            if (socketRef.current?.readyState === WebSocket.OPEN) {
-                                                                socketRef.current.send(JSON.stringify({ type: 'update', block: nb[idx] }));
-                                                            }
-                                                            setBlocks(nb);
-                                                            setTimeout(() => document.getElementById("blk-" + idx)?.focus(), 30);
-                                                        }}
+                                                        onConvert={type => convertBlk(idx, type)}
                                                     />
                                                 </div>
                                             );
