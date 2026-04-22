@@ -239,8 +239,11 @@ export default function NoteBlock({
 
         // Backspace on empty block = delete block
         if (e.key === "Backspace" && (ref.current?.innerText || "").trim() === "") {
-            e.preventDefault();
-            onDelete();
+            const html = ref.current?.innerHTML || "";
+            if (html === "" || html === "<br>") {
+                e.preventDefault();
+                onDelete();
+            }
         }
         if (e.key === "ArrowUp") {
             const sel = window.getSelection();
@@ -254,7 +257,9 @@ export default function NoteBlock({
     };
 
     const handleInput = e => {
-        onUpdate({ content: e.currentTarget.innerHTML || "" });
+        let val = e.currentTarget.innerHTML || "";
+        if (val === "<br>") val = "";
+        onUpdate({ content: val });
         onSlashClose();
     };
 

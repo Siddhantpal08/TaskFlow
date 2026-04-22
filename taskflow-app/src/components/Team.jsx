@@ -157,7 +157,7 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
                         <div key={u.id} className="hvrC" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 18, textAlign: "center", boxShadow: t.shadow, transition: "all .2s" }}>
                             <div style={{ display: "flex", justifyContent: "center", marginBottom: 11 }}>
                                 <div style={{ padding: isMe ? 2 : 0, borderRadius: '50%', border: isMe ? `2px solid ${t.accent}` : '2px solid transparent', display: 'inline-flex' }}>
-                                    <Av u={{ ...u, av: u.avatar_initials || u.initials || u.name?.slice(0, 2), color: t.accent }} sz={46} />
+                                    <Av u={{ ...u, av: u.avatar_initials || u.initials || u.name?.slice(0, 2), color: t.accent, avatar_url: u.avatar_url }} sz={46} />
                                 </div>
                             </div>
                             <div style={{ fontSize: 13.5, fontWeight: 700, color: t.t1 }}>{u.name}</div>

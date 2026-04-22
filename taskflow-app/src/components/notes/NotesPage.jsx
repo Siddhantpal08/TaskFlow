@@ -194,6 +194,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [slash, setSlash] = useState(null);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [writingMode, setWritingMode] = useState(null); // null | 'script' | 'lyrics'
+    const [saveStatus, setSaveStatus] = useState("saved"); // 'saving' | 'saved'
     const [docTheme, setDocTheme] = useState(() => localStorage.getItem("tf_docTheme") || 'light');
     const [useTypewriter, setUseTypewriter] = useState(() => localStorage.getItem("tf_docFont") === 'true');
     const [zoom, setZoom] = useState(100);
@@ -242,15 +243,45 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const initializedMode = useRef(false);
     useEffect(() => {
         if (!initializedMode.current && blocks.length > 0) {
-            if (blocks.some(b => SCRIPT_TYPES.has(b.type))) {
+            const wm = localStorage.getItem(`tf_wm_${notePageId}`);
+            if (wm) {
+                setWritingMode(wm);
+                initializedMode.current = true;
+            } else if (blocks.some(b => SCRIPT_TYPES.has(b.type))) {
                 setWritingMode('script');
+                localStorage.setItem(`tf_wm_${notePageId}`, 'script');
                 initializedMode.current = true;
             } else if (blocks.some(b => LYRICS_TYPES.has(b.type))) {
                 setWritingMode('lyrics');
+                localStorage.setItem(`tf_wm_${notePageId}`, 'lyrics');
                 initializedMode.current = true;
             }
         }
-    }, [blocks]);
+    }, [blocks, notePageId]);
+
+    const handleSaveNow = useCallback(() => {
+        setSaveStatus("saving");
+        const currentBlocks = latestBlocksRef.current;
+        const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+        const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('tf_token')}`, 'Content-Type': 'application/json' };
+        Object.keys(debounceTimers.current).forEach(blkId => {
+            const timer = debounceTimers.current[blkId];
+            if (timer) {
+                clearTimeout(timer);
+                delete debounceTimers.current[blkId];
+                const blkToFlush = currentBlocks.find(b => b.id === blkId);
+                if (blkToFlush) {
+                    if (blkId.toString().startsWith("loc-")) {
+                        const idx = currentBlocks.findIndex(b => b.id === blkId);
+                        fetch(`${BASE}/notes/pages/${notePageId}/blocks`, { method: 'POST', headers: authHeader, body: JSON.stringify({ type: blkToFlush.type, content: blkToFlush.content, position: idx, indent: blkToFlush.indent || 0 }), keepalive: true }).catch(() => { });
+                    } else {
+                        fetch(`${BASE}/notes/blocks/${blkId}`, { method: 'PUT', headers: authHeader, body: JSON.stringify({ content: blkToFlush.content, checked: blkToFlush.checked, type: blkToFlush.type, indent: blkToFlush.indent || 0 }), keepalive: true }).catch(() => { });
+                    }
+                }
+            }
+        });
+        setTimeout(() => setSaveStatus("saved"), 300);
+    }, [notePageId]);
 
     // ── History helpers ───────────────────────────────────────────────────────
     const pushHistory = () => {
@@ -339,6 +370,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         setSlash(null);
         setLoading(true);
         setUnlocked(false);
+        setWritingMode(localStorage.getItem(`tf_wm_${notePageId}`) || null);
+        initializedMode.current = false;
         let active = true;
 
         notesApi.getPage(notePageId).then(res => {
@@ -423,11 +456,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         const newBlk = { ...nb[idx], ...ch };
         nb[idx] = newBlk;
         setBlocks(nb);
+        setSaveStatus("saving");
         socketRef.current?.emit('note:block:update', { pageId: notePageId, blockId: newBlk.id, changes: ch });
         const timerId = newBlk.id;
         if (debounceTimers.current[timerId]) clearTimeout(debounceTimers.current[timerId]);
         debounceTimers.current[timerId] = setTimeout(() => {
             delete debounceTimers.current[timerId];
+            if (Object.keys(debounceTimers.current).length === 0) setSaveStatus("saved");
             // Resolve real ID if this was a loc- block
             const resolvedId = idMapRef.current[newBlk.id] || newBlk.id;
             const latestBlk = latestBlocksRef.current.find(b => b.id === resolvedId || b.id === newBlk.id) || newBlk;
@@ -716,7 +751,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     };
 
     // ── Word count + reading time ─────────────────────────────────────────────
-    const allText = blocks.map(b => b.content || "").join(" ");
+    const stripHtml = s => s.replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/gi, ' ');
+    const allText = blocks.map(b => stripHtml(b.content || "")).join(" ");
     const wordCount = allText.trim() ? allText.trim().split(/\s+/).length : 0;
     const readMins = Math.max(1, Math.ceil(wordCount / 200));
 
@@ -766,6 +802,10 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     // Global Selection Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                handleSaveNow();
+            }
             if (e.target.closest('[contenteditable]') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             // Bulk Delete
             if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -957,50 +997,33 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 style={{ background: "none", border: "none", color: canRedo ? t.t2 : t.t3, cursor: canRedo ? "pointer" : "default", fontSize: 14, padding: "2px 6px", borderRadius: 5, opacity: canRedo ? 1 : 0.4, transition: "opacity .15s" }}>↪</button>
                         </div>
 
-                        {/* Writing mode toggles */}
-                        <button type="button" onClick={() => {
-                            if (writingMode === 'script') {
-                                toastError("This document is now a script and cannot be reverted.");
-                            } else {
-                                setWritingMode('script');
-                            }
-                        }}
-                            title="Screenplay / Script Mode"
-                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${writingMode === 'script' ? t.accent : t.border}`, background: writingMode === 'script' ? t.accentDim : "transparent", cursor: "pointer", color: writingMode === 'script' ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
-                            📽️ Script
-                        </button>
-                        <button type="button" onClick={() => {
-                            if (writingMode === 'lyrics') {
-                                toastError("This document is now a lyrics sheet and cannot be reverted.");
-                            } else {
-                                setWritingMode('lyrics');
-                            }
-                        }}
-                            title="Song Lyrics Mode"
-                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${writingMode === 'lyrics' ? t.accent : t.border}`, background: writingMode === 'lyrics' ? t.accentDim : "transparent", cursor: "pointer", color: writingMode === 'lyrics' ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
-                            🎵 Lyrics
-                        </button>
+                        {/* Writing mode dropdown */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 6px" }}>
+                            <select
+                                value={writingMode || ""}
+                                onChange={e => {
+                                    const val = e.target.value || null;
+                                    setWritingMode(val);
+                                    if (val) localStorage.setItem(`tf_wm_${notePageId}`, val);
+                                    else localStorage.removeItem(`tf_wm_${notePageId}`);
+                                }}
+                                style={{
+                                    background: "transparent", border: "none", color: writingMode ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, cursor: "pointer", outline: "none",
+                                    padding: "4px 0px"
+                                }}
+                            >
+                                <option value="">📄 Normal Note</option>
+                                <option value="script">📽️ Script Mode</option>
+                                <option value="lyrics">🎵 Lyrics Mode</option>
+                            </select>
+                        </div>
 
-                        {/* Document tools */}
-                        {writingMode && (
-                            <div style={{ display: "flex", alignItems: "center", gap: 3, paddingLeft: 4, marginLeft: 4, borderLeft: `1px solid ${t.border}` }}>
-                                <button type="button" onClick={toggleDocTheme}
-                                    title="Toggle Light/Dark Page"
-                                    style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px 6px", borderRadius: 6, border: `1px solid ${t.border}`, background: docTheme === 'light' ? '#fff' : '#1e1e1e', cursor: "pointer", color: docTheme === 'light' ? '#000' : '#fff', fontSize: 13, transition: "all .15s" }}>
-                                    {docTheme === 'light' ? '🌙' : '☀️'}
-                                </button>
-                                <button type="button" onClick={toggleDocFont}
-                                    title="Toggle Typewriter Font"
-                                    style={{ display: "flex", alignItems: "center", padding: "4px 8px", borderRadius: 6, border: `1px solid ${useTypewriter ? t.accent : t.border}`, background: useTypewriter ? t.accentDim : "transparent", cursor: "pointer", color: useTypewriter ? t.accent : t.t2, fontSize: 11, fontFamily: useTypewriter ? "'Courier', monospace" : t.disp, transition: "all .15s" }}>
-                                    Typewriter Font
-                                </button>
-                                <button type="button" onClick={() => window.print()}
-                                    title="Export to PDF"
-                                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s" }}>
-                                    ⬇️ Export PDF
-                                </button>
-                            </div>
-                        )}
+                        <button type="button" onClick={handleSaveNow} disabled={saveStatus === "saving"}
+                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${saveStatus === "saving" ? t.accent : t.border}`, background: saveStatus === "saving" ? t.accentDim : "transparent", cursor: "pointer", color: saveStatus === "saving" ? t.accent : t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                            onMouseEnter={e => { if (saveStatus !== "saving") e.currentTarget.style.background = t.noteHover; }}
+                            onMouseLeave={e => { if (saveStatus !== "saving") e.currentTarget.style.background = "transparent"; }}>
+                            {saveStatus === "saving" ? "Saving..." : "✓ Saved"}
+                        </button>
 
                         {/* Zoom controls */}
                         <div style={{ display: "flex", alignItems: "center", gap: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 4px" }}>
@@ -1042,6 +1065,35 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </button>
                     </div>
                 </div>
+
+                {/* StudioBinder-style toolbar for writing modes */}
+                {writingMode && (
+                    <div style={{ display: "flex", alignItems: "center", padding: "8px 28px", borderBottom: `1px solid ${t.border}`, background: t.nav, gap: 12, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                            {writingMode === 'script' ? SCRIPT_BLOCK_TYPES.map(b => (
+                                <button type="button" key={b.type} disabled style={{ padding: "4px 10px", background: t.inset, border: `1px solid ${t.border}`, color: t.t2, borderRadius: 6, fontSize: 11, fontFamily: t.mono, fontWeight: 700, opacity: 0.7 }}>{b.label}</button>
+                            )) : LYRICS_BLOCK_TYPES.map(b => (
+                                <button type="button" key={b.type} disabled style={{ padding: "4px 10px", background: t.inset, border: `1px solid ${t.border}`, color: t.t2, borderRadius: 6, fontSize: 11, fontFamily: t.mono, fontWeight: 700, opacity: 0.7 }}>{b.label}</button>
+                            ))}
+                        </div>
+                        <div style={{ width: 1, height: 16, background: t.border, margin: "0 2px" }} />
+                        <button type="button" onClick={toggleDocTheme}
+                            title="Toggle Light/Dark Page"
+                            style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.border}`, background: docTheme === 'light' ? '#fff' : '#1e1e1e', cursor: "pointer", color: docTheme === 'light' ? '#000' : '#fff', fontSize: 11, transition: "all .15s", fontFamily: t.disp, fontWeight: 600 }}>
+                            {docTheme === 'light' ? '🌙 Dark Theme' : '☀️ Light Theme'}
+                        </button>
+                        <button type="button" onClick={toggleDocFont}
+                            title="Toggle Typewriter Font"
+                            style={{ display: "flex", alignItems: "center", padding: "4px 8px", borderRadius: 6, border: `1px solid ${useTypewriter ? t.accent : t.border}`, background: useTypewriter ? t.accentDim : "transparent", cursor: "pointer", color: useTypewriter ? t.accent : t.t2, fontSize: 11, fontFamily: useTypewriter ? "'Courier', monospace" : t.disp, transition: "all .15s", fontWeight: 600 }}>
+                            Typewriter Font
+                        </button>
+                        <button type="button" onClick={() => window.print()}
+                            title="Export to PDF"
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s", fontWeight: 600 }}>
+                            ⬇️ Export PDF
+                        </button>
+                    </div>
+                )}
 
                 {/* Lock gate or content */}
                 {isNowLocked ? (
