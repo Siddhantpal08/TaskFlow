@@ -185,6 +185,84 @@ function SetLockModal({ notePageId, t, onClose }) {
     );
 }
 
+// ── Share Modal ─────────────────────────────────────────────────────────────────
+function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
+    const [shareUrl, setShareUrl] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await notesApi.shareNote(notePageId);
+                if (!cancelled) setShareUrl(res.data.data.shareUrl);
+            } catch (e) {
+                if (!cancelled) setError(e.response?.data?.message || 'Failed to generate link.');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [notePageId]);
+
+    const handleCopy = () => {
+        if (!shareUrl) return;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+        });
+    };
+
+    const totalNotes = subNoteCount + 1;
+
+    return (
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: '#00000077', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 18, padding: '30px 32px', width: 430, boxShadow: t.shadow, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+                    <div style={{ fontSize: 32 }}>{pg.emoji || '📄'}</div>
+                    <div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: t.t1, fontFamily: t.disp }}>{pg.title || 'Untitled'}</div>
+                        <div style={{ fontSize: 11, color: t.t3, fontFamily: t.mono, marginTop: 2 }}>TaskFlow · Share Note</div>
+                    </div>
+                    <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: t.t3, fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>×</button>
+                </div>
+
+                <div style={{ height: 1, background: t.border }} />
+
+                {/* Description */}
+                <div style={{ fontSize: 13, color: t.t2, fontFamily: t.disp, lineHeight: 1.6 }}>
+                    This note {totalNotes > 1 ? `and its ${totalNotes - 1} sub-note${totalNotes - 1 !== 1 ? 's' : ''} (${totalNotes} total)` : ''} will be <strong>copied</strong> into your friend's TaskFlow workspace when they accept the link.
+                    <span style={{ color: t.t3, fontSize: 11, display: 'block', marginTop: 5 }}>Your original note is never affected by what your friend does with their copy.</span>
+                </div>
+
+                {/* Link area */}
+                {loading && (
+                    <div style={{ textAlign: 'center', color: t.t3, fontSize: 12, fontFamily: t.mono, padding: '8px 0' }}>Generating secure link…</div>
+                )}
+                {error && (
+                    <div style={{ color: t.red, fontSize: 12, fontFamily: t.disp }}>{error}</div>
+                )}
+                {shareUrl && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input readOnly value={shareUrl}
+                            style={{ flex: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 12px', color: t.t2, fontSize: 11, fontFamily: t.mono, outline: 'none' }}
+                            onFocus={e => e.target.select()} />
+                        <button onClick={handleCopy}
+                            style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: copied ? '#22c55e' : t.accent, color: '#000', fontWeight: 700, fontFamily: t.disp, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s', flexShrink: 0 }}>
+                            {copied ? '✓ Copied!' : 'Copy Link'}
+                        </button>
+                    </div>
+                )}
+
+                <div style={{ fontSize: 10.5, color: t.t3, fontFamily: t.mono, textAlign: 'center' }}>Link expires in 72 hours</div>
+            </div>
+        </div>
+    );
+}
+
 export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage }) {
     const pg = pages[notePageId];
     if (!pg) return null;
@@ -193,7 +271,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [loading, setLoading] = useState(true);
     const [slash, setSlash] = useState(null);
     const [emojiOpen, setEmojiOpen] = useState(false);
-    const [writingMode, setWritingMode] = useState(null); // null | 'script' | 'lyrics'
+    const [writingMode, setWritingMode] = useState(pg.writing_mode || null);
     const [saveStatus, setSaveStatus] = useState("saved"); // 'saving' | 'saved'
     const [docTheme, setDocTheme] = useState(() => localStorage.getItem("tf_docTheme") || 'light');
     const [useTypewriter, setUseTypewriter] = useState(() => localStorage.getItem("tf_docFont") === 'true');
@@ -203,6 +281,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const toggleDocFont = () => { const nv = !useTypewriter; setUseTypewriter(nv); localStorage.setItem("tf_docFont", nv.toString()); };
     const [isListening, setIsListening] = useState(false);
     const [showLockModal, setShowLockModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [unlocked, setUnlocked] = useState(false);
     const [selectedBlockIds, setSelectedBlockIds] = useState(new Set());
     const [dragBox, setDragBox] = useState(null); // { x1, y1, x2, y2 }
@@ -214,6 +293,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const speechRef = useRef(null);
     const activeBlkIdxRef = useRef(0);
     const listeningRef = useRef(false);
+    const initializedMode = useRef(false); // kept for compatibility, not used for logic
     // drag-and-drop
     const dragFromIdx = useRef(null);
     const [dragOver, setDragOver] = useState(null);
@@ -240,27 +320,14 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     useEffect(() => { latestBlocksRef.current = blocks; }, [blocks]);
 
-    // Auto-detect mode from block types only when no localStorage mode is set
-    const initializedMode = useRef(false);
+    // Sync writing mode when navigating to a different note page
     useEffect(() => {
-        if (!initializedMode.current && blocks.length > 0) {
-            const wm = localStorage.getItem(`tf_wm_${notePageId}`);
-            if (wm) {
-                // Already set by page-load effect — just mark initialized
-                initializedMode.current = true;
-            } else if (blocks.some(b => SCRIPT_TYPES.has(b.type))) {
-                setWritingMode('script');
-                localStorage.setItem(`tf_wm_${notePageId}`, 'script');
-                initializedMode.current = true;
-            } else if (blocks.some(b => LYRICS_TYPES.has(b.type))) {
-                setWritingMode('lyrics');
-                localStorage.setItem(`tf_wm_${notePageId}`, 'lyrics');
-                initializedMode.current = true;
-            } else {
-                initializedMode.current = true; // normal page, no mode
-            }
-        }
-    }, [blocks, notePageId]);
+        const fromDb = pg.writing_mode || null;
+        const fromStorage = localStorage.getItem(`tf_wm_${notePageId}`);
+        // DB is authoritative; fall back to localStorage for legacy notes
+        const resolved = fromDb || fromStorage || null;
+        setWritingMode(resolved);
+    }, [notePageId, pg.writing_mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSaveNow = useCallback(() => {
         setSaveStatus("saving");
@@ -374,10 +441,10 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         setSlash(null);
         setLoading(true);
         setUnlocked(false);
-        // Restore writing mode for this page immediately from localStorage
-        const savedMode = localStorage.getItem(`tf_wm_${notePageId}`) || null;
-        setWritingMode(savedMode);
-        initializedMode.current = true; // skip auto-detect if we already have a stored mode
+        // Restore writing mode — DB is source of truth, localStorage is fallback
+        const fromDb = pg.writing_mode || null;
+        const fromStorage = localStorage.getItem(`tf_wm_${notePageId}`) || null;
+        setWritingMode(fromDb || fromStorage || null);
         let active = true;
 
         notesApi.getPage(notePageId).then(res => {
@@ -938,12 +1005,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         window.addEventListener('mouseup', onUp);
     };
 
-    const shareNote = () => {
-        const ids = getAllDescendantIds(notePageId);
-        const url = `${window.location.origin}?note=${notePageId}`;
-        navigator.clipboard.writeText(url);
-        alert(`Link copied! This note (and ${ids.length - 1} sub-note${ids.length !== 2 ? 's' : ''}) will be accessible via the shared link.`);
-    };
+    const openShareModal = () => setShowShareModal(true);
 
     // Skeleton loading
     if (loading) return (
@@ -1006,8 +1068,10 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 onChange={e => {
                                     const val = e.target.value || null;
                                     setWritingMode(val);
+                                    // Persist to localStorage (immediate) + DB (durable)
                                     if (val) localStorage.setItem(`tf_wm_${notePageId}`, val);
                                     else localStorage.removeItem(`tf_wm_${notePageId}`);
+                                    notesApi.setWritingMode(notePageId, val).catch(() => {});
                                 }}
                                 style={{
                                     background: "transparent", border: "none", color: writingMode ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, cursor: "pointer", outline: "none",
@@ -1053,7 +1117,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         )}
 
                         {/* Share */}
-                        <button type="button" onClick={shareNote}
+                        <button type="button" onClick={openShareModal}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -1072,10 +1136,14 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 {writingMode && (
                     <div style={{ display: "flex", alignItems: "center", padding: "8px 28px", borderBottom: `1px solid ${t.border}`, background: t.nav, gap: 12, flexWrap: "wrap" }}>
                         <div style={{ display: "flex", gap: 6 }}>
-                            {writingMode === 'script' ? SCRIPT_BLOCK_TYPES.map(b => (
-                                <button type="button" key={b.type} disabled style={{ padding: "4px 10px", background: t.inset, border: `1px solid ${t.border}`, color: t.t2, borderRadius: 6, fontSize: 11, fontFamily: t.mono, fontWeight: 700, opacity: 0.7 }}>{b.label}</button>
-                            )) : LYRICS_BLOCK_TYPES.map(b => (
-                                <button type="button" key={b.type} disabled style={{ padding: "4px 10px", background: t.inset, border: `1px solid ${t.border}`, color: t.t2, borderRadius: 6, fontSize: 11, fontFamily: t.mono, fontWeight: 700, opacity: 0.7 }}>{b.label}</button>
+                            {(writingMode === 'script' ? SCRIPT_BLOCK_TYPES : LYRICS_BLOCK_TYPES).map(b => (
+                                <button type="button" key={b.type}
+                                    onClick={() => addBlk(blocks.length - 1, b.type)}
+                                    title={`Insert ${b.label}`}
+                                    style={{ padding: "4px 10px", background: t.inset, border: `1px solid ${t.border}`, color: t.t2, borderRadius: 6, fontSize: 11, fontFamily: t.mono, fontWeight: 700, cursor: 'pointer', transition: 'all .12s' }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = t.accent + '22'; e.currentTarget.style.borderColor = t.accent + '66'; e.currentTarget.style.color = t.accent; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = t.inset; e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.t2; }}
+                                >{b.label}</button>
                             ))}
                         </div>
                         <div style={{ width: 1, height: 16, background: t.border, margin: "0 2px" }} />
@@ -1275,6 +1343,17 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
             {/* Lock modal */}
             {showLockModal && <SetLockModal notePageId={notePageId} t={t} onClose={() => setShowLockModal(false)} />}
+
+            {/* Share modal */}
+            {showShareModal && (
+                <ShareModal
+                    notePageId={notePageId}
+                    pg={pg}
+                    subNoteCount={(pg.childIds || []).length}
+                    t={t}
+                    onClose={() => setShowShareModal(false)}
+                />
+            )}
         </div>
     );
 }

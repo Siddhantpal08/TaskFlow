@@ -3,7 +3,8 @@ const { authenticate } = require('../middleware/auth');
 const { notesLimiter } = require('../middleware/rateLimiter');
 const { sanitizeBlock } = require('../middleware/sanitize');
 const {
-    getPageTree, createPage, getPage, updatePage, deletePage, duplicatePage, reorderChildren,
+    getPageTree, createPage, getPage, updatePage, setWritingMode, deletePage, duplicatePage, reorderChildren,
+    shareNote, acceptShare,
     createBlock, updateBlock, deleteBlock,
 } = require('../controllers/notesController');
 
@@ -16,9 +17,14 @@ router.get('/pages', getPageTree);
 router.post('/pages', createPage);
 router.get('/pages/:id', getPage);
 router.put('/pages/:id', updatePage);
+router.patch('/pages/:id/mode', setWritingMode);
 router.delete('/pages/:id', deletePage);
 router.post('/pages/:id/duplicate', duplicatePage);
 router.patch('/pages/:id/reorder', reorderChildren);
+
+// Sharing
+router.post('/pages/:id/share', shareNote);
+router.post('/accept-share/:token', acceptShare);
 
 // Block write routes — rate-limited + sanitized
 router.post('/pages/:id/blocks', notesLimiter, sanitizeBlock, createBlock);

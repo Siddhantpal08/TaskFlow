@@ -17,6 +17,10 @@ const updatePageSchema = Joi.object({
     position: Joi.number().integer().min(0).optional(),
 });
 
+const writingModeSchema = Joi.object({
+    mode: Joi.string().valid('script', 'lyrics').allow(null, '').optional(),
+});
+
 const createBlockSchema = Joi.object({
     type: Joi.string().default('p'),
     content: Joi.string().allow('', null).optional(),
@@ -74,6 +78,13 @@ const updatePage = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: page });
 });
 
+/** PATCH /api/v1/notes/pages/:id/mode */
+const setWritingMode = asyncWrapper(async (req, res) => {
+    const data = validateBody(writingModeSchema, req.body);
+    await notesService.setWritingMode(req.params.id, req.user.id, data.mode || null);
+    res.status(200).json({ success: true, message: 'Writing mode updated.' });
+});
+
 /** DELETE /api/v1/notes/pages/:id */
 const deletePage = asyncWrapper(async (req, res) => {
     const result = await notesService.deletePage(req.params.id, req.user.id);
@@ -91,6 +102,18 @@ const reorderChildren = asyncWrapper(async (req, res) => {
     const data = validateBody(reorderSchema, req.body);
     await notesService.reorderChildren(req.params.id, req.user.id, data.orderedIds);
     res.status(200).json({ success: true, message: 'Pages reordered successfully.' });
+});
+
+/** POST /api/v1/notes/pages/:id/share */
+const shareNote = asyncWrapper(async (req, res) => {
+    const result = await notesService.shareNote(req.params.id, req.user.id);
+    res.status(200).json({ success: true, data: result });
+});
+
+/** POST /api/v1/notes/accept-share/:token */
+const acceptShare = asyncWrapper(async (req, res) => {
+    const newPage = await notesService.acceptShare(req.params.token, req.user.id);
+    res.status(201).json({ success: true, data: newPage });
 });
 
 // ─── Block Controllers ────────────────────────────────────────────────────────
@@ -116,6 +139,7 @@ const deleteBlock = asyncWrapper(async (req, res) => {
 });
 
 module.exports = {
-    getPageTree, createPage, getPage, updatePage, deletePage, duplicatePage, reorderChildren,
+    getPageTree, createPage, getPage, updatePage, setWritingMode, deletePage, duplicatePage,
+    reorderChildren, shareNote, acceptShare,
     createBlock, updateBlock, deleteBlock,
 };

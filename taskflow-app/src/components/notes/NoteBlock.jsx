@@ -210,9 +210,8 @@ export default function NoteBlock({
             return;
         }
 
-        // Slash command
-        if (e.key === "/" && blk.type === "p") {
-            if (writingMode) return; // disable slash commands in strict script/lyrics mode
+        // Slash command — works in all modes (menu auto-filters to correct block types)
+        if (e.key === "/" && (blk.type === "p" || !blk.type)) {
             e.preventDefault();
             openSlashMenu();
             return;
