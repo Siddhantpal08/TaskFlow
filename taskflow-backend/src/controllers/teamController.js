@@ -119,4 +119,4 @@ const getDummyHierarchy = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: dummyTree });
 });
 
-module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy };
+module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy, removeMember };
