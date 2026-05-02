@@ -10,7 +10,8 @@ import { teamApi } from '../api/team';
 import { notificationsApi } from '../api/notifications';
 import { friendsApi } from '../api/friends';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
+const BASE_URL = (process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000/api/v1' : 'http://localhost:5000/api/v1'))
+    .replace('/api/v1', ''); // Socket.IO connects to base URL, not /api/v1
 
 const DataContext = createContext();
 
@@ -78,8 +79,8 @@ export const DataProvider = ({ children }) => {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
 
-            // Send both token and userId — backend uses whichever is available
-            socket.current = io(API_URL, {
+            // Socket.IO connects to the base URL (not /api/v1)
+            socket.current = io(BASE_URL, {
                 auth: { token, userId: user.id },
                 transports: ['websocket'],
                 reconnectionDelay: 1000,
@@ -92,7 +93,12 @@ export const DataProvider = ({ children }) => {
                 setOnlineUsers(new Set(users.map(String)));
             });
 
-            socket.current.on('task_created', t => setTasks(p => [t, ...p]));
+            // Backend emits task:assigned and task:updated (colon-separated)
+            socket.current.on('task:assigned', t => setTasks(p => [t, ...p.filter(x => x.id !== t.id)]));
+            socket.current.on('task:updated', t => setTasks(p => p.map(x => x.id === t.id ? t : x)));
+            socket.current.on('task:deleted', id => setTasks(p => p.filter(x => x.id !== id)));
+            // Also support underscore variants for backwards compatibility
+            socket.current.on('task_created', t => setTasks(p => [t, ...p.filter(x => x.id !== t.id)]));
             socket.current.on('task_updated', t => setTasks(p => p.map(x => x.id === t.id ? t : x)));
             socket.current.on('task_deleted', id => setTasks(p => p.filter(x => x.id !== id)));
 

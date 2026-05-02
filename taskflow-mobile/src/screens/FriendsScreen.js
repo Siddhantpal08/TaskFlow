@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-    Alert, Image, ActivityIndicator, RefreshControl
+    Image, ActivityIndicator, RefreshControl, Modal
 } from 'react-native';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -14,41 +14,42 @@ export default function FriendsScreen() {
     const [email, setEmail] = useState('');
     const [sending, setSending] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [delModal, setDelModal] = useState({ visible: false, id: null, name: '' });
+    const [acceptModal, setAcceptModal] = useState({ visible: false, id: null, name: '' });
 
     const handleSendRequest = async () => {
         if (!email.trim()) return;
         setSending(true);
         try {
             await sendFriendRequest(email.trim());
-            Alert.alert('Sent!', 'Friend request sent successfully.');
             setEmail('');
         } catch (e) {
-            Alert.alert('Error', e.message || 'Could not send friend request');
+            console.error(e);
         } finally {
             setSending(false);
         }
     };
 
     const handleAccept = (requestId, name) => {
-        Alert.alert('Accept Request', `Accept friend request from ${name}?`, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Accept', onPress: async () => {
-                    try {
-                        await acceptFriendRequest(requestId);
-                    } catch (e) {
-                        Alert.alert('Error', e.message || 'Could not accept request');
-                    }
-                }
-            },
-        ]);
+        setAcceptModal({ visible: true, id: requestId, name });
+    };
+
+    const confirmAccept = async () => {
+        try {
+            await acceptFriendRequest(acceptModal.id);
+            setAcceptModal({ visible: false, id: null, name: '' });
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const handleRemove = (friendId, name) => {
-        Alert.alert('Remove Friend', `Remove ${name} from your friends?`, [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Remove', style: 'destructive', onPress: () => removeFriend(friendId) },
-        ]);
+        setDelModal({ visible: true, id: friendId, name });
+    };
+
+    const confirmRemove = () => {
+        removeFriend(delModal.id);
+        setDelModal({ visible: false, id: null, name: '' });
     };
 
     const onRefresh = async () => {
@@ -76,7 +77,7 @@ export default function FriendsScreen() {
                     </Text>
                 </View>
             </View>
-            <TouchableOpacity onPress={() => handleRemove(f.id, f.name)} style={s.removeBtn}>
+            <TouchableOpacity onPress={() => handleRemove(f.friendship_id, f.name)} style={s.removeBtn}>
                 <Text style={s.removeTxt}>Remove</Text>
             </TouchableOpacity>
         </View>
@@ -174,6 +175,43 @@ export default function FriendsScreen() {
                     </TouchableOpacity>
                 </View>
             )}
+
+            {/* Custom Delete Modal */}
+            <Modal visible={delModal.visible} animationType="fade" transparent>
+                <View style={s.modalOverlay}>
+                    <View style={s.modalBox}>
+                        <Text style={s.modalTitle}>Remove Friend</Text>
+                        <Text style={s.modalBody}>Are you sure you want to remove {delModal.name}?</Text>
+                        <View style={s.modalBtns}>
+                            <TouchableOpacity style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setDelModal({ visible: false, id: null, name: '' })}>
+                                <Text style={s.modalBtnCancelTxt}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[s.modalBtn, s.modalBtnDanger]} onPress={confirmRemove}>
+                                <Text style={s.modalBtnDangerTxt}>Remove</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Custom Accept Modal */}
+            <Modal visible={acceptModal.visible} animationType="fade" transparent>
+                <View style={s.modalOverlay}>
+                    <View style={s.modalBox}>
+                        <Text style={s.modalTitle}>Accept Request</Text>
+                        <Text style={s.modalBody}>Accept friend request from {acceptModal.name}?</Text>
+                        <View style={s.modalBtns}>
+                            <TouchableOpacity style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setAcceptModal({ visible: false, id: null, name: '' })}>
+                                <Text style={s.modalBtnCancelTxt}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[s.modalBtn, s.modalBtnAccept]} onPress={confirmAccept}>
+                                <Text style={s.modalBtnAcceptTxt}>Accept</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
         </View>
     );
 }
@@ -219,4 +257,16 @@ const s = StyleSheet.create({
     },
     sendBtn: { backgroundColor: t.accent, borderRadius: 12, padding: 14, alignItems: 'center' },
     sendTxt: { color: '#000', fontWeight: '800', fontSize: 15 },
+    modalOverlay: { flex: 1, backgroundColor: '#000000BB', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalBox: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 },
+    modalTitle: { fontSize: 18, fontWeight: '800', color: t.t1, marginBottom: 8 },
+    modalBody: { fontSize: 14, color: t.t3, marginBottom: 24, lineHeight: 20 },
+    modalBtns: { flexDirection: 'row', gap: 12 },
+    modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+    modalBtnCancel: { backgroundColor: t.surf, borderWidth: 1, borderColor: t.border },
+    modalBtnCancelTxt: { color: t.t1, fontWeight: '700', fontSize: 14 },
+    modalBtnDanger: { backgroundColor: t.red + '20', borderWidth: 1, borderColor: t.red + '50' },
+    modalBtnDangerTxt: { color: t.red, fontWeight: '800', fontSize: 14 },
+    modalBtnAccept: { backgroundColor: t.accent, borderWidth: 1, borderColor: t.accent },
+    modalBtnAcceptTxt: { color: '#000', fontWeight: '800', fontSize: 14 },
 });

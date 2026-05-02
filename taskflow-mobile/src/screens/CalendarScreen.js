@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { useData } from '../context/DataContext';
 import { eventsApi } from '../api/events';
@@ -16,6 +16,7 @@ export default function CalendarScreen() {
     const [title, setTitle] = useState('');
     const [time, setTime] = useState('09:00');
     const [adding, setAdding] = useState(false);
+    const [delModal, setDelModal] = useState({ visible: false, id: null, title: '' });
 
     const handleAdd = async () => {
         if (!title) return;
@@ -32,18 +33,16 @@ export default function CalendarScreen() {
     };
 
     const handleDelete = (ev) => {
-        Alert.alert('Delete Event', `Delete "${ev.title}"?`, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete', style: 'destructive', onPress: async () => {
-                    try {
-                        await eventsApi.delete(ev.id);
-                    } catch (e) {
-                        Alert.alert('Error', e.message || 'Could not delete event');
-                    }
-                }
-            },
-        ]);
+        setDelModal({ visible: true, id: ev.id, title: ev.title });
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await eventsApi.delete(delModal.id);
+            setDelModal({ visible: false, id: null, title: '' });
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const today = new Date().toISOString().slice(0, 10);
@@ -126,7 +125,10 @@ export default function CalendarScreen() {
                                 <View style={[s.indicator, { backgroundColor: c }]} />
                                 <View style={{ flex: 1 }}>
                                     <Text style={s.tkTitle}>{ev.title}</Text>
-                                    <Text style={s.tkSub}>{ev.event_time ? ev.event_time.slice(0, 5) : 'All Day'}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                                        <Text style={[s.tkSub, { fontWeight: '700', marginRight: 4 }]}>Time:</Text>
+                                        <Text style={s.tkSub}>{ev.event_time ? ev.event_time.slice(0, 5) : 'All Day'}</Text>
+                                    </View>
                                 </View>
                                 <TouchableOpacity onPress={() => handleDelete(ev)} style={s.delBtn}>
                                     <Text style={s.delTxt}>✕</Text>
@@ -150,6 +152,24 @@ export default function CalendarScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleAdd} disabled={adding} style={[s.btn, { backgroundColor: t.accent }]}>
                                 {adding ? <ActivityIndicator color="#000" /> : <Text style={[s.btnTxt, { color: '#000' }]}>Save Event</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Custom Delete Modal */}
+            <Modal visible={delModal.visible} animationType="fade" transparent>
+                <View style={s.modalOverlay}>
+                    <View style={s.modalBox}>
+                        <Text style={s.modalTitle2}>Delete Event</Text>
+                        <Text style={s.modalBody}>Are you sure you want to delete "{delModal.title}"?</Text>
+                        <View style={s.modalBtns}>
+                            <TouchableOpacity style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setDelModal({ visible: false, id: null, title: '' })}>
+                                <Text style={s.modalBtnCancelTxt}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[s.modalBtn, s.modalBtnDanger]} onPress={confirmDelete}>
+                                <Text style={s.modalBtnDangerTxt}>Delete</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -180,5 +200,15 @@ const s = StyleSheet.create({
     modalTitle: { fontSize: 18, fontWeight: 'bold', color: t.t1, marginBottom: 15 },
     inp: { backgroundColor: t.surf, borderWidth: 1, borderColor: t.border, borderRadius: 10, padding: 14, color: t.t1, marginBottom: 10 },
     btn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8 },
-    btnTxt: { fontWeight: 'bold', fontSize: 14 }
+    btnTxt: { fontWeight: 'bold', fontSize: 14 },
+    modalOverlay: { flex: 1, backgroundColor: '#000000BB', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalBox: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 },
+    modalTitle2: { fontSize: 18, fontWeight: '800', color: t.t1, marginBottom: 8 },
+    modalBody: { fontSize: 14, color: t.t3, marginBottom: 24, lineHeight: 20 },
+    modalBtns: { flexDirection: 'row', gap: 12 },
+    modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+    modalBtnCancel: { backgroundColor: t.surf, borderWidth: 1, borderColor: t.border },
+    modalBtnCancelTxt: { color: t.t1, fontWeight: '700', fontSize: 14 },
+    modalBtnDanger: { backgroundColor: t.red + '20', borderWidth: 1, borderColor: t.red + '50' },
+    modalBtnDangerTxt: { color: t.red, fontWeight: '800', fontSize: 14 },
 });

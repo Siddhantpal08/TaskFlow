@@ -4,6 +4,7 @@ import {
     Alert, Image, TextInput, ActivityIndicator
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../context/DataContext';
 import { DARK as t } from '../data/themes';
 
@@ -135,7 +136,8 @@ export default function ProfileScreen() {
 
             {/* Logout */}
             <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
-                <Text style={s.logoutTxt}>⏻  Logout</Text>
+                <Ionicons name="log-out-outline" size={20} color={t.red} style={{ marginRight: 8 }} />
+                <Text style={s.logoutTxt}>Logout</Text>
             </TouchableOpacity>
         </ScrollView>
     );
@@ -178,8 +180,10 @@ const s = StyleSheet.create({
     infoLabel: { fontSize: 13, color: t.t3, fontWeight: '600' },
     infoValue: { fontSize: 13, color: t.t1, fontWeight: '600' },
     logoutBtn: {
-        backgroundColor: t.red + '20', borderWidth: 1, borderColor: t.red + '40',
-        borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 8,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 16, backgroundColor: t.red + '15',
+        borderWidth: 1, borderColor: t.red + '30', borderRadius: 16,
+        marginBottom: 40,
     },
-    logoutTxt: { color: t.red, fontWeight: '800', fontSize: 15 },
+    logoutTxt: { color: t.red, fontWeight: '800', fontSize: 16 },
 });

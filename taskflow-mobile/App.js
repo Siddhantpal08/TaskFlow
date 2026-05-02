@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { DataProvider, useData } from './src/context/DataContext';
 import { DARK } from './src/data/themes';
+import { Ionicons } from '@expo/vector-icons';
 
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
@@ -46,8 +47,8 @@ function AuthStack() {
   );
 }
 
-function TabIcon({ emoji, focused }) {
-  return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>{emoji}</Text>;
+function TabIcon({ name, focused }) {
+  return <Ionicons name={name} size={24} color={focused ? DARK.accent : DARK.t3} style={{ opacity: focused ? 1 : 0.8 }} />;
 }
 
 // Notification bell shown in header of each screen
@@ -59,7 +60,7 @@ function NotifBell() {
       onPress={() => navigation.navigate('_Notifications')}
       style={{ marginRight: 16, position: 'relative' }}
     >
-      <Text style={{ fontSize: 22 }}>🔔</Text>
+      <Ionicons name="notifications" size={24} color={DARK.t1} />
       {unreadCount > 0 && (
         <View style={{
           position: 'absolute', top: -3, right: -4,
@@ -81,7 +82,7 @@ function FriendsTabIcon({ focused }) {
   const count = friendRequests?.length || 0;
   return (
     <View>
-      <TabIcon emoji="🤝" focused={focused} />
+      <TabIcon name="people" focused={focused} />
       {count > 0 && (
         <View style={{
           position: 'absolute', top: -2, right: -4,
@@ -131,28 +132,28 @@ function MainTabs() {
         component={DashboardScreen}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Tasks"
         component={TasksScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="✅" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="checkmark-circle" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Calendar"
         component={CalendarScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📅" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="calendar" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Notes"
         component={NotesListScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📝" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="document-text" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -166,7 +167,7 @@ function MainTabs() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="person" focused={focused} />,
         }}
       />
     </Tab.Navigator>

@@ -88,7 +88,12 @@ const googleLogin = asyncWrapper(async (req, res, next) => {
     try {
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: [
+                process.env.GOOGLE_CLIENT_ID,
+                '491185646983-vthvdtat2avpv0o95vaf157rhbok9if8.apps.googleusercontent.com', // New Web Client
+                '491185646983-nl4uhet9nirkmgu664p7l1hr4dk933hn.apps.googleusercontent.com', // New Android Client
+                '491185646983-sprdq04cfjcfq3mphq97a09qmhomobcj.apps.googleusercontent.com'  // Old Web Client
+            ].filter(Boolean),
         });
         const payload = ticket.getPayload();
         const { email, name, sub: google_id, picture: avatar_url, email_verified } = payload;

@@ -4,6 +4,7 @@ import {
     TextInput, Alert, ActivityIndicator, KeyboardAvoidingView,
     Platform, Modal, FlatList
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { notesApi } from '../api/notes';
 import { DARK as t } from '../data/themes';
 
@@ -40,6 +41,10 @@ export default function NoteEditorScreen({ route, navigation }) {
     const [showTypePicker, setShowTypePicker] = useState(false);
     const [activeBlockId, setActiveBlockId] = useState(null);
     const [showSubPages, setShowSubPages] = useState(false);
+    
+    // Custom modals
+    const [delModal, setDelModal] = useState({ visible: false, blockId: null });
+    const [subPageModal, setSubPageModal] = useState({ visible: false, title: '' });
 
     const inputRefs = useRef({});
     const scrollRef = useRef(null);
@@ -120,24 +125,29 @@ export default function NoteEditorScreen({ route, navigation }) {
     };
 
     const createSubPage = async () => {
-        Alert.prompt('New Sub-page', 'Enter a title:', async (title) => {
-            if (!title?.trim()) return;
-            try {
-                await notesApi.createPage({ title: title.trim(), emoji: '📄', parentId: page.id });
-                if (onBack) onBack(); // trigger parent refresh
-                Alert.alert('Created!', `Sub-page "${title}" created. Go back to refresh.`);
-            } catch (e) { Alert.alert('Error', e.message); }
-        });
+        setSubPageModal({ visible: true, title: '' });
+    };
+
+    const confirmCreateSubPage = async () => {
+        if (!subPageModal.title?.trim()) {
+            setSubPageModal({ visible: false, title: '' });
+            return;
+        }
+        try {
+            await notesApi.createPage({ title: subPageModal.title.trim(), emoji: '', parentId: page.id });
+            if (onBack) onBack(); // trigger parent refresh
+            setSubPageModal({ visible: false, title: '' });
+        } catch (e) { 
+            console.error(e);
+            setSubPageModal({ visible: false, title: '' });
+        }
     };
 
     const renderBlock = (block, index) => {
         if (block.type === 'divider') {
             return (
                 <TouchableOpacity key={block.id} onLongPress={() => {
-                    Alert.alert('Delete Divider', '', [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Delete', style: 'destructive', onPress: () => deleteBlock(block.id) }
-                    ]);
+                    setDelModal({ visible: true, blockId: block.id });
                 }}>
                     <View style={s.divider} />
                 </TouchableOpacity>
@@ -185,10 +195,7 @@ export default function NoteEditorScreen({ route, navigation }) {
                     }
                     placeholderTextColor={t.t3}
                     onLongPress={() => {
-                        Alert.alert('Block options', undefined, [
-                            { text: 'Delete block', style: 'destructive', onPress: () => deleteBlock(block.id) },
-                            { text: 'Cancel', style: 'cancel' },
-                        ]);
+                        setDelModal({ visible: true, blockId: block.id });
                     }}
                 />
             </View>
@@ -215,7 +222,10 @@ export default function NoteEditorScreen({ route, navigation }) {
                     {saving && <ActivityIndicator color={t.accent} size="small" style={{ marginRight: 8 }} />}
                     {subPages.length > 0 && (
                         <TouchableOpacity onPress={() => setShowSubPages(true)} style={s.subPagesBtn}>
-                            <Text style={s.subPagesBtnTxt}>📄 {subPages.length}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Ionicons name="document-text" size={14} color={t.accent} />
+                                <Text style={s.subPagesBtnTxt}>{subPages.length}</Text>
+                            </View>
                         </TouchableOpacity>
                     )}
                     <TouchableOpacity onPress={createSubPage} style={s.iconBtn}>
@@ -243,7 +253,10 @@ export default function NoteEditorScreen({ route, navigation }) {
                     {/* Sub-pages inline bar */}
                     {subPages.length > 0 && (
                         <TouchableOpacity onPress={() => setShowSubPages(true)} style={s.subPagesBar}>
-                            <Text style={s.subPagesBtnTxt}>📂 {subPages.length} sub-page{subPages.length > 1 ? 's' : ''} →</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="folder" size={16} color={t.accent} />
+                                <Text style={s.subPagesBtnTxt}>{subPages.length} sub-page{subPages.length > 1 ? 's' : ''} →</Text>
+                            </View>
                         </TouchableOpacity>
                     )}
 
@@ -300,7 +313,7 @@ export default function NoteEditorScreen({ route, navigation }) {
                                             });
                                         }}
                                     >
-                                        <Text style={{ fontSize: 20 }}>{item.emoji || '📄'}</Text>
+                                        <Ionicons name="document-text" size={20} color={t.accent} />
                                         <Text style={s.subPageTitle}>{item.title || 'Untitled'}</Text>
                                         <Text style={{ color: t.t3, fontSize: 18 }}>›</Text>
                                     </TouchableOpacity>
@@ -312,6 +325,53 @@ export default function NoteEditorScreen({ route, navigation }) {
                         </View>
                     </View>
                 </Modal>
+
+                {/* Custom Delete Modal */}
+                <Modal visible={delModal.visible} animationType="fade" transparent>
+                    <View style={s.modalOverlay}>
+                        <View style={s.modalBox}>
+                            <Text style={s.modalTitle2}>Delete Block</Text>
+                            <Text style={s.modalBody}>Are you sure you want to delete this block?</Text>
+                            <View style={s.modalBtns}>
+                                <TouchableOpacity style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setDelModal({ visible: false, blockId: null })}>
+                                    <Text style={s.modalBtnCancelTxt}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[s.modalBtn, s.modalBtnDanger]} onPress={() => {
+                                    deleteBlock(delModal.blockId);
+                                    setDelModal({ visible: false, blockId: null });
+                                }}>
+                                    <Text style={s.modalBtnDangerTxt}>Delete</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Custom Sub-page Modal */}
+                <Modal visible={subPageModal.visible} animationType="fade" transparent>
+                    <View style={s.modalOverlay}>
+                        <View style={s.modalBox}>
+                            <Text style={s.modalTitle2}>New Sub-page</Text>
+                            <TextInput 
+                                style={s.modalInp} 
+                                placeholder="Enter a title" 
+                                placeholderTextColor={t.t3} 
+                                value={subPageModal.title} 
+                                onChangeText={(val) => setSubPageModal(prev => ({ ...prev, title: val }))}
+                                autoFocus
+                            />
+                            <View style={s.modalBtns}>
+                                <TouchableOpacity style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setSubPageModal({ visible: false, title: '' })}>
+                                    <Text style={s.modalBtnCancelTxt}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[s.modalBtn, s.modalBtnAccept]} onPress={confirmCreateSubPage}>
+                                    <Text style={s.modalBtnAcceptTxt}>Create</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+
             </View>
         </KeyboardAvoidingView>
     );
@@ -380,4 +440,17 @@ const s = StyleSheet.create({
         borderRadius: 10, padding: 14, marginBottom: 8,
     },
     subPageTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: t.t1 },
+    modalOverlay: { flex: 1, backgroundColor: '#000000BB', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalBox: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 },
+    modalTitle2: { fontSize: 18, fontWeight: '800', color: t.t1, marginBottom: 8 },
+    modalBody: { fontSize: 14, color: t.t3, marginBottom: 24, lineHeight: 20 },
+    modalInp: { backgroundColor: t.surf, borderWidth: 1, borderColor: t.border, borderRadius: 12, padding: 14, color: t.t1, fontSize: 16, marginBottom: 24 },
+    modalBtns: { flexDirection: 'row', gap: 12 },
+    modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+    modalBtnCancel: { backgroundColor: t.surf, borderWidth: 1, borderColor: t.border },
+    modalBtnCancelTxt: { color: t.t1, fontWeight: '700', fontSize: 14 },
+    modalBtnDanger: { backgroundColor: t.red + '20', borderWidth: 1, borderColor: t.red + '50' },
+    modalBtnDangerTxt: { color: t.red, fontWeight: '800', fontSize: 14 },
+    modalBtnAccept: { backgroundColor: t.accent, borderWidth: 1, borderColor: t.accent },
+    modalBtnAcceptTxt: { color: '#000', fontWeight: '800', fontSize: 14 },
 });

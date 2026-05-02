@@ -3,6 +3,7 @@ import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
     Modal, TextInput, Alert, ActivityIndicator, RefreshControl
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { notesApi } from '../api/notes';
 import { DARK as t } from '../data/themes';
 
@@ -36,6 +37,7 @@ export default function NotesListScreen({ navigation }) {
     const [showCreate, setShowCreate] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [creating, setCreating] = useState(false);
+    const [delModal, setDelModal] = useState({ visible: false, id: null, title: '' });
     const [expanded, setExpanded] = useState({});
 
     const loadPages = useCallback(async () => {
@@ -62,7 +64,7 @@ export default function NotesListScreen({ navigation }) {
         if (!newTitle.trim()) return;
         setCreating(true);
         try {
-            await notesApi.createPage({ title: newTitle.trim(), emoji: '📄' });
+            await notesApi.createPage({ title: newTitle.trim(), emoji: '' });
             setShowCreate(false);
             setNewTitle('');
             await loadPages();
@@ -74,19 +76,17 @@ export default function NotesListScreen({ navigation }) {
     };
 
     const handleDelete = (id, title) => {
-        Alert.alert('Delete Note', `Delete "${title}"?`, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete', style: 'destructive', onPress: async () => {
-                    try {
-                        await notesApi.deletePage(id);
-                        setPages(p => p.filter(pg => pg.id !== id));
-                    } catch (e) {
-                        Alert.alert('Error', e.message || 'Delete failed');
-                    }
-                }
-            }
-        ]);
+        setDelModal({ visible: true, id, title });
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await notesApi.deletePage(delModal.id);
+            setDelModal({ visible: false, id: null, title: '' });
+            loadPages();
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const handleView = (page) => {
@@ -101,33 +101,7 @@ export default function NotesListScreen({ navigation }) {
         setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const renderBlock = (blk) => {
-        const txt = blk.content || '';
-        if (!txt && blk.type !== 'divider') return null;
-        const isBig = ['h1', 'h2', 'h3'].includes(blk.type);
-        const isCode = blk.type === 'code';
-        const isTodo = blk.type === 'todo';
-        const isQuote = blk.type === 'quote';
-        const isDivider = blk.type === 'divider';
-        return (
-            <View key={blk.id} style={[s.blkRow, isQuote && s.quoteBlk, isCode && s.codeBlk]}>
-                {isTodo && (
-                    <View style={[s.checkbox, blk.checked && s.checkboxDone]}>
-                        {blk.checked ? <Text style={{ color: t.green, fontSize: 9 }}>✓</Text> : null}
-                    </View>
-                )}
-                {isDivider
-                    ? <View style={{ flex: 1, height: 1, backgroundColor: t.border, marginVertical: 4 }} />
-                    : <Text style={[
-                        s.blkTxt,
-                        isBig && { fontSize: blk.type === 'h1' ? 22 : blk.type === 'h2' ? 18 : 15, fontWeight: '800' },
-                        isCode && { fontFamily: 'monospace', fontSize: 12, color: t.green },
-                        isQuote && { color: t.t3, fontStyle: 'italic' },
-                    ]}>{txt}</Text>
-                }
-            </View>
-        );
-    };
+
 
     // Build tree structure for the list
     const tree = buildTree(pages);
@@ -146,7 +120,7 @@ export default function NotesListScreen({ navigation }) {
                     <View style={[s.cardAccent, { backgroundColor: depth === 0 ? t.accent : t.purple || '#B083FF' }]} />
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text style={{ fontSize: depth === 0 ? 20 : 16 }}>{page.emoji || '📄'}</Text>
+                            <Ionicons name="document-text" size={depth === 0 ? 20 : 16} color={t.accent} />
                             <Text style={[s.cardTitle, depth > 0 && { fontSize: 14 }]} numberOfLines={1}>
                                 {page.title || 'Untitled'}
                             </Text>
@@ -178,7 +152,10 @@ export default function NotesListScreen({ navigation }) {
             {/* Header */}
             <View style={s.header}>
                 <View>
-                    <Text style={s.headerTitle}>📝 My Notes</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Ionicons name="book" size={18} color={t.t1} />
+                        <Text style={s.headerTitle}>My Notes</Text>
+                    </View>
                     <Text style={s.headerSub}>{pages.length} note{pages.length !== 1 ? 's' : ''} · Long-press to delete</Text>
                 </View>
                 <TouchableOpacity style={s.addBtn} onPress={() => setShowCreate(true)}>
@@ -195,7 +172,7 @@ export default function NotesListScreen({ navigation }) {
                 ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
                 ListEmptyComponent={
                     <View style={s.empty}>
-                        <Text style={{ fontSize: 54, marginBottom: 12 }}>📝</Text>
+                        <Ionicons name="documents-outline" size={54} color={t.t3} style={{ marginBottom: 12 }} />
                         <Text style={s.emptyTxt}>No notes yet</Text>
                         <Text style={s.emptySub}>Tap "+ New" to create your first note.</Text>
                     </View>
@@ -227,32 +204,21 @@ export default function NotesListScreen({ navigation }) {
                 </View>
             </Modal>
 
-            {/* Note Viewer */}
-            <Modal visible={!!viewPage} animationType="slide" onRequestClose={() => setViewPage(null)}>
-                <View style={s.viewerContainer}>
-                    <View style={s.viewerHeader}>
-                        <TouchableOpacity onPress={() => setViewPage(null)} style={s.backBtn}>
-                            <Text style={s.backTxt}>‹ Back</Text>
-                        </TouchableOpacity>
-                        <View style={{ flex: 1 }}>
-                            <Text style={s.viewerTitle} numberOfLines={1}>{viewPage?.emoji} {viewPage?.title}</Text>
+            {/* Custom Delete Modal */}
+            <Modal visible={delModal.visible} animationType="fade" transparent>
+                <View style={s.modalOverlay}>
+                    <View style={s.modalBox}>
+                        <Text style={s.modalTitle2}>Delete Note</Text>
+                        <Text style={s.modalBody}>Are you sure you want to delete "{delModal.title}"?</Text>
+                        <View style={s.modalBtns}>
+                            <TouchableOpacity style={[s.modalBtn, s.modalBtnCancel]} onPress={() => setDelModal({ visible: false, id: null, title: '' })}>
+                                <Text style={s.modalBtnCancelTxt}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[s.modalBtn, s.modalBtnDanger]} onPress={confirmDelete}>
+                                <Text style={s.modalBtnDangerTxt}>Delete</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                    {viewLoading ? (
-                        <View style={s.center}><ActivityIndicator color={t.accent} size="large" /></View>
-                    ) : (
-                        <FlatList
-                            data={viewBlocks}
-                            keyExtractor={b => b.id}
-                            renderItem={({ item }) => renderBlock(item)}
-                            contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
-                            ListEmptyComponent={
-                                <View style={s.empty}>
-                                    <Text style={s.emptySub}>This note is empty. Edit it on the web version.</Text>
-                                </View>
-                            }
-                        />
-                    )}
                 </View>
             </Modal>
         </View>
@@ -298,23 +264,17 @@ const s = StyleSheet.create({
     modalBg: { flex: 1, backgroundColor: '#000000BB', justifyContent: 'flex-end' },
     modalCard: { backgroundColor: t.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
     modalTitle: { fontSize: 20, fontWeight: '800', color: t.t1, marginBottom: 16, letterSpacing: -0.4 },
-    inp: { backgroundColor: t.surf, borderWidth: 1, borderColor: t.border, borderRadius: 12, padding: 14, color: t.t1, fontSize: 15, marginBottom: 4 },
-    btn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+    inp: { backgroundColor: t.surf, borderWidth: 1, borderColor: t.border, borderRadius: 12, padding: 14, color: t.t1, fontSize: 16 },
+    btn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
     btnTxt: { fontWeight: '800', fontSize: 15 },
-
-    viewerContainer: { flex: 1, backgroundColor: t.bg },
-    viewerHeader: {
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        paddingHorizontal: 16, paddingVertical: 14, paddingTop: 50,
-        borderBottomWidth: 1, borderBottomColor: t.border, backgroundColor: t.nav,
-    },
-    backBtn: { paddingVertical: 4, paddingRight: 8 },
-    backTxt: { color: t.accent, fontSize: 17, fontWeight: '700' },
-    viewerTitle: { fontSize: 16, fontWeight: '700', color: t.t1 },
-    blkRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
-    blkTxt: { fontSize: 15, color: t.t1, lineHeight: 24, flex: 1 },
-    quoteBlk: { borderLeftWidth: 3, borderLeftColor: t.accent, paddingLeft: 12, marginLeft: 4, marginVertical: 4 },
-    codeBlk: { backgroundColor: t.card, borderRadius: 8, padding: 10, marginVertical: 4 },
-    checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: t.border, marginRight: 10, marginTop: 3, justifyContent: 'center', alignItems: 'center' },
-    checkboxDone: { backgroundColor: t.green + '20', borderColor: t.green },
+    modalOverlay: { flex: 1, backgroundColor: '#000000BB', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalBox: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 },
+    modalTitle2: { fontSize: 18, fontWeight: '800', color: t.t1, marginBottom: 8 },
+    modalBody: { fontSize: 14, color: t.t3, marginBottom: 24, lineHeight: 20 },
+    modalBtns: { flexDirection: 'row', gap: 12 },
+    modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+    modalBtnCancel: { backgroundColor: t.surf, borderWidth: 1, borderColor: t.border },
+    modalBtnCancelTxt: { color: t.t1, fontWeight: '700', fontSize: 14 },
+    modalBtnDanger: { backgroundColor: t.red + '20', borderWidth: 1, borderColor: t.red + '50' },
+    modalBtnDangerTxt: { color: t.red, fontWeight: '800', fontSize: 14 },
 });
