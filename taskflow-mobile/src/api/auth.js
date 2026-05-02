@@ -42,4 +42,16 @@ export const authApi = {
         method: 'POST',
         body: JSON.stringify({ email, otp, newPassword }),
     }),
+
+    // PATCH /users/me — update name and bio
+    updateProfile: (data) => doFetch('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    }),
+
+    // PATCH /auth/change-password — change password with old + new
+    changePassword: (oldPassword, newPassword) => doFetch('/auth/change-password', {
+        method: 'PATCH',
+        body: JSON.stringify({ oldPassword, newPassword }),
+    }),
 };

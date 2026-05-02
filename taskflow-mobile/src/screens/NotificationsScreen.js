@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    View, Text, StyleSheet, FlatList, TouchableOpacity, Alert
+    View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl
 } from 'react-native';
 import { useData } from '../context/DataContext';
 import { DARK as t } from '../data/themes';
@@ -29,7 +29,13 @@ const TYPE_META = {
 };
 
 export default function NotificationsScreen() {
-    const { notifications, unreadCount, markNotifRead, markAllNotifRead, loading } = useData();
+    const { notifications, unreadCount, markNotifRead, markAllNotifRead, loading, refreshAll } = useData();
+    const [refreshing, setRefreshing] = React.useState(false);
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await refreshAll();
+        setRefreshing(false);
+    };
 
     const handleMarkAllRead = () => {
         if (unreadCount === 0) return;
@@ -104,6 +110,7 @@ export default function NotificationsScreen() {
                     </View>
                 }
                 ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={t.accent} />}
             />
         </View>
     );

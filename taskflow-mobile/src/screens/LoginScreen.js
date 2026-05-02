@@ -13,12 +13,17 @@ export default function LoginScreen({ navigation }) {
     const [error, setError] = useState('');
 
     const handleLogin = async () => {
-        if (!email || !password) { setError('Fill all fields'); return; }
+        if (!email || !password) { setError('Please fill in all fields.'); return; }
         setError(''); setLoading(true);
         try {
             await login(email, password);
         } catch (e) {
-            setError(e.message || 'Login failed');
+            const msg = e.message || 'Login failed';
+            if (msg.toLowerCase().includes('network')) {
+                setError('No internet connection. Please check your network and try again.');
+            } else {
+                setError(msg);
+            }
             setLoading(false);
         }
     };

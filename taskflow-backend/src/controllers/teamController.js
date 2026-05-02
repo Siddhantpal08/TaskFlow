@@ -58,6 +58,22 @@ const getMembers = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: members });
 });
 
+const removeMember = asyncWrapper(async (req, res) => {
+    const teamId = parseInt(req.params.teamId, 10);
+    const memberId = parseInt(req.params.memberId, 10);
+    // Verify requester is admin
+    const teams = await teamModel.getUserTeams(req.user.id);
+    const myTeam = teams.find(t => t.id === teamId);
+    if (!myTeam || myTeam.role !== 'admin') {
+        throw new AppError('Only team admins can remove members.', 403);
+    }
+    if (memberId === req.user.id) {
+        throw new AppError('You cannot remove yourself. Use Leave Team instead.', 400);
+    }
+    await teamModel.removeMember(teamId, memberId);
+    res.status(200).json({ success: true, message: 'Member removed successfully.' });
+});
+
 const getMemberActivity = asyncWrapper(async (req, res) => {
     const memberId = parseInt(req.params.id, 10);
     const member = await userModel.getUserById(memberId);

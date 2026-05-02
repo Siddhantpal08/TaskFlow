@@ -1,13 +1,16 @@
 const taskModel = require('../models/taskModel');
 const { AppError } = require('../middleware/errorHandler');
 
-// Helper to format JavaScript Date or ISO string to MySQL DATETIME (YYYY-MM-DD HH:MM:SS)
+// Helper: strip any ISO string down to YYYY-MM-DD so MySQL DATE column never rejects it
 function formatToMySQLDate(dateInput) {
     if (!dateInput) return null;
+    // If it's already YYYY-MM-DD, return as-is
+    if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) return dateInput;
     const date = new Date(dateInput);
     if (isNaN(date.getTime())) return null;
     const pad = (n) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    // Return date portion only (avoids MySQL DATE vs DATETIME mismatch)
+    return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
 }
 
 // ─── Create Task ──────────────────────────────────────────────────────────────

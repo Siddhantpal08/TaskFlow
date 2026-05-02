@@ -94,12 +94,24 @@ export const AuthProvider = ({ children }) => {
         return await authApi.verifyPasswordReset(email, otp, newPassword);
     };
 
+    // Update profile (name, bio)
+    const updateUser = async (data) => {
+        const res = await authApi.updateProfile(data);
+        if (res.success && res.data) setUser(res.data);
+        return res;
+    };
+
+    // Change password
+    const changePassword = async (oldPassword, newPassword) => {
+        return await authApi.changePassword(oldPassword, newPassword);
+    };
+
     return (
         <AuthContext.Provider value={{
             user, loading,
             login, register, verifyEmail, resendOtp,
             logout, requestReset, verifyReset,
-            setUser,
+            setUser, updateUser, changePassword,
         }}>
             {children}
         </AuthContext.Provider>

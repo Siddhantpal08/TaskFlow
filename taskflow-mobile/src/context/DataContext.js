@@ -127,9 +127,12 @@ export const DataProvider = ({ children }) => {
 
     const createTask = async (data) => {
         const res = await tasksApi.create(data);
-        const newTask = await tasksApi.get(res.data.id || res.taskId);
-        setTasks(p => [newTask.data, ...p]);
-        return newTask.data;
+        // Optimistically add the new task — the socket event may also fire but we deduplicate by id
+        const newTask = res.data;
+        if (newTask?.id) {
+            setTasks(p => p.some(x => x.id === newTask.id) ? p : [newTask, ...p]);
+        }
+        return newTask;
     };
 
     const updateTaskStatus = async (id, status) => {
@@ -143,10 +146,37 @@ export const DataProvider = ({ children }) => {
     };
 
     const createEvent = async (data) => {
-        await eventsApi.create(data);
-        const res = await eventsApi.list();
-        const d = res.data;
-        setEvents(Array.isArray(d) ? d : Array.isArray(d?.events) ? d.events : []);
+        const res = await eventsApi.create(data);
+        // Optimistically add; socket event_created may also fire
+        const newEvent = res.data;
+        if (newEvent?.id) {
+            setEvents(p => p.some(x => x.id === newEvent.id) ? p : [...p, newEvent].sort((a, b) => new Date(a.event_date) - new Date(b.event_date)));
+        }
+    };
+
+    const deleteEvent = async (id) => {
+        setEvents(p => p.filter(e => e.id !== id));
+        await eventsApi.delete(id).catch(console.error);
+    };
+
+    const refreshAll = async () => {
+        try {
+            const [tRes, eRes, tmRes, nRes] = await Promise.all([
+                tasksApi.list(),
+                eventsApi.list(),
+                teamApi.getMembers(),
+                notificationsApi.list(),
+            ]);
+            setTasks(Array.isArray(tRes.data) ? tRes.data : []);
+            const evData = eRes.data;
+            setEvents(Array.isArray(evData) ? evData : Array.isArray(evData?.events) ? evData.events : []);
+            setTeamMembers(Array.isArray(tmRes.data) ? tmRes.data : []);
+            const notifs = nRes.data?.notifications || nRes.data || [];
+            setNotifications(notifs);
+            setUnreadCount(nRes.data?.unreadCount || notifs.filter(n => !n.is_read).length);
+        } catch (err) {
+            console.error('Refresh failed', err);
+        }
     };
 
     const markNotifRead = async (id) => {
@@ -192,8 +222,9 @@ export const DataProvider = ({ children }) => {
             tasks, events, teamMembers, notifications, unreadCount, onlineUsers, loading,
             friends, friendRequests,
             createTask, updateTaskStatus, deleteTask,
-            createEvent, markNotifRead, markAllNotifRead,
+            createEvent, deleteEvent, markNotifRead, markAllNotifRead,
             sendFriendRequest, acceptFriendRequest, removeFriend, refreshFriends,
+            refreshAll,
         }}>
             {children}
         </DataContext.Provider>

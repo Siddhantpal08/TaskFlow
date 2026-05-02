@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { tasksApi } from '../api/tasks';
@@ -11,7 +11,7 @@ function fmtDate(d) {
 }
 
 export default function TasksScreen() {
-    const { tasks, updateTaskStatus, createTask, teamMembers, loading } = useData();
+    const { tasks, updateTaskStatus, createTask, deleteTask, teamMembers, loading, refreshAll } = useData();
     const { user } = useAuth();
     const [fil, setFil] = useState("all");
     const [createModal, setCreateModal] = useState(false);
@@ -33,7 +33,17 @@ export default function TasksScreen() {
     const list = tasks.filter(tk => fil === "all" ? true : tk.status === fil);
 
     const handleToggle = (tk) => {
-        updateTaskStatus(tk.id, tk.status === 'done' ? 'active' : 'done');
+        // Cycle: pending -> active -> done -> pending
+        const cycle = { pending: 'active', active: 'done', done: 'pending', in_progress: 'done', pending_approval: 'done' };
+        const next = cycle[tk.status] || 'active';
+        updateTaskStatus(tk.id, next);
+    };
+
+    const [refreshing, setRefreshing] = useState(false);
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await refreshAll();
+        setRefreshing(false);
     };
 
     const openEdit = (tk) => {
@@ -71,7 +81,7 @@ export default function TasksScreen() {
     };
 
     const confirmDelete = () => {
-        deleteTask(delModal.id);
+        if (deleteTask) deleteTask(delModal.id);
         setDelModal({ visible: false, id: null, title: '' });
     };
 
@@ -133,6 +143,7 @@ export default function TasksScreen() {
                     keyExtractor={item => String(item.id)}
                     renderItem={renderTask}
                     contentContainerStyle={{ padding: 16, paddingBottom: 30 }}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={t.accent} />}
                 />
             )}
 
@@ -165,6 +176,25 @@ export default function TasksScreen() {
                                 
                                 <Text style={s.lbl}>Due Date (YYYY-MM-DD)</Text>
                                 <TextInput style={s.inp} placeholder="Optional" placeholderTextColor={t.t3} value={dueDate} onChangeText={setDueDate} />
+
+                                {!isEdit && teamMembers.length > 0 && (
+                                    <>
+                                        <Text style={s.lbl}>Assign To</Text>
+                                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                                {teamMembers.map(m => (
+                                                    <TouchableOpacity key={m.id} onPress={() => setAssignee(String(m.id))}
+                                                        style={[s.assigneeBtn, assignee === String(m.id) && s.assigneeBtnAct]}>
+                                                        <View style={[s.assigneeAvatar, assignee === String(m.id) && { borderColor: t.accent }]}>
+                                                            <Text style={{ color: assignee === String(m.id) ? t.accent : t.t2, fontSize: 11, fontWeight: '700' }}>{m.avatar_initials || m.name?.slice(0,2)}</Text>
+                                                        </View>
+                                                        <Text style={{ fontSize: 10, color: assignee === String(m.id) ? t.accent : t.t2, marginTop: 3 }} numberOfLines={1}>{m.name?.split(' ')[0]}</Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        </ScrollView>
+                                    </>
+                                )}
         
                                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 15 }}>
                                     <TouchableOpacity onPress={() => { setCreateModal(false); setEditModal(false); setTitle(''); setDesc(''); setDueDate(''); setPriority('medium'); }} style={[s.btn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: t.border }]}>
@@ -242,4 +272,7 @@ const s = StyleSheet.create({
     modalBtnCancelTxt: { color: t.t1, fontWeight: '700', fontSize: 14 },
     modalBtnDanger: { backgroundColor: t.red + '20', borderWidth: 1, borderColor: t.red + '50' },
     modalBtnDangerTxt: { color: t.red, fontWeight: '800', fontSize: 14 },
+    assigneeBtn: { alignItems: 'center', width: 60, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: t.border },
+    assigneeBtnAct: { borderColor: t.accent, backgroundColor: t.accent + '15' },
+    assigneeAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: t.surf, borderWidth: 1.5, borderColor: t.border, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
 });
