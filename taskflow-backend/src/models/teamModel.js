@@ -23,7 +23,7 @@ const createTeam = async (name, createdBy) => {
 };
 
 const joinTeam = async (userId, joinCode) => {
-    const [teams] = await db.query(`SELECT team_id, name FROM teams WHERE join_code = ?`, [joinCode]);
+    const [teams] = await db.query(`SELECT team_id, name, join_code FROM teams WHERE join_code = ?`, [joinCode]);
     if (teams.length === 0) throw new Error('Invalid join code.');
 
     const team = teams[0];
@@ -37,20 +37,37 @@ const joinTeam = async (userId, joinCode) => {
         [team.team_id, userId]
     );
 
-    return team;
+    // Return shape consistent with getUserTeams: { id, name, join_code, role }
+    return { id: team.team_id, name: team.name, join_code: team.join_code, role: 'member' };
 };
 
 const leaveTeam = async (userId, teamId) => {
-    await db.query(`DELETE FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
+    // Check if user is an admin. If they are the ONLY admin, they shouldn't just leave, 
+    // but for now, the user requested an approval to leave. So only members request leave.
+    const [member] = await db.query(`SELECT role FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
+    if (!member.length) throw new Error('Not a member of this team');
 
-    // Cleanup if team became empty
-    const [remaining] = await db.query(`SELECT COUNT(*) as count FROM team_members WHERE team_id = ?`, [teamId]);
-    if (remaining[0].count === 0) {
-        await db.query(`DELETE FROM teams WHERE team_id = ?`, [teamId]);
+    if (member[0].role === 'admin') {
+        // Admins can just leave or delete the team if no one is left
+        await db.query(`DELETE FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
+        const [remaining] = await db.query(`SELECT COUNT(*) as count FROM team_members WHERE team_id = ?`, [teamId]);
+        if (remaining[0].count === 0) {
+            await db.query(`DELETE FROM teams WHERE team_id = ?`, [teamId]);
+        }
+    } else {
+        // Members must request to leave
+        const [existingReq] = await db.query(`SELECT id FROM team_leave_requests WHERE user_id = ? AND team_id = ? AND status = 'pending'`, [userId, teamId]);
+        if (existingReq.length > 0) throw new Error('A leave request is already pending.');
+
+        await db.query(`INSERT INTO team_leave_requests (team_id, user_id, status) VALUES (?, ?, 'pending')`, [teamId, userId]);
     }
+};
 
-    // Clean up any pending requests they had
-    await db.query(`DELETE FROM team_leave_requests WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
+const deleteTeam = async (userId, teamId) => {
+    const [member] = await db.query(`SELECT role FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
+    if (!member.length || member[0].role !== 'admin') throw new Error('Only an admin can delete the team');
+    
+    await db.query(`DELETE FROM teams WHERE team_id = ?`, [teamId]);
 };
 
 const getLeaveRequests = async (teamId) => {
@@ -166,8 +183,4 @@ const getUserActivity = async (userId) => {
     return { created, assigned, delegations };
 };
 
-const removeMember = async (teamId, userId) => {
-    await db.query(`DELETE FROM team_members WHERE team_id = ? AND user_id = ?`, [teamId, userId]);
-};
-
-module.exports = { createTeam, joinTeam, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getUserTeams, getTeamMembers, getMembersOfTeam, getUserActivity, removeMember };
+module.exports = { createTeam, joinTeam, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getUserTeams, getTeamMembers, getMembersOfTeam, getUserActivity };

@@ -1,34 +1,14 @@
-const express = require('express');
+const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
-const { notesLimiter } = require('../middleware/rateLimiter');
-const { sanitizeBlock } = require('../middleware/sanitize');
-const {
-    getPageTree, createPage, getPage, updatePage, setWritingMode, deletePage, duplicatePage, reorderChildren,
-    shareNote, acceptShare,
-    createBlock, updateBlock, deleteBlock,
-} = require('../controllers/notesController');
+const { getNotes, createNote, getNote, updateNote, deleteNote } = require('../controllers/notesController');
 
-const router = express.Router();
-
+// All routes require authentication
 router.use(authenticate);
 
-// Page routes
-router.get('/pages', getPageTree);
-router.post('/pages', createPage);
-router.get('/pages/:id', getPage);
-router.put('/pages/:id', updatePage);
-router.patch('/pages/:id/mode', setWritingMode);
-router.delete('/pages/:id', deletePage);
-router.post('/pages/:id/duplicate', duplicatePage);
-router.patch('/pages/:id/reorder', reorderChildren);
-
-// Sharing
-router.post('/pages/:id/share', shareNote);
-router.post('/accept-share/:token', acceptShare);
-
-// Block write routes — rate-limited + sanitized
-router.post('/pages/:id/blocks', notesLimiter, sanitizeBlock, createBlock);
-router.put('/blocks/:id', notesLimiter, sanitizeBlock, updateBlock);
-router.delete('/blocks/:id', deleteBlock);
+router.get('/', getNotes);
+router.post('/', createNote);
+router.get('/:id', getNote);
+router.put('/:id', updateNote);
+router.delete('/:id', deleteNote);
 
 module.exports = router;

@@ -1,91 +1,30 @@
 /**
- * Socket.IO singleton utility.
- * Call `initSocket(io)` once from server.js, then use `emitToUser` anywhere.
+ * socket.js — Socket.IO helper utility.
+ *
+ * Provides a simple `emitToUser(userId, event, data)` function
+ * that other modules can call without needing direct access to the
+ * Socket.IO instance.
+ *
+ * The Socket.IO instance is stored on `global._io` when the server
+ * initializes it (see server.js).
  */
 
-let _io = null;
-
 /**
- * Initialize the Socket.IO instance and set up connection handling.
- * @param {import('socket.io').Server} io
- */
-const { verifyToken } = require('./jwt');
-
-const initSocket = (io) => {
-    _io = io;
-
-    io.on('connection', (socket) => {
-        // Support both web (auth.userId) and mobile (auth.token) authentication
-        let userId = socket.handshake.auth?.userId;
-
-        if (!userId && socket.handshake.auth?.token) {
-            try {
-                const decoded = verifyToken(socket.handshake.auth.token);
-                userId = decoded.id;
-            } catch (e) {
-                socket.disconnect(true);
-                return;
-            }
-        }
-
-        if (!userId) {
-            socket.disconnect(true);
-            return;
-        }
-
-        const roomId = `user:${userId}`;
-        socket.join(roomId);
-
-        // Update online status in DB
-        const db = require('./db');
-        db.query('UPDATE users SET is_online = 1 WHERE id = ?', [userId]).catch(console.error);
-
-        // Broadcast online presence to all connected clients
-        io.emit('user:online', { userId });
-
-        socket.on('disconnect', () => {
-            db.query('UPDATE users SET is_online = 0 WHERE id = ?', [userId]).catch(console.error);
-            io.emit('user:offline', { userId });
-        });
-
-        // Notes Collaboration Rooms
-        socket.on('note:join', (pageId) => {
-            if (pageId) socket.join(`note:${pageId}`);
-        });
-
-        socket.on('note:leave', (pageId) => {
-            if (pageId) socket.leave(`note:${pageId}`);
-        });
-
-        // Forward a block update to other clients in the same note room
-        socket.on('note:block:update', ({ pageId, blockId, changes }) => {
-            socket.to(`note:${pageId}`).emit('note:block:updated', { blockId, changes });
-        });
-
-        socket.on('note:block:add', ({ pageId, block, afterIdx }) => {
-            socket.to(`note:${pageId}`).emit('note:block:added', { block, afterIdx });
-        });
-
-        socket.on('note:block:delete', ({ pageId, idx }) => {
-            socket.to(`note:${pageId}`).emit('note:block:deleted', { idx });
-        });
-    });
-};
-
-/**
- * Emit an event to a specific user's room.
- * @param {string} userId
- * @param {string} event
- * @param {any} data
+ * Emit a Socket.IO event to a specific user's room.
+ *
+ * @param {string} userId - The user ID (as a string) to emit to
+ * @param {string} event  - The event name (e.g. 'task:assigned')
+ * @param {*}      data   - Any JSON-serializable payload
  */
 const emitToUser = (userId, event, data) => {
-    if (!_io) return;
-    _io.to(`user:${userId}`).emit(event, data);
+    try {
+        if (global._io) {
+            global._io.to(`user_${userId}`).emit(event, data);
+        }
+    } catch (err) {
+        // Socket failures must never crash request handlers
+        console.error(`[Socket] Failed to emit "${event}" to user ${userId}:`, err.message);
+    }
 };
 
-/**
- * Get the raw io instance (for advanced use).
- */
-const getIo = () => _io;
-
-module.exports = { initSocket, emitToUser, getIo };
+module.exports = { emitToUser };

@@ -1,20 +1,39 @@
+/**
+ * notificationService.js — Service layer for creating and broadcasting notifications.
+ *
+ * Wraps the notificationModel and can optionally emit real-time
+ * Socket.IO events if a socket server is attached.
+ *
+ * Usage:
+ *   const { sendNotification } = require('../services/notificationService');
+ *   await sendNotification(userId, 'task_assigned', 'You have a new task', taskId);
+ */
+
 const notificationModel = require('../models/notificationModel');
-const { emitToUser } = require('../utils/socket');
 
 /**
- * Create a notification in DB and emit it via Socket.IO in real-time.
- * @param {number} userId - Recipient user ID
- * @param {string} type - Notification type (task_assigned, task_delegated, status_update, event_created, due_soon)
- * @param {string} message - Human-readable message
- * @param {number|null} refId - Reference ID (task.id or event.id)
+ * Create a notification for a user and (optionally) emit it via Socket.IO.
+ *
+ * @param {number} userId  - Recipient user ID
+ * @param {string} type    - Notification type key (e.g. 'task_assigned', 'event_reminder')
+ * @param {string} message - Human-readable message string
+ * @param {number|null} refId - Optional reference ID (task ID, event ID, etc.)
+ * @returns {Promise<object>} The created notification record
  */
 const sendNotification = async (userId, type, message, refId = null) => {
-    const notification = await notificationModel.createNotification(userId, type, message, refId);
+    const notif = await notificationModel.createNotification(userId, type, message, refId);
 
-    // Real-time delivery via Socket.IO
-    emitToUser(String(userId), 'notification:new', notification);
+    // If Socket.IO is configured, emit to the user's room
+    // The socket instance is attached to the global app if available
+    try {
+        if (global._io) {
+            global._io.to(`user_${userId}`).emit('notification:new', notif);
+        }
+    } catch (_) {
+        // Socket emission failures should never crash the cron job
+    }
 
-    return notification;
+    return notif;
 };
 
 module.exports = { sendNotification };

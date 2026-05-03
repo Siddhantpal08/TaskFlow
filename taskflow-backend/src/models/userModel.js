@@ -60,7 +60,7 @@ const setOnlineStatus = async (userId, isOnline) => {
 // ─── Refresh Tokens ───────────────────────────────────────────────────────────
 
 const saveRefreshToken = async (userId, token) => {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000); // Match JWT 15d expiry
     await db.query(
         'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
         [userId, token, expiresAt]

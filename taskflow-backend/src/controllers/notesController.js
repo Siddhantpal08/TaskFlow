@@ -1,47 +1,13 @@
 const asyncWrapper = require('../utils/asyncWrapper');
-const notesService = require('../services/notesService');
+const notesModel = require('../models/notesModel');
 const Joi = require('joi');
 
-// ─── Validation Schemas ───────────────────────────────────────────────────────
-
-const createPageSchema = Joi.object({
-    parentId: Joi.string().uuid().allow(null, '').optional(),
-    title: Joi.string().max(255).default('Untitled'),
-    emoji: Joi.string().max(8).allow(null, '').optional(),
-    position: Joi.number().integer().min(0).default(0),
-});
-
-const updatePageSchema = Joi.object({
+const noteSchema = Joi.object({
     title: Joi.string().max(255).optional(),
-    emoji: Joi.string().max(8).allow(null, '').optional(),
-    position: Joi.number().integer().min(0).optional(),
-});
-
-const writingModeSchema = Joi.object({
-    mode: Joi.string().valid('script', 'lyrics').allow(null, '').optional(),
-});
-
-const createBlockSchema = Joi.object({
-    type: Joi.string().default('p'),
     content: Joi.string().allow('', null).optional(),
-    checked: Joi.boolean().truthy(1, '1').falsy(0, '0').default(false),
-    position: Joi.number().integer().min(0).default(0),
-    indent: Joi.number().integer().min(0).max(4).default(0),
 });
 
-const updateBlockSchema = Joi.object({
-    type: Joi.string().optional(),
-    content: Joi.string().allow('', null).optional(),
-    checked: Joi.boolean().truthy(1, '1').falsy(0, '0').optional(),
-    indent: Joi.number().integer().min(0).max(4).optional(),
-    position: Joi.number().integer().min(0).optional(),
-});
-
-const reorderSchema = Joi.object({
-    orderedIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
-});
-
-const validateBody = (schema, body) => {
+const validate = (schema, body) => {
     const { error, value } = schema.validate(body, { abortEarly: false, stripUnknown: true });
     if (error) {
         const messages = error.details.map((d) => d.message.replace(/"/g, "'")).join('; ');
@@ -50,96 +16,39 @@ const validateBody = (schema, body) => {
     return value;
 };
 
-// ─── Page Controllers ─────────────────────────────────────────────────────────
-
-/** GET /api/v1/notes/pages */
-const getPageTree = asyncWrapper(async (req, res) => {
-    const tree = await notesService.getPageTree(req.user.id);
-    res.status(200).json({ success: true, data: tree });
+/** GET /api/v1/notes */
+const getNotes = asyncWrapper(async (req, res) => {
+    const notes = await notesModel.getAllNotes(req.user.id);
+    res.status(200).json({ success: true, data: notes });
 });
 
-/** POST /api/v1/notes/pages */
-const createPage = asyncWrapper(async (req, res) => {
-    const data = validateBody(createPageSchema, req.body);
-    const page = await notesService.createPage(req.user.id, data);
-    res.status(201).json({ success: true, data: page });
+/** POST /api/v1/notes */
+const createNote = asyncWrapper(async (req, res) => {
+    const data = validate(noteSchema, req.body);
+    const note = await notesModel.createNote(req.user.id, data);
+    res.status(201).json({ success: true, data: note });
 });
 
-/** GET /api/v1/notes/pages/:id */
-const getPage = asyncWrapper(async (req, res) => {
-    const page = await notesService.getPage(req.params.id, req.user.id);
-    res.status(200).json({ success: true, data: page });
+/** GET /api/v1/notes/:id */
+const getNote = asyncWrapper(async (req, res) => {
+    const note = await notesModel.getNoteById(req.params.id, req.user.id);
+    if (!note) return res.status(404).json({ success: false, message: 'Note not found.' });
+    res.status(200).json({ success: true, data: note });
 });
 
-/** PUT /api/v1/notes/pages/:id */
-const updatePage = asyncWrapper(async (req, res) => {
-    const data = validateBody(updatePageSchema, req.body);
-    const page = await notesService.updatePage(req.params.id, req.user.id, data);
-    res.status(200).json({ success: true, data: page });
+/** PUT /api/v1/notes/:id */
+const updateNote = asyncWrapper(async (req, res) => {
+    const data = validate(noteSchema, req.body);
+    const note = await notesModel.updateNote(req.params.id, req.user.id, data);
+    if (!note) return res.status(404).json({ success: false, message: 'Note not found.' });
+    res.status(200).json({ success: true, data: note });
 });
 
-/** PATCH /api/v1/notes/pages/:id/mode */
-const setWritingMode = asyncWrapper(async (req, res) => {
-    const data = validateBody(writingModeSchema, req.body);
-    await notesService.setWritingMode(req.params.id, req.user.id, data.mode || null);
-    res.status(200).json({ success: true, message: 'Writing mode updated.' });
+/** DELETE /api/v1/notes/:id */
+const deleteNote = asyncWrapper(async (req, res) => {
+    const deleted = await notesModel.deleteNote(req.params.id, req.user.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Note not found.' });
+    res.status(200).json({ success: true, message: 'Note deleted.' });
 });
 
-/** DELETE /api/v1/notes/pages/:id */
-const deletePage = asyncWrapper(async (req, res) => {
-    const result = await notesService.deletePage(req.params.id, req.user.id);
-    res.status(200).json({ success: true, data: result });
-});
-
-/** POST /api/v1/notes/pages/:id/duplicate */
-const duplicatePage = asyncWrapper(async (req, res) => {
-    const page = await notesService.duplicatePage(req.params.id, req.user.id);
-    res.status(201).json({ success: true, data: page });
-});
-
-/** PATCH /api/v1/notes/pages/:id/reorder */
-const reorderChildren = asyncWrapper(async (req, res) => {
-    const data = validateBody(reorderSchema, req.body);
-    await notesService.reorderChildren(req.params.id, req.user.id, data.orderedIds);
-    res.status(200).json({ success: true, message: 'Pages reordered successfully.' });
-});
-
-/** POST /api/v1/notes/pages/:id/share */
-const shareNote = asyncWrapper(async (req, res) => {
-    const result = await notesService.shareNote(req.params.id, req.user.id);
-    res.status(200).json({ success: true, data: result });
-});
-
-/** POST /api/v1/notes/accept-share/:token */
-const acceptShare = asyncWrapper(async (req, res) => {
-    const newPage = await notesService.acceptShare(req.params.token, req.user.id);
-    res.status(201).json({ success: true, data: newPage });
-});
-
-// ─── Block Controllers ────────────────────────────────────────────────────────
-
-/** POST /api/v1/notes/pages/:id/blocks */
-const createBlock = asyncWrapper(async (req, res) => {
-    const data = validateBody(createBlockSchema, req.body);
-    const block = await notesService.createBlock(req.params.id, req.user.id, data);
-    res.status(201).json({ success: true, data: block });
-});
-
-/** PUT /api/v1/notes/blocks/:id */
-const updateBlock = asyncWrapper(async (req, res) => {
-    const data = validateBody(updateBlockSchema, req.body);
-    const block = await notesService.updateBlock(req.params.id, req.user.id, data);
-    res.status(200).json({ success: true, data: block });
-});
-
-/** DELETE /api/v1/notes/blocks/:id */
-const deleteBlock = asyncWrapper(async (req, res) => {
-    await notesService.deleteBlock(req.params.id, req.user.id);
-    res.status(200).json({ success: true, message: 'Block deleted.' });
-});
-
-module.exports = {
-    getPageTree, createPage, getPage, updatePage, setWritingMode, deletePage, duplicatePage,
-    reorderChildren, shareNote, acceptShare,
-    createBlock, updateBlock, deleteBlock,
-};
+module.exports = { getNotes, createNote, getNote, updateNote, deleteNote };

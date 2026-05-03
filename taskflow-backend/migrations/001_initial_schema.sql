@@ -6,6 +6,9 @@ CREATE TABLE IF NOT EXISTS users (
   email       VARCHAR(255)  NOT NULL UNIQUE,
   password    VARCHAR(255)  NOT NULL,  -- bcrypt hash
   avatar_initials CHAR(2),             -- e.g. 'SP'
+  avatar_url  VARCHAR(255),
+  bio         TEXT,
+  role        ENUM('admin','user') DEFAULT 'user',
   is_online   TINYINT(1)   DEFAULT 0,
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -24,7 +27,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   title           VARCHAR(255)  NOT NULL,
   description     TEXT,
   priority        ENUM('low','medium','high') DEFAULT 'medium',
-  status          ENUM('pending','active','done') DEFAULT 'pending',
+  status          ENUM('pending','accepted','in_progress','pending_approval','done') DEFAULT 'pending',
   assigned_by     INT UNSIGNED NOT NULL,  -- creator
   assigned_to     INT UNSIGNED NOT NULL,  -- current assignee
   parent_task_id  INT UNSIGNED,           -- delegation chain (nullable)
@@ -36,26 +39,14 @@ CREATE TABLE IF NOT EXISTS tasks (
   FOREIGN KEY (parent_task_id) REFERENCES tasks(id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS notes_pages (
-  id          VARCHAR(36)  PRIMARY KEY,  -- UUID
+-- Simple flat notes table (title + content per note, no blocks/pages tree)
+CREATE TABLE IF NOT EXISTS notes (
+  id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id     INT UNSIGNED NOT NULL,
-  parent_id   VARCHAR(36),               -- nullable (top-level)
   title       VARCHAR(255) DEFAULT 'Untitled',
-  emoji       VARCHAR(8),
-  position    INT UNSIGNED DEFAULT 0,    -- order among siblings
+  content     TEXT,
   updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS notes_blocks (
-  id          VARCHAR(36)  PRIMARY KEY,
-  page_id     VARCHAR(36)  NOT NULL,
-  type        VARCHAR(20)  DEFAULT 'p',
-  content     TEXT,
-  checked     TINYINT(1) DEFAULT 0,      -- for todo blocks
-  position    INT UNSIGNED DEFAULT 0,
-  indent      INT UNSIGNED DEFAULT 0,
-  FOREIGN KEY (page_id) REFERENCES notes_pages(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS events (
@@ -71,11 +62,11 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE TABLE IF NOT EXISTS notifications (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  user_id     INT UNSIGNED NOT NULL,      -- recipient
-  type        ENUM('task_assigned','task_delegated','status_update','event_created','due_soon'),
+  user_id     INT UNSIGNED NOT NULL,
+  type        ENUM('task_assigned','task_delegated','status_update','event_created','due_soon','approval_requested','approval_result'),
   message     TEXT         NOT NULL,
   is_read     TINYINT(1)  DEFAULT 0,
-  ref_id      INT UNSIGNED,               -- task or event ID it refers to
+  ref_id      INT UNSIGNED,
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

@@ -105,7 +105,9 @@ const googleLogin = asyncWrapper(async (req, res, next) => {
 
         if (user) {
             userId = user.id;
-            await userModel.updateGoogleProfile(userId, google_id, avatar_url);
+            if (userModel.updateGoogleProfile) {
+                await userModel.updateGoogleProfile(userId, google_id, avatar_url).catch(() => {});
+            }
             if (!user.is_email_verified) {
                 await userModel.verifyUserEmail(userId);
             }
@@ -113,7 +115,9 @@ const googleLogin = asyncWrapper(async (req, res, next) => {
             const avatar_initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
             const dummyPassword = await bcrypt.hash(Math.random().toString(36).slice(-10), 10);
             userId = await userModel.createUser(name, email, dummyPassword, avatar_initials);
-            await userModel.updateGoogleProfile(userId, google_id, avatar_url);
+            if (userModel.updateGoogleProfile) {
+                await userModel.updateGoogleProfile(userId, google_id, avatar_url).catch(() => {});
+            }
             await userModel.verifyUserEmail(userId);
         }
 
@@ -262,7 +266,8 @@ const refresh = asyncWrapper(async (req, res, next) => {
  * Invalidates the refresh token for this device only.
  */
 const logout = asyncWrapper(async (req, res, next) => {
-    const refreshToken = req.cookies?.refresh_token;
+    // Cookies for web; body for mobile (Expo/React Native can't use httpOnly cookies)
+    const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
 
     if (refreshToken) {
         await userModel.deleteRefreshToken(refreshToken);
@@ -349,21 +354,43 @@ const verifyPasswordReset = asyncWrapper(async (req, res, next) => {
     });
 });
 
-// ─── Reset Local Note PIN ────────────────────────────────────────────────────
+// ─── Change Password ────────────────────────────────────────────────────────────
 
-const requestPinReset = asyncWrapper(async (req, res, next) => {
+/**
+ * PATCH /api/v1/auth/change-password
+ * Body: { oldPassword, newPassword }
+ */
+const changePassword = asyncWrapper(async (req, res, next) => {
+    const { oldPassword, newPassword } = req.body;
+    
+    if (!oldPassword || !newPassword) {
+        return next(new AppError('Old password and new password are required.', 400));
+    }
+    
+    if (newPassword.length < 6) {
+        return next(new AppError('New password must be at least 6 characters.', 400));
+    }
+
     const user = await userModel.getUserById(req.user.id);
-    const otp = createOtp(user.email);
-    await sendOtpEmail(user.email, otp);
-    res.status(200).json({ success: true, message: 'OTP sent to your email.' });
+    if (!user) {
+        return next(new AppError('User not found.', 404));
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+        return next(new AppError('Incorrect current password.', 401));
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await userModel.updatePassword(user.id, hashedPassword);
+
+    // Invalidate all refresh tokens so other devices log out
+    await userModel.deleteAllRefreshTokensForUser(user.id);
+
+    res.status(200).json({
+        success: true,
+        message: 'Password changed successfully. You may need to log in again on other devices.',
+    });
 });
 
-const verifyPinReset = asyncWrapper(async (req, res, next) => {
-    const { otp } = req.body;
-    const user = await userModel.getUserById(req.user.id);
-    const result = verifyOtp(user.email, otp);
-    if (!result.valid) return next(new AppError(result.reason, 422));
-    res.status(200).json({ success: true, message: 'PIN has been reset.' });
-});
-
-module.exports = { register, verifyEmail, resendOtp, googleLogin, login, refresh, logout, requestPasswordReset, verifyPasswordReset, requestPinReset, verifyPinReset };
+module.exports = { register, verifyEmail, resendOtp, googleLogin, login, refresh, logout, requestPasswordReset, verifyPasswordReset, changePassword };

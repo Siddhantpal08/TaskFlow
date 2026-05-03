@@ -75,9 +75,12 @@ const createTask = asyncWrapper(async (req, res) => {
             task.id
         );
         const userModel = require('../models/userModel');
-        const assignee = await userModel.getUserById(data.assigned_to);
+        const [assignee, sender] = await Promise.all([
+            userModel.getUserById(data.assigned_to),
+            userModel.getUserById(req.user.id),
+        ]);
         if (assignee && assignee.email) {
-            await mailer.sendTaskAssignedEmail(assignee.email, task.title, req.user.name);
+            await mailer.sendTaskAssignedEmail(assignee.email, task.title, sender?.name || 'A teammate');
         }
     }
 
@@ -119,13 +122,16 @@ const updateStatus = asyncWrapper(async (req, res) => {
         );
 
         const userModel = require('../models/userModel');
-        const assigner = await userModel.getUserById(task.assigned_by);
+        const [assigner, changer] = await Promise.all([
+            userModel.getUserById(task.assigned_by),
+            userModel.getUserById(req.user.id),
+        ]);
 
         if (assigner && assigner.email) {
             if (data.status === 'refused') {
-                await mailer.sendTaskRefusedEmail(assigner.email, task.title, req.user.name);
+                await mailer.sendTaskRefusedEmail(assigner.email, task.title, changer?.name || 'A teammate');
             } else if (data.status === 'pending_approval') {
-                await mailer.sendTaskPendingApprovalEmail(assigner.email, task.title, req.user.name);
+                await mailer.sendTaskPendingApprovalEmail(assigner.email, task.title, changer?.name || 'A teammate');
             }
         }
     }
@@ -167,9 +173,12 @@ const delegateTask = asyncWrapper(async (req, res) => {
         childTask.id
     );
     const userModel = require('../models/userModel');
-    const assignee = await userModel.getUserById(data.assigned_to);
+    const [assignee, delegator] = await Promise.all([
+        userModel.getUserById(data.assigned_to),
+        userModel.getUserById(req.user.id),
+    ]);
     if (assignee && assignee.email) {
-        await mailer.sendTaskAssignedEmail(assignee.email, childTask.title, req.user.name);
+        await mailer.sendTaskAssignedEmail(assignee.email, childTask.title, delegator?.name || 'A teammate');
     }
 
     emitToUser(String(data.assigned_to), 'task:delegated', childTask);

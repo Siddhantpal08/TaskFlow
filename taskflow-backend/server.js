@@ -1,9 +1,9 @@
 require('dotenv').config();
-const { server } = require('./src/app');
+const { app } = require('./src/app');
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`[TaskFlow] Server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
 });
 

@@ -1,6 +1,7 @@
 const asyncWrapper = require('../utils/asyncWrapper');
 const teamModel = require('../models/teamModel');
 const userModel = require('../models/userModel');
+const taskModel = require('../models/taskModel');
 const { AppError } = require('../middleware/errorHandler');
 
 const createTeam = asyncWrapper(async (req, res) => {
@@ -24,7 +25,10 @@ const getMyTeams = asyncWrapper(async (req, res) => {
 
 const getTeamDetails = asyncWrapper(async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
-    // Security check optional here, rely on frontend for non-sensitive data, but we can just return members
+    // Verify requesting user is a member of this team
+    const userTeams = await teamModel.getUserTeams(req.user.id);
+    const isMember = userTeams.some(t => t.id === teamId);
+    if (!isMember) throw new AppError('You are not a member of this team.', 403);
     const members = await teamModel.getMembersOfTeam(teamId);
     res.status(200).json({ success: true, data: members });
 });
@@ -33,6 +37,12 @@ const leaveTeam = asyncWrapper(async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
     await teamModel.leaveTeam(req.user.id, teamId);
     res.status(200).json({ success: true, message: 'Left team or leave request submitted' });
+});
+
+const deleteTeam = asyncWrapper(async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    await teamModel.deleteTeam(req.user.id, teamId);
+    res.status(200).json({ success: true, message: 'Team deleted successfully' });
 });
 
 const getLeaveRequests = asyncWrapper(async (req, res) => {
@@ -58,22 +68,6 @@ const getMembers = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: members });
 });
 
-const removeMember = asyncWrapper(async (req, res) => {
-    const teamId = parseInt(req.params.teamId, 10);
-    const memberId = parseInt(req.params.memberId, 10);
-    // Verify requester is admin
-    const teams = await teamModel.getUserTeams(req.user.id);
-    const myTeam = teams.find(t => t.id === teamId);
-    if (!myTeam || myTeam.role !== 'admin') {
-        throw new AppError('Only team admins can remove members.', 403);
-    }
-    if (memberId === req.user.id) {
-        throw new AppError('You cannot remove yourself. Use Leave Team instead.', 400);
-    }
-    await teamModel.removeMember(teamId, memberId);
-    res.status(200).json({ success: true, message: 'Member removed successfully.' });
-});
-
 const getMemberActivity = asyncWrapper(async (req, res) => {
     const memberId = parseInt(req.params.id, 10);
     const member = await userModel.getUserById(memberId);
@@ -83,10 +77,10 @@ const getMemberActivity = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: { member, activity } });
 });
 
-const taskModel = require('../models/taskModel');
-
 const getDummyHierarchy = asyncWrapper(async (req, res) => {
     const tasks = await taskModel.getTasksForUser(req.user.id);
+    // Fetch current user from DB since JWT only contains id
+    const currentUser = await userModel.getUserById(req.user.id);
     const map = {};
     const rootNodes = [];
 
@@ -113,10 +107,11 @@ const getDummyHierarchy = asyncWrapper(async (req, res) => {
         id: 't_root_org',
         title: 'Project Delegation Network',
         status: 'done',
-        assignee: { name: req.user.name, initials: req.user.avatar_initials || '?' },
+        assignee: { name: currentUser?.name || 'You', initials: currentUser?.avatar_initials || '?' },
         children: rootNodes
     };
     res.status(200).json({ success: true, data: dummyTree });
 });
 
-module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy, removeMember };
+module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy };
+

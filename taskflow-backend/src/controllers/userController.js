@@ -5,7 +5,6 @@ const calendarModel = require('../models/calendarModel');
 const notificationModel = require('../models/notificationModel');
 const { AppError } = require('../middleware/errorHandler');
 const Joi = require('joi');
-const bcrypt = require('bcrypt');
 
 const updateProfileSchema = Joi.object({
     name: Joi.string().min(2).max(100).optional(),
@@ -93,22 +92,4 @@ const updateMe = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: updated });
 });
 
-/** PATCH /api/v1/auth/change-password */
-const changePassword = asyncWrapper(async (req, res, next) => {
-    const { oldPassword, newPassword } = req.body;
-    if (!oldPassword || !newPassword) return next(new AppError('Old and new password are required.', 400));
-    if (newPassword.length < 6) return next(new AppError('New password must be at least 6 characters.', 400));
-
-    const user = await userModel.getUserById(req.user.id);
-    if (!user || !user.password) return next(new AppError('Cannot change password for Google accounts.', 400));
-
-    const match = await bcrypt.compare(oldPassword, user.password);
-    if (!match) return next(new AppError('Old password is incorrect.', 401));
-
-    const hashed = await bcrypt.hash(newPassword, 12);
-    await userModel.updatePassword(user.id, hashed);
-
-    res.status(200).json({ success: true, message: 'Password changed successfully.' });
-});
-
-module.exports = { getDashboard, getMe, updateMe, changePassword };
+module.exports = { getDashboard, getMe, updateMe };
