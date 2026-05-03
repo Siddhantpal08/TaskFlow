@@ -17,6 +17,7 @@ const calendarRoutes = require('./routes/calendarRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const userRoutes = require('./routes/userRoutes');
+const collegeRoutes = require('./routes/collegeRoutes');
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 const app = express();
@@ -130,11 +131,15 @@ app.get('/health', (req, res) => {
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/tasks', taskRoutes);
-app.use('/api/v1/notes', notesRoutes);
+app.use('/api/v1/notes', notesRoutes);       // Simple notes — taskflow-web/mobile
 app.use('/api/v1/calendar', calendarRoutes);
 app.use('/api/v1/team', teamRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1', userRoutes);  // /api/v1/users/me, /api/v1/dashboard
+app.use('/api/v1', userRoutes);              // /api/v1/users/me, /api/v1/dashboard
+
+// ─── College Project Exclusive Routes ────────────────────────────────────────
+// Friends + Rich Notes (pages/blocks/share/duplicate) — College Project only
+app.use('/api/college/v1', collegeRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {
