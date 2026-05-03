@@ -10,14 +10,15 @@ const { sanitizeBlock } = require('./middleware/sanitize');
 const { startReminderJob } = require('./utils/eventReminderJob');
 
 // ─── Import Routes ────────────────────────────────────────────────────────────
-const authRoutes = require('./routes/authRoutes');
-const taskRoutes = require('./routes/taskRoutes');
-const notesRoutes = require('./routes/notesRoutes');
-const calendarRoutes = require('./routes/calendarRoutes');
-const teamRoutes = require('./routes/teamRoutes');
+const authRoutes         = require('./routes/authRoutes');
+const taskRoutes         = require('./routes/taskRoutes');
+const notesRoutes        = require('./routes/notesRoutes');        // simple flat notes
+const calendarRoutes     = require('./routes/calendarRoutes');
+const teamRoutes         = require('./routes/teamRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-const userRoutes = require('./routes/userRoutes');
-const collegeRoutes = require('./routes/collegeRoutes');
+const userRoutes         = require('./routes/userRoutes');
+const friendRoutes       = require('./routes/friendRoutes');        // friends (full product only)
+const collegeRoutes      = require('./routes/collegeRoutes');       // basic college submission
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 const app = express();
@@ -128,17 +129,40 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'TaskFlow API is running.' });
 });
 
-// ─── API Routes ───────────────────────────────────────────────────────────────
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/tasks', taskRoutes);
-app.use('/api/v1/notes', notesRoutes);       // Simple notes — taskflow-web/mobile
-app.use('/api/v1/calendar', calendarRoutes);
-app.use('/api/v1/team', teamRoutes);
+// ─── /api/v1/ — TaskFlow Full Product (taskflow-web + mobile) ────────────────
+// Includes: auth, tasks, rich notes tree (pages/blocks), teams,
+//           friends, calendar, notifications, profile
+app.use('/api/v1/auth',          authRoutes);
+app.use('/api/v1/tasks',         taskRoutes);
+app.use('/api/v1/notes',         notesRoutes);         // flat notes fallback
+app.use('/api/v1/calendar',      calendarRoutes);
+app.use('/api/v1/team',          teamRoutes);
+app.use('/api/v1/friends',       friendRoutes);         // friends — full product
 app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1', userRoutes);              // /api/v1/users/me, /api/v1/dashboard
+app.use('/api/v1',               userRoutes);
 
-// ─── College Project Exclusive Routes ────────────────────────────────────────
-// Friends + Rich Notes (pages/blocks/share/duplicate) — College Project only
+// Rich Notes (pages/blocks/share) also under /api/v1/ for full product
+const nc = require('./controllers/collegeNotesController');
+const { authenticate: auth } = require('./middleware/auth');
+const richNotesRouter = require('express').Router();
+richNotesRouter.use(auth);
+richNotesRouter.get('/pages',                    nc.getPages);
+richNotesRouter.post('/pages',                   nc.createPage);
+richNotesRouter.get('/pages/:id',                nc.getPage);
+richNotesRouter.put('/pages/:id',                nc.updatePage);
+richNotesRouter.delete('/pages/:id',             nc.deletePage);
+richNotesRouter.post('/pages/:id/duplicate',     nc.duplicatePage);
+richNotesRouter.patch('/pages/:id/reorder',      nc.reorderPages);
+richNotesRouter.patch('/pages/:id/mode',         nc.setWritingMode);
+richNotesRouter.post('/pages/:id/share',         nc.sharePage);
+richNotesRouter.post('/accept-share/:token',     nc.acceptShare);
+richNotesRouter.post('/pages/:pageId/blocks',    nc.createBlock);
+richNotesRouter.put('/blocks/:blockId',          nc.updateBlock);
+richNotesRouter.delete('/blocks/:blockId',       nc.deleteBlock);
+app.use('/api/v1/notes', richNotesRouter);
+
+// ─── /api/college/v1/ — Basic College Submission (taskflow-app on Vercel) ────
+// Intentionally simple: auth + tasks + flat notes + calendar only. No friends.
 app.use('/api/college/v1', collegeRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
