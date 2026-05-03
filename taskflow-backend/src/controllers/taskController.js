@@ -64,6 +64,7 @@ const listTasks = asyncWrapper(async (req, res) => {
 /** POST /api/v1/tasks */
 const createTask = asyncWrapper(async (req, res) => {
     const data = validateBody(createTaskSchema, req.body);
+    if (data.due_date) data.due_date = String(data.due_date).slice(0, 10);
     const task = await taskService.createTask(req.user.id, data);
 
     // Notify assignee (unless assigning to self)
@@ -100,6 +101,7 @@ const getTask = asyncWrapper(async (req, res) => {
 /** PUT /api/v1/tasks/:id */
 const updateTask = asyncWrapper(async (req, res) => {
     const data = validateBody(updateTaskSchema, req.body);
+    if (data.due_date) data.due_date = String(data.due_date).slice(0, 10);
     const task = await taskService.updateTask(parseInt(req.params.id, 10), req.user.id, data);
 
     emitToUser(String(task.assigned_to), 'task:updated', task);
