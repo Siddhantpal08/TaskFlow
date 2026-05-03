@@ -17,6 +17,7 @@ const notesRoutes     = require('./notesRoutes');      // simple flat notes
 const calendarRoutes  = require('./calendarRoutes');
 const userRoutes      = require('./userRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const teamRoutes      = require('./teamRoutes');
 
 // Auth (login/register/refresh/google) — no auth middleware needed (handled inside)
 router.use('/auth', authRoutes);
@@ -27,6 +28,7 @@ router.use('/tasks',         taskRoutes);
 router.use('/notes',         notesRoutes);       // flat notes: GET /notes, POST /notes, etc.
 router.use('/calendar',      calendarRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/team',          teamRoutes);
 router.use('/',              userRoutes);         // /users/me, /dashboard
 
 module.exports = router;
