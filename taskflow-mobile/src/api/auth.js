@@ -7,6 +7,12 @@ export const authApi = {
         body: JSON.stringify({ email, password }),
     }),
 
+    // POST /auth/google → { data: { accessToken, refreshToken, id, name, ... } }
+    googleLogin: (credential) => doFetch('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential }),
+    }),
+
     // POST /auth/register → { data: { email } } — sends OTP, does NOT return token
     register: (name, email, password) => doFetch('/auth/register', {
         method: 'POST',
@@ -43,15 +49,9 @@ export const authApi = {
         body: JSON.stringify({ email, otp, newPassword }),
     }),
 
-    // PATCH /users/me — update name and bio
-    updateProfile: (data) => doFetch('/users/me', {
+    // PATCH /auth/change-password
+    changePassword: (currentPassword, newPassword) => doFetch('/auth/change-password', {
         method: 'PATCH',
-        body: JSON.stringify(data),
-    }),
-
-    // PATCH /auth/change-password — change password with old + new
-    changePassword: (oldPassword, newPassword) => doFetch('/auth/change-password', {
-        method: 'PATCH',
-        body: JSON.stringify({ oldPassword, newPassword }),
+        body: JSON.stringify({ currentPassword, newPassword }),
     }),
 };

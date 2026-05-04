@@ -183,4 +183,8 @@ const getUserActivity = async (userId) => {
     return { created, assigned, delegations };
 };
 
-module.exports = { createTeam, joinTeam, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getUserTeams, getTeamMembers, getMembersOfTeam, getUserActivity };
+const removeMember = async (teamId, memberId) => {
+    await db.query(`DELETE FROM team_members WHERE team_id = ? AND user_id = ?`, [teamId, memberId]);
+};
+
+module.exports = { createTeam, joinTeam, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getUserTeams, getTeamMembers, getMembersOfTeam, getUserActivity, removeMember };

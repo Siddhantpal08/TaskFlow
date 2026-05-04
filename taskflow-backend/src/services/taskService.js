@@ -96,10 +96,36 @@ const delegateTask = async (taskId, userId, newAssigneeId) => {
     if (newAssigneeId === userId) {
         throw new AppError('You cannot delegate a task to yourself.', 400);
     }
+    if (newAssigneeId === task.assigned_by) {
+        throw new AppError('You cannot delegate back to the original assigner.', 400);
+    }
 
     const childTaskId = await taskModel.delegateTask(taskId, newAssigneeId, taskId);
     if (!childTaskId) throw new AppError('Delegation failed. Parent task not found.', 500);
     return await taskModel.getTaskById(childTaskId);
+};
+
+/**
+ * Split a task into multiple subtasks (delegations)
+ */
+const splitTask = async (taskId, userId, subtasks) => {
+    const task = await taskModel.getTaskById(taskId);
+    if (!task) throw new AppError('Task not found.', 404);
+    if (task.assigned_to !== userId) {
+        throw new AppError('Only the current assignee can split this task.', 403);
+    }
+
+    for (const sub of subtasks) {
+        if (sub.assigned_to === userId) throw new AppError('You cannot delegate a task to yourself.', 400);
+        if (sub.assigned_to === task.assigned_by) throw new AppError('You cannot delegate back to the original assigner.', 400);
+    }
+
+    const childIds = await taskModel.splitTask(taskId, subtasks);
+    const children = [];
+    for (const cid of childIds) {
+        children.push(await taskModel.getTaskById(cid));
+    }
+    return children;
 };
 
 /**
@@ -125,4 +151,4 @@ const bulkDeleteTasks = async (ids, userId) => {
     return await taskModel.bulkDeleteTasks(ids, userId);
 };
 
-module.exports = { createTask, getTask, updateTask, updateStatus, delegateTask, deleteTask, bulkDeleteTasks };
+module.exports = { createTask, getTask, updateTask, updateStatus, delegateTask, splitTask, deleteTask, bulkDeleteTasks };

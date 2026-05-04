@@ -7,6 +7,7 @@ const {
     updateTask,
     updateStatus,
     delegateTask,
+    splitTask,
     deleteTask,
     bulkDelete,
 } = require('../controllers/taskController');
@@ -23,6 +24,7 @@ router.get('/:id', getTask);
 router.put('/:id', updateTask);
 router.patch('/:id/status', updateStatus);
 router.patch('/:id/delegate', delegateTask);
+router.post('/:id/split', splitTask);
 router.delete('/:id', deleteTask);
 
 module.exports = router;

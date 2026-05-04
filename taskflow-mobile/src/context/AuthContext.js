@@ -46,6 +46,19 @@ export const AuthProvider = ({ children }) => {
         return res;
     };
 
+    // Google Login — stores tokens and sets user
+    const googleLogin = async (credential) => {
+        const res = await authApi.googleLogin(credential);
+        if (res.success && res.data) {
+            await AsyncStorage.setItem('token', res.data.accessToken);
+            if (res.data.refreshToken) {
+                await AsyncStorage.setItem('refreshToken', res.data.refreshToken);
+            }
+            setUser(res.data);
+        }
+        return res;
+    };
+
     /**
      * Register — Step 1 of 2.
      * Backend sends OTP to email. Does NOT return tokens.
@@ -94,24 +107,16 @@ export const AuthProvider = ({ children }) => {
         return await authApi.verifyPasswordReset(email, otp, newPassword);
     };
 
-    // Update profile (name, bio)
-    const updateUser = async (data) => {
-        const res = await authApi.updateProfile(data);
-        if (res.success && res.data) setUser(res.data);
-        return res;
-    };
-
-    // Change password
-    const changePassword = async (oldPassword, newPassword) => {
-        return await authApi.changePassword(oldPassword, newPassword);
+    const changePassword = async (currentPassword, newPassword) => {
+        return await authApi.changePassword(currentPassword, newPassword);
     };
 
     return (
         <AuthContext.Provider value={{
             user, loading,
-            login, register, verifyEmail, resendOtp,
-            logout, requestReset, verifyReset,
-            setUser, updateUser, changePassword,
+            login, googleLogin, register, verifyEmail, resendOtp,
+            logout, requestReset, verifyReset, changePassword,
+            setUser,
         }}>
             {children}
         </AuthContext.Provider>

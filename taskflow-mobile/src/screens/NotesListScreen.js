@@ -16,20 +16,6 @@ function timeAgo(dateStr) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function buildTree(pages) {
-    const map = {};
-    const roots = [];
-    for (const p of pages) { map[p.id] = { ...p, children: [] }; }
-    for (const p of pages) {
-        if (p.parentId && map[p.parentId]) {
-            map[p.parentId].children.push(map[p.id]);
-        } else if (!p.parentId || !map[p.parentId]) {
-            roots.push(map[p.id]);
-        }
-    }
-    return roots;
-}
-
 export default function NotesListScreen({ navigation }) {
     const [pages, setPages] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -38,13 +24,11 @@ export default function NotesListScreen({ navigation }) {
     const [newTitle, setNewTitle] = useState('');
     const [creating, setCreating] = useState(false);
     const [delModal, setDelModal] = useState({ visible: false, id: null, title: '' });
-    const [expanded, setExpanded] = useState({});
 
     const loadPages = useCallback(async () => {
         try {
             const res = await notesApi.listPages();
-            const all = (res.data || []).filter(p => p.id !== 'root');
-            setPages(all);
+            setPages(res.data || []);
         } catch (e) {
             console.error('Notes load error', e);
         }
@@ -64,7 +48,7 @@ export default function NotesListScreen({ navigation }) {
         if (!newTitle.trim()) return;
         setCreating(true);
         try {
-            await notesApi.createPage({ title: newTitle.trim(), emoji: '' });
+            await notesApi.createPage({ title: newTitle.trim(), content: '' });
             setShowCreate(false);
             setNewTitle('');
             await loadPages();
@@ -92,54 +76,30 @@ export default function NotesListScreen({ navigation }) {
     const handleView = (page) => {
         navigation.navigate('NoteEditor', {
             page,
-            allPages: pages,
             onBack: loadPages,
         });
     };
 
-    const toggleExpand = (id) => {
-        setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
-    };
-
-
-
-    // Build tree structure for the list
-    const tree = buildTree(pages);
-
-    const renderNoteCard = (page, depth = 0) => {
-        const hasChildren = page.children && page.children.length > 0;
-        const isExpanded = expanded[page.id];
+    const renderNoteCard = (page) => {
         return (
-            <View key={page.id}>
-                <TouchableOpacity
-                    style={[s.card, depth > 0 && s.subCard, { marginLeft: depth * 18 }]}
-                    onPress={() => handleView(page)}
-                    onLongPress={() => handleDelete(page.id, page.title)}
-                    activeOpacity={0.75}
-                >
-                    <View style={[s.cardAccent, { backgroundColor: depth === 0 ? t.accent : t.purple || '#B083FF' }]} />
-                    <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Ionicons name="document-text" size={depth === 0 ? 20 : 16} color={t.accent} />
-                            <Text style={[s.cardTitle, depth > 0 && { fontSize: 14 }]} numberOfLines={1}>
-                                {page.title || 'Untitled'}
-                            </Text>
-                        </View>
-                        <Text style={s.cardSub}>Updated {timeAgo(page.updatedAt)}</Text>
+            <TouchableOpacity
+                key={page.id}
+                style={s.card}
+                onPress={() => handleView(page)}
+                onLongPress={() => handleDelete(page.id, page.title)}
+                activeOpacity={0.75}
+            >
+                <View style={[s.cardAccent, { backgroundColor: t.accent }]} />
+                <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Ionicons name="document-text" size={20} color={t.accent} />
+                        <Text style={s.cardTitle} numberOfLines={1}>
+                            {page.title || 'Untitled'}
+                        </Text>
                     </View>
-                    {hasChildren && (
-                        <TouchableOpacity
-                            onPress={() => toggleExpand(page.id)}
-                            style={s.chevronBtn}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                            <Text style={s.chevron}>{isExpanded ? '⌄' : '›'}</Text>
-                            <Text style={s.subCount}>{page.children.length}</Text>
-                        </TouchableOpacity>
-                    )}
-                </TouchableOpacity>
-                {hasChildren && isExpanded && page.children.map(child => renderNoteCard(child, depth + 1))}
-            </View>
+                    <Text style={s.cardSub}>Updated {timeAgo(page.updated_at || page.updatedAt)}</Text>
+                </View>
+            </TouchableOpacity>
         );
     };
 
@@ -164,9 +124,9 @@ export default function NotesListScreen({ navigation }) {
             </View>
 
             <FlatList
-                data={tree}
-                keyExtractor={p => p.id}
-                renderItem={({ item }) => renderNoteCard(item, 0)}
+                data={pages}
+                keyExtractor={p => p.id.toString()}
+                renderItem={({ item }) => renderNoteCard(item)}
                 contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} />}
                 ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
@@ -244,18 +204,11 @@ const s = StyleSheet.create({
         backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
         borderRadius: 14, padding: 16, overflow: 'hidden',
     },
-    subCard: {
-        backgroundColor: t.surf, borderColor: t.border + 'AA',
-        borderRadius: 10, paddingVertical: 12,
-    },
     cardAccent: {
         position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderRadius: 2,
     },
     cardTitle: { fontSize: 15, fontWeight: '700', color: t.t1, flex: 1 },
     cardSub: { fontSize: 11, color: t.t3, marginTop: 4 },
-    chevronBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingLeft: 8 },
-    chevron: { color: t.accent, fontSize: 20, fontWeight: '700', lineHeight: 22 },
-    subCount: { color: t.t3, fontSize: 10, fontWeight: '700' },
 
     empty: { alignItems: 'center', marginTop: 80 },
     emptyTxt: { fontSize: 17, fontWeight: '700', color: t.t1, marginBottom: 6 },

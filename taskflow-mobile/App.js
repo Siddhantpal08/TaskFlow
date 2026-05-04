@@ -3,10 +3,10 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { DataProvider, useData } from './src/context/DataContext';
 import { DARK } from './src/data/themes';
-import { Ionicons } from '@expo/vector-icons';
 
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
@@ -16,6 +16,7 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import NotesListScreen from './src/screens/NotesListScreen';
+import TeamScreen from './src/screens/TeamScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import NoteEditorScreen from './src/screens/NoteEditorScreen';
@@ -77,27 +78,7 @@ function NotifBell() {
   );
 }
 
-function FriendsTabIcon({ focused }) {
-  const { friendRequests } = useData();
-  const count = friendRequests?.length || 0;
-  return (
-    <View>
-      <TabIcon name="people" focused={focused} />
-      {count > 0 && (
-        <View style={{
-          position: 'absolute', top: -2, right: -4,
-          backgroundColor: DARK.purple || '#B083FF', borderRadius: 6,
-          width: 12, height: 12, justifyContent: 'center', alignItems: 'center',
-          borderWidth: 1.5, borderColor: DARK.nav,
-        }}>
-          <Text style={{ color: '#fff', fontSize: 7, fontWeight: '900' }}>
-            {count > 9 ? '9+' : count}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-}
+
 
 const sharedHeaderOptions = {
   headerStyle: {
@@ -157,10 +138,17 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
+        name="Team"
+        component={TeamScreen}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="people" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
         name="Friends"
         component={FriendsScreen}
         options={{
-          tabBarIcon: ({ focused }) => <FriendsTabIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="person-add" focused={focused} />,
         }}
       />
       <Tab.Screen

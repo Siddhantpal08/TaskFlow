@@ -121,6 +121,24 @@ const delegateTask = async (taskId, newAssigneeId, parentTaskId) => {
     return result.insertId;
 };
 
+const splitTask = async (taskId, subtasks) => {
+    const [parentTask] = await db.query('SELECT * FROM tasks WHERE id = ?', [taskId]);
+    if (!parentTask[0]) return [];
+
+    const parent = parentTask[0];
+    const childIds = [];
+
+    for (const sub of subtasks) {
+        const [result] = await db.query(
+            `INSERT INTO tasks (title, description, priority, assigned_by, assigned_to, parent_task_id, due_date)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [sub.title, parent.description, parent.priority, parent.assigned_to, sub.assigned_to, taskId, parent.due_date]
+        );
+        childIds.push(result.insertId);
+    }
+    return childIds;
+};
+
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 const deleteTask = async (id) => {
@@ -154,6 +172,7 @@ module.exports = {
     updateTask,
     updateStatus,
     delegateTask,
+    splitTask,
     deleteTask,
     bulkDeleteTasks,
 };

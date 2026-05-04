@@ -32,6 +32,13 @@ const delegateSchema = Joi.object({
     assigned_to: Joi.number().integer().positive().required(),
 });
 
+const splitTaskSchema = Joi.object({
+    subtasks: Joi.array().items(Joi.object({
+        title: Joi.string().min(1).max(255).required(),
+        assigned_to: Joi.number().integer().positive().required()
+    })).min(1).required(),
+});
+
 const bulkDeleteSchema = Joi.object({
     ids: Joi.array().items(Joi.number().integer().positive()).min(1).required(),
 });
@@ -64,7 +71,6 @@ const listTasks = asyncWrapper(async (req, res) => {
 /** POST /api/v1/tasks */
 const createTask = asyncWrapper(async (req, res) => {
     const data = validateBody(createTaskSchema, req.body);
-    if (data.due_date) data.due_date = String(data.due_date).slice(0, 10);
     const task = await taskService.createTask(req.user.id, data);
 
     // Notify assignee (unless assigning to self)
@@ -101,7 +107,6 @@ const getTask = asyncWrapper(async (req, res) => {
 /** PUT /api/v1/tasks/:id */
 const updateTask = asyncWrapper(async (req, res) => {
     const data = validateBody(updateTaskSchema, req.body);
-    if (data.due_date) data.due_date = String(data.due_date).slice(0, 10);
     const task = await taskService.updateTask(parseInt(req.params.id, 10), req.user.id, data);
 
     emitToUser(String(task.assigned_to), 'task:updated', task);
@@ -174,6 +179,17 @@ const delegateTask = asyncWrapper(async (req, res) => {
         `A task has been delegated to you: "${childTask.title}"`,
         childTask.id
     );
+
+    // Notify original assigner
+    if (childTask.assigned_by !== req.user.id && childTask.assigned_by !== data.assigned_to) {
+        await notificationService.sendNotification(
+            childTask.assigned_by,
+            'task_delegated',
+            `Your task "${childTask.title}" has been delegated to ${childTask.assigned_to_name}`,
+            childTask.parent_task_id
+        );
+    }
+
     const userModel = require('../models/userModel');
     const [assignee, delegator] = await Promise.all([
         userModel.getUserById(data.assigned_to),
@@ -184,8 +200,56 @@ const delegateTask = asyncWrapper(async (req, res) => {
     }
 
     emitToUser(String(data.assigned_to), 'task:delegated', childTask);
+    if (childTask.assigned_by !== req.user.id && childTask.assigned_by !== data.assigned_to) {
+        emitToUser(String(childTask.assigned_by), 'task:delegated', childTask);
+    }
 
     res.status(201).json({ success: true, data: childTask });
+});
+
+/** POST /api/v1/tasks/:id/split */
+const splitTask = asyncWrapper(async (req, res) => {
+    const data = validateBody(splitTaskSchema, req.body);
+    const childTasks = await taskService.splitTask(
+        parseInt(req.params.id, 10),
+        req.user.id,
+        data.subtasks
+    );
+
+    const userModel = require('../models/userModel');
+    const delegator = await userModel.getUserById(req.user.id);
+
+    for (const childTask of childTasks) {
+        // Notify new assignee
+        await notificationService.sendNotification(
+            childTask.assigned_to,
+            'task_delegated',
+            `A task has been delegated to you: "${childTask.title}"`,
+            childTask.id
+        );
+
+        // Notify original assigner
+        if (childTask.assigned_by !== req.user.id && childTask.assigned_by !== childTask.assigned_to) {
+            await notificationService.sendNotification(
+                childTask.assigned_by,
+                'task_delegated',
+                `Your task "${childTask.title}" has been delegated to ${childTask.assigned_to_name}`,
+                childTask.parent_task_id
+            );
+        }
+
+        const assignee = await userModel.getUserById(childTask.assigned_to);
+        if (assignee && assignee.email) {
+            await mailer.sendTaskAssignedEmail(assignee.email, childTask.title, delegator?.name || 'A teammate');
+        }
+
+        emitToUser(String(childTask.assigned_to), 'task:delegated', childTask);
+        if (childTask.assigned_by !== req.user.id && childTask.assigned_by !== childTask.assigned_to) {
+            emitToUser(String(childTask.assigned_by), 'task:delegated', childTask);
+        }
+    }
+
+    res.status(201).json({ success: true, data: childTasks });
 });
 
 /** DELETE /api/v1/tasks/:id */
@@ -208,6 +272,7 @@ module.exports = {
     updateTask,
     updateStatus,
     delegateTask,
+    splitTask,
     deleteTask,
     bulkDelete,
 };

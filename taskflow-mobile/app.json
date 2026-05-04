@@ -3,6 +3,7 @@
     "name": "TaskFlow",
     "slug": "taskflow-mobile",
     "version": "1.0.0",
+    "scheme": ["taskflow", "com.siddhantpal.taskflow"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -22,13 +23,19 @@
         "monochromeImage": "./assets/android-icon-monochrome.png",
         "backgroundColor": "#060B12"
       },
-      "package": "com.taskflow.app"
+      "package": "com.siddhantpal.taskflow"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-asset"
-    ]
+      "expo-asset",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cf7d58a2-194b-427f-8c51-29f08bbc594f"
+      }
+    }
   }
 }

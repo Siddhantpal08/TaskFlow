@@ -15,6 +15,23 @@ const joinTeam = asyncWrapper(async (req, res) => {
     const { code } = req.body;
     if (!code) throw new AppError('Join code is required.', 400);
     const team = await teamModel.joinTeam(req.user.id, code);
+
+    // Notify admins
+    const notificationService = require('../services/notificationService');
+    const members = await teamModel.getMembersOfTeam(team.id);
+    const joinedUser = await userModel.getUserById(req.user.id);
+    const admins = members.filter(m => m.role === 'admin');
+    for (const admin of admins) {
+        if (admin.id !== req.user.id) {
+            await notificationService.sendNotification(
+                admin.id,
+                'team_joined',
+                `${joinedUser.name} joined the team "${team.name}"`,
+                team.id
+            );
+        }
+    }
+
     res.status(200).json({ success: true, data: team });
 });
 
@@ -113,5 +130,19 @@ const getDummyHierarchy = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: dummyTree });
 });
 
-module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy };
+const removeMember = asyncWrapper(async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    const memberId = parseInt(req.params.memberId, 10);
+
+    const members = await teamModel.getMembersOfTeam(teamId);
+    const requester = members.find(m => m.id === req.user.id);
+    if (!requester || requester.role !== 'admin') {
+        throw new AppError('Only an admin can remove members.', 403);
+    }
+
+    await teamModel.removeMember(teamId, memberId);
+    res.status(200).json({ success: true, message: 'Member removed successfully' });
+});
+
+module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy, removeMember };
 
