@@ -121,16 +121,22 @@ const updateStatus = asyncWrapper(async (req, res) => {
     const data = validateBody(updateStatusSchema, req.body);
     const task = await taskService.updateStatus(parseInt(req.params.id, 10), req.user.id, data.status);
 
-    // Notify the task creator about status change
+    const userModel = require('../models/userModel');
+
+    // Notify the task creator about status change (when someone else changes it)
     if (task.assigned_by !== req.user.id) {
+        let notifMsg = `Task "${task.title}" status changed to ${data.status}.`;
+        if (data.status === 'refused') {
+            const changer = await userModel.getUserById(req.user.id);
+            notifMsg = `${changer?.name || 'A member'} has refused the task "${task.title}".`;
+        }
         await notificationService.sendNotification(
             task.assigned_by,
-            'status_update',
-            `Task "${task.title}" status changed to ${data.status}.`,
+            data.status === 'refused' ? 'task_refused' : 'status_update',
+            notifMsg,
             task.id
         );
 
-        const userModel = require('../models/userModel');
         const [assigner, changer] = await Promise.all([
             userModel.getUserById(task.assigned_by),
             userModel.getUserById(req.user.id),
@@ -143,11 +149,15 @@ const updateStatus = asyncWrapper(async (req, res) => {
                 await mailer.sendTaskPendingApprovalEmail(assigner.email, task.title, changer?.name || 'A teammate');
             }
         }
+
+        // Emit a specific 'task:refused' event to the assigner for real-time popup
+        if (data.status === 'refused') {
+            emitToUser(String(task.assigned_by), 'task:refused', task);
+        }
     }
 
     // If the assigner changes status of a pending_approval task
     if (task.assigned_by === req.user.id && task.assigned_to !== req.user.id) {
-        const userModel = require('../models/userModel');
         const assignee = await userModel.getUserById(task.assigned_to);
 
         if (assignee && assignee.email) {

@@ -16,21 +16,20 @@ const joinTeam = asyncWrapper(async (req, res) => {
     if (!code) throw new AppError('Join code is required.', 400);
     const team = await teamModel.joinTeam(req.user.id, code);
 
-    // Notify admins
+    // Notify ALL existing members that someone new joined
     const notificationService = require('../services/notificationService');
     const { emitToUser } = require('../utils/socket');
     const members = await teamModel.getMembersOfTeam(team.id);
     const joinedUser = await userModel.getUserById(req.user.id);
-    const admins = members.filter(m => m.role === 'admin');
-    for (const admin of admins) {
-        if (admin.id !== req.user.id) {
+    for (const member of members) {
+        if (member.id !== req.user.id) {
             await notificationService.sendNotification(
-                admin.id,
+                member.id,
                 'team_joined',
                 `${joinedUser.name} joined the team "${team.name}"`,
                 team.id
             );
-            emitToUser(String(admin.id), 'team:member_added', { teamId: team.id, teamName: team.name, member: joinedUser });
+            emitToUser(String(member.id), 'team:member_added', { teamId: team.id, teamName: team.name, member: joinedUser });
         }
     }
 
@@ -85,7 +84,51 @@ const leaveTeam = asyncWrapper(async (req, res) => {
 
 const deleteTeam = asyncWrapper(async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
+    const notificationService = require('../services/notificationService');
+    const { emitToUser } = require('../utils/socket');
+
+    // Fetch team name and all members BEFORE deleting
+    const userTeams = await teamModel.getUserTeams(req.user.id);
+    const team = userTeams.find(t => t.id === teamId);
+    const teamName = team?.name || 'your team';
+    const members = await teamModel.getMembersOfTeam(teamId);
+
+    // Delete the team (cascade will remove team_members rows via FK)
     await teamModel.deleteTeam(req.user.id, teamId);
+
+    // Notify all members (except admin who deleted) and erase their tasks
+    const db = require('../utils/db');
+    for (const member of members) {
+        if (member.id !== req.user.id) {
+            // Delete all tasks assigned to this member that were created by any team member
+            const memberIds = members.map(m => m.id);
+            if (memberIds.length > 0) {
+                const placeholders = memberIds.map(() => '?').join(',');
+                await db.query(
+                    `DELETE FROM tasks WHERE assigned_to = ? AND assigned_by IN (${placeholders})`,
+                    [member.id, ...memberIds]
+                );
+            }
+            await notificationService.sendNotification(
+                member.id,
+                'team_removed',
+                `The team "${teamName}" has been deleted by the admin.`,
+                null
+            );
+            emitToUser(String(member.id), 'team:deleted', { teamId, teamName });
+        }
+    }
+
+    // Also delete tasks created by admin assigned to team members
+    const memberIds = members.filter(m => m.id !== req.user.id).map(m => m.id);
+    if (memberIds.length > 0) {
+        const placeholders = memberIds.map(() => '?').join(',');
+        await db.query(
+            `DELETE FROM tasks WHERE assigned_by = ? AND assigned_to IN (${placeholders})`,
+            [req.user.id, ...memberIds]
+        );
+    }
+
     res.status(200).json({ success: true, message: 'Team deleted successfully' });
 });
 
