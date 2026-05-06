@@ -116,8 +116,10 @@ const splitTask = async (taskId, userId, subtasks) => {
     }
 
     for (const sub of subtasks) {
-        if (sub.assigned_to === userId) throw new AppError('You cannot delegate a task to yourself.', 400);
-        if (sub.assigned_to === task.assigned_by) throw new AppError('You cannot delegate back to the original assigner.', 400);
+        // Allow self-assignment in split (splitter can keep a subtask for themselves)
+        if (sub.assigned_to === task.assigned_by && sub.assigned_to !== userId) {
+            throw new AppError('You cannot delegate back to the original assigner.', 400);
+        }
     }
 
     const childIds = await taskModel.splitTask(taskId, subtasks);
