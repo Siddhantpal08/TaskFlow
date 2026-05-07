@@ -51,11 +51,20 @@ const io = new Server(server, {
 global._io = io;
 
 io.on('connection', (socket) => {
-    const userId = socket.handshake.query?.userId;
+    // Accept userId from auth (primary) or query (fallback for reconnects)
+    const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId;
     if (userId) {
         socket.join(`user_${userId}`);
         console.log(`[Socket] User ${userId} connected — socket ${socket.id}`);
     }
+
+    // Allow clients to explicitly re-join their room after reconnection
+    socket.on('join', ({ userId: uid }) => {
+        if (uid) {
+            socket.join(`user_${uid}`);
+            console.log(`[Socket] User ${uid} re-joined room — socket ${socket.id}`);
+        }
+    });
 
     socket.on('disconnect', () => {
         console.log(`[Socket] Socket ${socket.id} disconnected`);

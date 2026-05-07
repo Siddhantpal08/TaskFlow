@@ -7,8 +7,8 @@ import { teamApi } from '../api/team.js';
 import { toastSuccess, toastError } from './ui/Toast.jsx';
 import CreateTaskModal from './CreateTaskModal.jsx';
 
-export default function Team({ t, team, refreshTeams, onLeave }) {
-    const { tasks = [], onlineUsers = new Set(), createTask, teamMembers: allTeamMembers } = useData();
+export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave }) {
+    const { tasks = [], onlineUsers = new Set(), createTask, teamMembers: allTeamMembers, refreshTeams } = useData();
     const { user } = useAuth();
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -26,7 +26,8 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
 
         if (team.role === 'admin') {
             teamApi.getLeaveRequests(team.id).then(res => {
-                setLeaveRequests(res.data.data || []);
+                // Backend returns flat array in res.data
+                setLeaveRequests(Array.isArray(res.data) ? res.data : []);
             }).catch(() => { });
         } else {
             setLeaveRequests([]);
@@ -37,22 +38,31 @@ export default function Team({ t, team, refreshTeams, onLeave }) {
         if (!window.confirm(`Are you sure you want to leave ${team.name}?`)) return;
         try {
             const res = await teamApi.leaveTeam(team.id);
-            toastSuccess(res.data?.message || "Successfully left the team.");
-            const { useData: localUseData } = await import('../context/DataContext.jsx');
-            onLeave();
-            refreshTeams();
+            const msg = res?.message || res?.data?.message || 'Done.';
+            if (team.role === 'admin') {
+                // Admin left — navigate back to team list
+                toastSuccess(msg);
+                refreshTeamsList?.();
+                refreshTeams?.();
+                onLeave();
+            } else {
+                // Non-admin submitted a leave request — stay on the page
+                toastSuccess('Your leave request has been sent to the admin.');
+            }
         } catch (e) {
-            toastError(e.response?.data?.message || e.message || "Failed to leave team.");
+            toastError(e.response?.data?.message || e.message || 'Failed to leave team.');
         }
     };
 
     const handleApproveLeave = async (reqId) => {
         try {
             await teamApi.approveLeaveRequest(reqId);
-            toastSuccess("Request approved. User removed.");
+            toastSuccess('Request approved. User removed.');
+            const approved = leaveRequests.find(r => r.id === reqId);
             setLeaveRequests(r => r.filter(x => x.id !== reqId));
-            setMembers(m => m.filter(x => !leaveRequests.find(lr => lr.id === reqId && lr.user_id === x.id)));
-        } catch (e) { toastError("Failed to approve"); }
+            if (approved) setMembers(m => m.filter(x => x.id !== approved.user_id));
+            refreshTeams?.();
+        } catch (e) { toastError('Failed to approve'); }
     };
 
     const handleRejectLeave = async (reqId) => {

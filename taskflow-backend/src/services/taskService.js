@@ -96,9 +96,8 @@ const delegateTask = async (taskId, userId, newAssigneeId) => {
     if (newAssigneeId === userId) {
         throw new AppError('You cannot delegate a task to yourself.', 400);
     }
-    if (newAssigneeId === task.assigned_by) {
-        throw new AppError('You cannot delegate back to the original assigner.', 400);
-    }
+    // Removed: "cannot delegate back to original assigner" restriction
+    // This prevented self-assigned tasks from being delegated to any team member
 
     const childTaskId = await taskModel.delegateTask(taskId, newAssigneeId, taskId);
     if (!childTaskId) throw new AppError('Delegation failed. Parent task not found.', 500);
@@ -116,10 +115,11 @@ const splitTask = async (taskId, userId, subtasks) => {
     }
 
     for (const sub of subtasks) {
-        // Allow self-assignment in split (splitter can keep a subtask for themselves)
-        if (sub.assigned_to === task.assigned_by && sub.assigned_to !== userId) {
-            throw new AppError('You cannot delegate back to the original assigner.', 400);
+        // Allow self-assignment in split only if the splitter IS that person
+        if (sub.assigned_to === userId) {
+            throw new AppError('You cannot assign a subtask to yourself.', 400);
         }
+        // Removed: "cannot delegate back to original assigner" — breaks self-assigned task splitting
     }
 
     const childIds = await taskModel.splitTask(taskId, subtasks);

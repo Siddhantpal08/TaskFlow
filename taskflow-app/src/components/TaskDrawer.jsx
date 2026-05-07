@@ -36,9 +36,12 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
-    const isCreator = user?.id === task.assigned_by || amIAdmin;
+    // isCreator is purely who assigned_by the task, not role-based
+    const isCreator = user?.id === task.assigned_by;
     const isAssignee = user?.id === task.assigned_to;
-    const canEdit = isCreator;
+    // Can refuse if you're the assignee, didn't create it, and task is still active
+    const canRefuse = isAssignee && !isCreator && (task.status === 'pending' || task.status === 'active');
+    const canEdit = isCreator || amIAdmin;
     const canStatus = isCreator || isAssignee;
 
     // ── Status toggle ───────────────────────────────────────────────────────────
@@ -234,8 +237,16 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                             </button>
                         )}
 
-                        {isAssignee && !isCreator && (task.status === 'pending' || task.status === 'active') && (
-                            <button onClick={() => updateTaskStatus(task.id, 'refused').then(setTask)} disabled={saving} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red }}>
+                        {canRefuse && (
+                            <button onClick={async () => {
+                                try {
+                                    setSaving(true);
+                                    const updated = await updateTaskStatus(task.id, 'refused');
+                                    setTask(updated);
+                                } catch (e) {
+                                    toastError(e.message || 'Failed to refuse task.');
+                                } finally { setSaving(false); }
+                            }} disabled={saving} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red }}>
                                 {saving ? 'Refusing…' : 'Refuse Task'}
                             </button>
                         )}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext.jsx';
 import { tasksApi } from '../api/tasks.js';
@@ -23,6 +23,31 @@ export function DataProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const socketRef = useRef(null);
 
+    // ─── Stable refresh helpers ────────────────────────────────────────────────
+    const refreshTeams = useCallback(async () => {
+        try {
+            const res = await teamApi.getMembers();
+            setTeamMembers(Array.isArray(res.data) ? res.data : []);
+        } catch (e) { console.error('refreshTeams failed:', e); }
+    }, []);
+
+    const refreshNotifications = useCallback(async () => {
+        try {
+            const res = await notificationsApi.list();
+            const notifs = Array.isArray(res.data)
+                ? res.data
+                : (res.data?.notifications || []);
+            setNotifications(notifs);
+        } catch (e) { console.error('refreshNotifications failed:', e); }
+    }, []);
+
+    const refreshTasks = useCallback(async () => {
+        try {
+            const res = await tasksApi.list();
+            setTasks(Array.isArray(res.data) ? res.data : []);
+        } catch (e) { console.error('refreshTasks failed:', e); }
+    }, []);
+
     // ─── Initial data load ─────────────────────────────────────────────────────
     useEffect(() => {
         if (!user || !token) { setLoading(false); return; }
@@ -35,25 +60,23 @@ export function DataProvider({ children }) {
             teamApi.getMembers(),
             notificationsApi.list(),
         ]).then(([t, e, tm, n]) => {
-            setTasks(t.data || []);
-            // Calendar API returns { events: [...], taskDates: [...] }
+            setTasks(Array.isArray(t.data) ? t.data : []);
             const calData = e.data || {};
             setEvents(Array.isArray(calData) ? calData : (calData.events || []));
             setTaskDates(calData.taskDates || []);
-            setTeamMembers(tm.data || []);
-            // Notifications returns { data: { notifications, unreadCount } }
-            setNotifications(n.data?.notifications || n.data || []);
-            setNotifications(n.data?.notifications || n.data || []);
+            setTeamMembers(Array.isArray(tm.data) ? tm.data : []);
+            const notifs = Array.isArray(n.data) ? n.data : (n.data?.notifications || []);
+            setNotifications(notifs);
         }).catch(console.error)
             .finally(() => setLoading(false));
-    }, [user, token]);
 
-    const refreshTeams = async () => {
-        try {
-            const { data } = await teamApi.getMembers();
-            setTeamMembers(data || []);
-        } catch (e) { console.error(e); }
-    };
+        // Refresh when user returns to this tab
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') refreshAll();
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [user, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ─── Socket.IO real-time sync ──────────────────────────────────────────────
     useEffect(() => {
@@ -61,90 +84,156 @@ export function DataProvider({ children }) {
 
         const socket = io(SOCKET_URL, {
             auth: { token, userId: user.id },
+            query: { userId: user.id },
+            // Robust reconnection for Render free-tier spin-down
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: Infinity,
+            transports: ['websocket', 'polling'],
         });
         socketRef.current = socket;
 
+        socket.on('connect', () => {
+            // Re-join user room after reconnect (Render spin-down recovery)
+            socket.emit('join', { userId: user.id });
+        });
+
+        socket.on('connect_error', (err) => {
+            console.warn('[Socket] connect_error:', err.message);
+        });
+
+        // ── Task events ────────────────────────────────────────────────────────
         socket.on('task:assigned', (task) => {
-            setTasks(prev => [task, ...prev.filter(t => t.id !== task.id)]);
+            if (!task?.id) return;
+            setTasks(prev => [task, ...(prev || []).filter(t => t.id !== task.id)]);
             setNotifications(prev => [{
-                id: Date.now(), type: 'task_assigned',
-                message: `New task assigned: "${task.title}"`, is_read: false, created_at: new Date().toISOString()
-            }, ...prev]);
+                id: `local_${Date.now()}`, type: 'task_assigned',
+                message: `New task assigned: "${task.title}"`, is_read: false,
+                created_at: new Date().toISOString()
+            }, ...(prev || [])]);
         });
 
         socket.on('task:updated', (task) => {
-            setTasks(prev => prev.map(t => t.id === task.id ? task : t));
+            if (!task?.id) return;
+            setTasks(prev => (prev || []).map(t => t.id === task.id ? task : t));
         });
 
         socket.on('task:delegated', (task) => {
-            setTasks(prev => [task, ...prev.filter(t => t.id !== task.id)]);
+            if (!task?.id) return;
+            setTasks(prev => [task, ...(prev || []).filter(t => t.id !== task.id)]);
             setNotifications(prev => [{
-                id: Date.now(), type: 'task_delegated',
-                message: `Task delegated to you: "${task.title}"`, is_read: false, created_at: new Date().toISOString()
-            }, ...prev]);
+                id: `local_${Date.now()}`, type: 'task_delegated',
+                message: `Task delegated to you: "${task.title}"`, is_read: false,
+                created_at: new Date().toISOString()
+            }, ...(prev || [])]);
         });
 
+        // Task refused — update the parent task's status for the assigner
+        socket.on('task:refused', (task) => {
+            if (!task?.id) return;
+            setTasks(prev => (prev || []).map(t => t.id === task.id ? task : t));
+        });
+
+        // ── Notification events ────────────────────────────────────────────────
         socket.on('notification:new', (notif) => {
-            setNotifications(prev => [notif, ...prev]);
+            if (!notif) return;
+            setNotifications(prev => [notif, ...(prev || [])]);
+            // If a team member joined, refresh our team members list
+            if (notif.type === 'team_joined') {
+                refreshTeams();
+            }
         });
 
+        // ── Online presence ────────────────────────────────────────────────────
         socket.on('user:online', ({ userId }) => {
             setOnlineUsers(prev => new Set([...prev, String(userId)]));
         });
-
         socket.on('user:offline', ({ userId }) => {
             setOnlineUsers(prev => { const s = new Set(prev); s.delete(String(userId)); return s; });
         });
 
-        return () => { socket.disconnect(); socketRef.current = null; };
-    }, [user, token]);
+        // ── Team events ────────────────────────────────────────────────────────
+        // Emitted when a member joins or is removed — refresh team member list
+        socket.on('team:refresh', () => refreshTeams());
+        socket.on('team:member_added', () => refreshTeams());
+        socket.on('team:member_removed', () => refreshTeams());
+
+        socket.on('team:leave_request', () => {
+            // Admin: a leave request notification arrives — refresh notifications
+            refreshNotifications();
+        });
+
+        // Team deleted by admin — immediately wipe tasks/members, then re-fetch
+        socket.on('team:deleted', () => {
+            setTasks([]);
+            setTeamMembers([]);
+            // Re-fetch to get any remaining personal/other-team tasks
+            refreshTasks();
+            refreshTeams();
+            refreshNotifications();
+        });
+
+        return () => {
+            socket.disconnect();
+            socketRef.current = null;
+        };
+    }, [user, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ─── Task mutations ────────────────────────────────────────────────────────
     const createTask = async (data) => {
         const res = await tasksApi.create(data);
-        setTasks(prev => prev.some(t => t.id === res.data.id) ? prev : [res.data, ...prev]);
-        return res.data;
+        const newTask = res.data;
+        if (newTask?.id) {
+            setTasks(prev => (prev || []).some(t => t.id === newTask.id) ? prev : [newTask, ...(prev || [])]);
+        }
+        return newTask;
     };
 
     const updateTaskStatus = async (id, status) => {
         const res = await tasksApi.updateStatus(id, status);
-        setTasks(prev => prev.map(t => t.id === id ? res.data : t));
+        setTasks(prev => (prev || []).map(t => t.id === id ? res.data : t));
         return res.data;
     };
 
     const updateTask = async (id, data) => {
         const res = await tasksApi.update(id, data);
-        setTasks(prev => prev.map(t => t.id === id ? res.data : t));
+        setTasks(prev => (prev || []).map(t => t.id === id ? res.data : t));
         return res.data;
     };
 
     const delegateTask = async (id, assigned_to) => {
         const res = await tasksApi.delegate(id, assigned_to);
-        setTasks(prev => prev.some(t => t.id === res.data.id) ? prev : [res.data, ...prev]);
+        setTasks(prev => (prev || []).some(t => t.id === res.data.id) ? prev : [res.data, ...(prev || [])]);
+        return res.data;
+    };
+
+    const splitTask = async (id, subtasks) => {
+        const res = await tasksApi.split(id, subtasks);
+        setTasks(prev => {
+            const newTasks = (res.data || []).filter(nt => !(prev || []).some(pt => pt.id === nt.id));
+            return [...newTasks, ...(prev || [])];
+        });
         return res.data;
     };
 
     const deleteTask = async (id) => {
         await tasksApi.delete(id);
-        setTasks(prev => prev.filter(t => t.id !== id));
+        setTasks(prev => (prev || []).filter(t => t.id !== id));
     };
 
     // ─── Event mutations ───────────────────────────────────────────────────────
     const createEvent = async (data) => {
         const res = await eventsApi.create(data);
-        setEvents(prev => [...prev, res.data]);
+        setEvents(prev => [...(prev || []), res.data]);
         return res.data;
     };
 
     const deleteEvent = async (id) => {
         await eventsApi.delete(id);
-        setEvents(prev => prev.filter(e => e.id !== id));
+        setEvents(prev => (prev || []).filter(e => e.id !== id));
     };
 
-    /**
-     * Fetch events + task due dates for a specific month.
-     * Called by Calendar when the user navigates months.
-     */
     const fetchEventsForMonth = async (year, month) => {
         try {
             const res = await eventsApi.list(year, month);
@@ -159,25 +248,40 @@ export function DataProvider({ children }) {
     // ─── Notification mutations ────────────────────────────────────────────────
     const markNotifRead = async (id) => {
         await notificationsApi.markRead(id);
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        setNotifications(prev => (prev || []).map(n => n.id === id ? { ...n, is_read: true } : n));
     };
 
     const markAllNotifRead = async () => {
         await notificationsApi.markAllRead();
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setNotifications(prev => (prev || []).map(n => ({ ...n, is_read: true })));
     };
 
-    const clearAllNotif = () => {
-        setNotifications([]);
-    };
+    const clearAllNotif = () => setNotifications([]);
 
-    const unreadCount = notifications.filter(n => !n.is_read).length;
+    const unreadCount = (notifications || []).filter(n => !n.is_read).length;
+
+    // ─── Manual full refresh ───────────────────────────────────────────────────
+    const refreshAll = async () => {
+        try {
+            const now = new Date();
+            const [taskRes, memberRes, notifRes] = await Promise.all([
+                tasksApi.list(),
+                teamApi.getMembers(),
+                notificationsApi.list(),
+            ]);
+            setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
+            setTeamMembers(Array.isArray(memberRes.data) ? memberRes.data : []);
+            const notifs = Array.isArray(notifRes.data) ? notifRes.data : (notifRes.data?.notifications || []);
+            setNotifications(notifs);
+        } catch (e) { console.error('refreshAll failed:', e); }
+    };
 
     return (
         <DataContext.Provider value={{
-            tasks, events, taskDates, teamMembers, notifications, onlineUsers,
-            loading, unreadCount, refreshTeams,
-            createTask, updateTaskStatus, updateTask, delegateTask, deleteTask,
+            tasks: tasks || [], events: events || [], taskDates, teamMembers: teamMembers || [],
+            notifications: notifications || [], onlineUsers,
+            loading, unreadCount, refreshTeams, refreshAll,
+            createTask, updateTaskStatus, updateTask, delegateTask, splitTask, deleteTask,
             createEvent, deleteEvent, fetchEventsForMonth,
             markNotifRead, markAllNotifRead, clearAllNotif,
         }}>

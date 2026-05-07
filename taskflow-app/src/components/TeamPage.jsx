@@ -6,7 +6,7 @@ import Team from './Team.jsx';
 import HierarchyChart from './HierarchyChart.jsx';
 
 export default function TeamPage({ t }) {
-    const { refreshTeams } = useData();
+    const { refreshTeams, refreshAll } = useData();
     const [joinCode, setJoinCode] = useState("");
     const [teamName, setTeamName] = useState("");
     const [loading, setLoading] = useState(false);
@@ -39,6 +39,7 @@ export default function TeamPage({ t }) {
             setJoinCode("");
             fetchMyTeams();
             refreshTeams();
+            refreshAll(); // Sync task assignee lists immediately
         } catch (e) {
             toastError(e.message || "Failed to join team");
         } finally {

@@ -16,21 +16,25 @@ const joinTeam = asyncWrapper(async (req, res) => {
     if (!code) throw new AppError('Join code is required.', 400);
     const team = await teamModel.joinTeam(req.user.id, code);
 
-    // Notify ALL existing members that someone new joined
     const notificationService = require('../services/notificationService');
     const { emitToUser } = require('../utils/socket');
+
+    // Fetch ALL members AFTER joining (includes the new member)
     const members = await teamModel.getMembersOfTeam(team.id);
     const joinedUser = await userModel.getUserById(req.user.id);
+
     for (const member of members) {
         if (member.id !== req.user.id) {
+            // Notify everyone else that a new member joined
             await notificationService.sendNotification(
                 member.id,
                 'team_joined',
                 `${joinedUser.name} joined the team "${team.name}"`,
                 team.id
             );
-            emitToUser(String(member.id), 'team:member_added', { teamId: team.id, teamName: team.name, member: joinedUser });
         }
+        // Emit team:refresh to ALL members (including the joiner) so everyone's member list updates
+        emitToUser(String(member.id), 'team:refresh', { teamId: team.id, teamName: team.name });
     }
 
     res.status(200).json({ success: true, data: team });
@@ -43,7 +47,6 @@ const getMyTeams = asyncWrapper(async (req, res) => {
 
 const getTeamDetails = asyncWrapper(async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
-    // Verify requesting user is a member of this team
     const userTeams = await teamModel.getUserTeams(req.user.id);
     const isMember = userTeams.some(t => t.id === teamId);
     if (!isMember) throw new AppError('You are not a member of this team.', 403);
@@ -54,79 +57,82 @@ const getTeamDetails = asyncWrapper(async (req, res) => {
 const leaveTeam = asyncWrapper(async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
 
-    // Check role before calling model
+    // Fetch team info and all members BEFORE any modification
     const userTeams = await teamModel.getUserTeams(req.user.id);
     const team = userTeams.find(t => t.id === teamId);
-    const isAdmin = team?.role === 'admin';
+    if (!team) throw new AppError('You are not a member of this team.', 403);
+    const isAdmin = team.role === 'admin';
 
+    // Gather admins before any DB modification (so we can notify them)
+    const allMembers = await teamModel.getMembersOfTeam(teamId);
+    const admins = allMembers.filter(m => m.role === 'admin');
+
+    // This inserts a leave request row for non-admins, or removes admin directly
     await teamModel.leaveTeam(req.user.id, teamId);
 
-    // If member submitted a leave request, notify admins
+    // If member (not admin): notify all admins about the leave request
     if (!isAdmin) {
         const notificationService = require('../services/notificationService');
         const { emitToUser } = require('../utils/socket');
-        const members = await teamModel.getMembersOfTeam(teamId);
         const requestingUser = await userModel.getUserById(req.user.id);
-        const admins = members.filter(m => m.role === 'admin');
         for (const admin of admins) {
             await notificationService.sendNotification(
                 admin.id,
                 'leave_request',
-                `${requestingUser.name} has requested to leave the team "${team?.name || 'your team'}"`,
+                `${requestingUser.name} has requested to leave the team "${team.name}"`,
                 teamId
             );
-            emitToUser(String(admin.id), 'team:leave_request', { teamId, userName: requestingUser.name });
+            emitToUser(String(admin.id), 'team:leave_request', {
+                teamId, teamName: team.name, userName: requestingUser.name
+            });
         }
     }
 
-    res.status(200).json({ success: true, message: isAdmin ? 'Left team successfully' : 'Leave request submitted. Waiting for admin approval.' });
+    res.status(200).json({
+        success: true,
+        message: isAdmin ? 'Left team successfully' : 'Leave request submitted. Waiting for admin approval.'
+    });
 });
 
 const deleteTeam = asyncWrapper(async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
     const notificationService = require('../services/notificationService');
     const { emitToUser } = require('../utils/socket');
+    const db = require('../utils/db');
 
-    // Fetch team name and all members BEFORE deleting
+    // Get team + members BEFORE deletion
     const userTeams = await teamModel.getUserTeams(req.user.id);
     const team = userTeams.find(t => t.id === teamId);
-    const teamName = team?.name || 'your team';
+    if (!team) throw new AppError('Team not found or you are not the admin.', 403);
+    const teamName = team.name;
     const members = await teamModel.getMembersOfTeam(teamId);
+    const memberIds = members.map(m => m.id);
 
-    // Delete the team (cascade will remove team_members rows via FK)
+    // Delete ALL tasks where BOTH creator AND assignee are members of this team
+    // This covers: tasks assigned within the team in any direction
+    if (memberIds.length > 0) {
+        const ph = memberIds.map(() => '?').join(',');
+        await db.query(
+            `DELETE FROM tasks WHERE assigned_to IN (${ph}) AND assigned_by IN (${ph})`,
+            [...memberIds, ...memberIds]
+        );
+    }
+
+    // Delete the team (FK cascade removes team_members rows)
     await teamModel.deleteTeam(req.user.id, teamId);
 
-    // Notify all members (except admin who deleted) and erase their tasks
-    const db = require('../utils/db');
+    // Notify all non-admin members and emit real-time event to EVERYONE
     for (const member of members) {
         if (member.id !== req.user.id) {
-            // Delete all tasks assigned to this member that were created by any team member
-            const memberIds = members.map(m => m.id);
-            if (memberIds.length > 0) {
-                const placeholders = memberIds.map(() => '?').join(',');
-                await db.query(
-                    `DELETE FROM tasks WHERE assigned_to = ? AND assigned_by IN (${placeholders})`,
-                    [member.id, ...memberIds]
-                );
-            }
             await notificationService.sendNotification(
                 member.id,
                 'team_removed',
                 `The team "${teamName}" has been deleted by the admin.`,
                 null
             );
-            emitToUser(String(member.id), 'team:deleted', { teamId, teamName });
         }
-    }
-
-    // Also delete tasks created by admin assigned to team members
-    const memberIds = members.filter(m => m.id !== req.user.id).map(m => m.id);
-    if (memberIds.length > 0) {
-        const placeholders = memberIds.map(() => '?').join(',');
-        await db.query(
-            `DELETE FROM tasks WHERE assigned_by = ? AND assigned_to IN (${placeholders})`,
-            [req.user.id, ...memberIds]
-        );
+        // Emit to everyone (including the admin who deleted) so all UIs clear state
+        emitToUser(String(member.id), 'team:deleted', { teamId, teamName });
     }
 
     res.status(200).json({ success: true, message: 'Team deleted successfully' });
@@ -135,17 +141,54 @@ const deleteTeam = asyncWrapper(async (req, res) => {
 const getLeaveRequests = asyncWrapper(async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
     const requests = await teamModel.getLeaveRequests(teamId);
+    // Return flat array — clients read res.data directly
     res.status(200).json({ success: true, data: requests });
 });
 
 const approveLeaveRequest = asyncWrapper(async (req, res) => {
     const requestId = parseInt(req.params.id, 10);
+    const notificationService = require('../services/notificationService');
+    const { emitToUser } = require('../utils/socket');
+    const db = require('../utils/db');
+
+    const [reqRows] = await db.query(
+        `SELECT team_id, user_id FROM team_leave_requests WHERE id = ?`, [requestId]
+    );
+    if (!reqRows.length) throw new AppError('Request not found', 404);
+    const { team_id, user_id } = reqRows[0];
+
     await teamModel.approveLeaveRequest(requestId);
+
+    // Notify the member their leave was approved
+    await notificationService.sendNotification(
+        user_id,
+        'leave_approved',
+        `Your request to leave the team has been approved.`,
+        team_id
+    );
+    emitToUser(String(user_id), 'team:member_removed', { teamId: team_id });
+
     res.status(200).json({ success: true, message: 'Leave request approved' });
 });
 
 const rejectLeaveRequest = asyncWrapper(async (req, res) => {
     const requestId = parseInt(req.params.id, 10);
+    const notificationService = require('../services/notificationService');
+    const db = require('../utils/db');
+
+    const [reqRows] = await db.query(
+        `SELECT team_id, user_id FROM team_leave_requests WHERE id = ?`, [requestId]
+    );
+    if (reqRows.length) {
+        const { user_id, team_id } = reqRows[0];
+        await notificationService.sendNotification(
+            user_id,
+            'leave_rejected',
+            `Your request to leave the team has been rejected by the admin.`,
+            team_id
+        );
+    }
+
     await teamModel.rejectLeaveRequest(requestId);
     res.status(200).json({ success: true, message: 'Leave request rejected' });
 });
@@ -159,21 +202,17 @@ const getMemberActivity = asyncWrapper(async (req, res) => {
     const memberId = parseInt(req.params.id, 10);
     const member = await userModel.getUserById(memberId);
     if (!member) throw new AppError('User not found.', 404);
-
     const activity = await teamModel.getUserActivity(memberId);
     res.status(200).json({ success: true, data: { member, activity } });
 });
 
 const getDummyHierarchy = asyncWrapper(async (req, res) => {
     const tasks = await taskModel.getTasksForUser(req.user.id);
-    // Fetch current user from DB since JWT only contains id
     const currentUser = await userModel.getUserById(req.user.id);
 
-    // Collect all task IDs the user can see
     const seenIds = new Set(tasks.map(t => t.id));
     const allTasks = [...tasks];
 
-    // For tasks with parent_task_id not in our set, fetch parents up the chain
     const fetchParentChain = async (parentId) => {
         if (!parentId || seenIds.has(parentId)) return;
         const parent = await taskModel.getTaskById(parentId);
@@ -183,20 +222,17 @@ const getDummyHierarchy = asyncWrapper(async (req, res) => {
         if (parent.parent_task_id) await fetchParentChain(parent.parent_task_id);
     };
 
-    // For each task, fetch the full parent chain
     for (const t of tasks) {
         if (t.parent_task_id && !seenIds.has(t.parent_task_id)) {
             await fetchParentChain(t.parent_task_id);
         }
     }
 
-    // Also fetch children of all known tasks recursively
     const fetchChildren = async (parentId) => {
         const children = await taskModel.getSubTasks(parentId);
         for (const child of children) {
             if (!seenIds.has(child.id)) {
                 seenIds.add(child.id);
-                // getSubTasks doesn't include assigned_by_name, so fetch full task
                 const fullChild = await taskModel.getTaskById(child.id);
                 if (fullChild) allTasks.push(fullChild);
                 await fetchChildren(child.id);
@@ -250,16 +286,16 @@ const removeMember = asyncWrapper(async (req, res) => {
         throw new AppError('Only an admin can remove members.', 403);
     }
 
-    // Get team name for notification
-    const userTeams = await teamModel.getUserTeams(memberId);
+    const userTeams = await teamModel.getUserTeams(req.user.id);
     const team = userTeams.find(t => t.id === teamId);
     const teamName = team?.name || 'a team';
 
     await teamModel.removeMember(teamId, memberId);
 
-    // Notify the removed member
     const notificationService = require('../services/notificationService');
     const { emitToUser } = require('../utils/socket');
+
+    // Notify removed member
     await notificationService.sendNotification(
         memberId,
         'team_removed',
@@ -268,8 +304,18 @@ const removeMember = asyncWrapper(async (req, res) => {
     );
     emitToUser(String(memberId), 'team:member_removed', { teamId, teamName });
 
+    // Emit team:refresh to all remaining members so their lists update
+    for (const member of members) {
+        if (member.id !== memberId) {
+            emitToUser(String(member.id), 'team:refresh', { teamId, teamName });
+        }
+    }
+
     res.status(200).json({ success: true, message: 'Member removed successfully' });
 });
 
-module.exports = { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy, removeMember };
-
+module.exports = {
+    createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, deleteTeam,
+    getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
+    getMembers, getMemberActivity, getDummyHierarchy, removeMember
+};

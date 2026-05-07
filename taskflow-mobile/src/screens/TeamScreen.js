@@ -6,7 +6,7 @@ import { DARK as t } from '../data/themes';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function TeamScreen() {
-    const { onlineUsers, tasks } = useData();
+    const { onlineUsers, tasks, refreshAll, refreshTeams } = useData();
     const [teams, setTeams] = useState([]);
     const [selectedTeam, setSelectedTeam] = useState(null);
     const [members, setMembers] = useState([]);
@@ -84,7 +84,8 @@ export default function TeamScreen() {
             await teamApi.joinTeam(joinCode);
             showMsg('Joined team successfully!');
             setJoinCode('');
-            fetchMyTeams();
+            await fetchMyTeams();
+            refreshTeams?.(); // Sync global team members for task assignment
         } catch (e) {
             showMsg(e.message || 'Failed to join team', 'error');
         } finally {
@@ -106,13 +107,21 @@ export default function TeamScreen() {
 
     const handleLeaveTeam = async () => {
         try {
-            await teamApi.leaveTeam(selectedTeam.id);
-            showMsg('Left team successfully!');
+            const res = await teamApi.leaveTeam(selectedTeam.id);
+            const message = res?.message || res?.data?.message || 'Done.';
             setLeaveModal(false);
-            setSelectedTeam(null);
-            fetchMyTeams();
+            if (selectedTeam.role === 'admin') {
+                // Admin left the team — navigate back to teams list
+                setSelectedTeam(null);
+                await fetchMyTeams();
+                refreshTeams?.();
+            } else {
+                // Non-admin submitted a leave request — stay on page
+                showMsg('Your leave request has been sent to the admin.', 'success');
+            }
         } catch (e) {
-            showMsg(e.message || 'Failed to leave team', 'error');
+            showMsg(e.response?.data?.message || e.message || 'Failed to submit leave request', 'error');
+            setLeaveModal(false);
         }
     };
 
@@ -122,8 +131,9 @@ export default function TeamScreen() {
             showMsg('Member removed!');
             setMembers(m => m.filter(x => x.id !== removeModal.id));
             setRemoveModal(null);
+            refreshTeams?.(); // Sync global team members for task assignment
         } catch (e) {
-            showMsg(e.message || 'Failed to remove member', 'error');
+            showMsg(e.response?.data?.message || e.message || 'Failed to remove member', 'error');
         }
     };
 

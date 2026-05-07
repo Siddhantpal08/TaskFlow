@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 
@@ -26,15 +26,39 @@ export const DataProvider = ({ children }) => {
     const [onlineUsers, setOnlineUsers] = useState(new Set());
     const [loading, setLoading] = useState(true);
 
-    const socket = useRef(null);
+    const socketRef = useRef(null);
+
+    // ─── Stable refresh helpers ────────────────────────────────────────────────
+    const refreshTasks = useCallback(async () => {
+        try {
+            const res = await tasksApi.list();
+            setTasks(Array.isArray(res.data) ? res.data : []);
+        } catch (e) { console.error('refreshTasks failed:', e); }
+    }, []);
+
+    const refreshTeams = useCallback(async () => {
+        try {
+            const res = await teamApi.getMembers();
+            setTeamMembers(Array.isArray(res.data) ? res.data : []);
+        } catch (e) { console.error('refreshTeams failed:', e); }
+    }, []);
+
+    const refreshNotifications = useCallback(async () => {
+        try {
+            const res = await notificationsApi.list();
+            const notifs = Array.isArray(res.data) ? res.data : (res.data?.notifications || []);
+            setNotifications(notifs);
+            setUnreadCount(notifs.filter(n => !n.is_read).length);
+        } catch (e) { console.error('refreshNotifications failed:', e); }
+    }, []);
 
     useEffect(() => {
         if (!user) {
             setTasks([]); setEvents([]); setTeamMembers([]);
             setNotifications([]); setUnreadCount(0);
-            if (socket.current) {
-                socket.current.disconnect();
-                socket.current = null;
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
             }
             return;
         }
@@ -50,18 +74,17 @@ export const DataProvider = ({ children }) => {
                 ]);
 
                 setTasks(Array.isArray(tRes.data) ? tRes.data : []);
-                // Calendar API returns { events: [], taskDueDates: [] } inside data
                 const evData = eRes.data;
                 setEvents(Array.isArray(evData) ? evData : Array.isArray(evData?.events) ? evData.events : []);
                 setTeamMembers(Array.isArray(tmRes.data) ? tmRes.data : []);
 
-                const notifs = nRes.data?.notifications || nRes.data || [];
+                const notifs = Array.isArray(nRes.data) ? nRes.data : (nRes.data?.notifications || []);
                 setNotifications(notifs);
-                setUnreadCount(nRes.data?.unreadCount || notifs.filter(n => !n.is_read).length);
+                setUnreadCount(notifs.filter(n => !n.is_read).length);
 
                 setupSocket();
             } catch (err) {
-                console.error("Failed to fetch initial data", err);
+                console.error('Failed to fetch initial data', err);
             } finally {
                 setLoading(false);
             }
@@ -71,69 +94,209 @@ export const DataProvider = ({ children }) => {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
 
-            // Socket.IO connects to the base URL (not /api/v1)
-            socket.current = io(BASE_URL, {
+            // Disconnect any existing socket before creating new one
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+
+            const socket = io(BASE_URL, {
                 auth: { token, userId: user.id },
-                transports: ['websocket'],
+                query: { userId: user.id },
+                transports: ['websocket', 'polling'],
+                // Robust reconnection for Render free-tier spin-down
+                reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
+                reconnectionAttempts: Infinity,
+            });
+            socketRef.current = socket;
+
+            socket.on('connect', () => {
+                console.log('[Socket] Connected:', socket.id);
+                // Re-join user room after reconnect
+                socket.emit('join', { userId: user.id });
             });
 
-            socket.current.on('connect', () => { });
+            socket.on('connect_error', (err) => {
+                console.warn('[Socket] connect_error:', err.message);
+            });
 
-            socket.current.on('online_users', (users) => {
+            socket.on('disconnect', (reason) => {
+                console.warn('[Socket] Disconnected:', reason);
+                // Socket.IO auto-reconnects unless disconnected by server intentionally
+            });
+
+            // ── Online presence ────────────────────────────────────────────────
+            socket.on('online_users', (users) => {
                 setOnlineUsers(new Set(users.map(String)));
             });
+            socket.on('user:online', ({ userId }) => {
+                setOnlineUsers(prev => new Set([...prev, String(userId)]));
+            });
+            socket.on('user:offline', ({ userId }) => {
+                setOnlineUsers(prev => { const s = new Set(prev); s.delete(String(userId)); return s; });
+            });
 
-            // Backend emits task:assigned and task:updated (colon-separated)
-            socket.current.on('task:assigned', t => setTasks(p => [t, ...p.filter(x => x.id !== t.id)]));
-            socket.current.on('task:updated', t => setTasks(p => p.map(x => x.id === t.id ? t : x)));
-            socket.current.on('task:deleted', id => setTasks(p => p.filter(x => x.id !== id)));
-            // Also support underscore variants for backwards compatibility
-            socket.current.on('task_created', t => setTasks(p => [t, ...p.filter(x => x.id !== t.id)]));
-            socket.current.on('task_updated', t => setTasks(p => p.map(x => x.id === t.id ? t : x)));
-            socket.current.on('task_deleted', id => setTasks(p => p.filter(x => x.id !== id)));
+            // ── Task events ────────────────────────────────────────────────────
+            socket.on('task:assigned', t => {
+                if (!t?.id) return;
+                setTasks(p => [t, ...p.filter(x => x.id !== t.id)]);
+            });
+            socket.on('task:updated', t => {
+                if (!t?.id) return;
+                setTasks(p => p.map(x => x.id === t.id ? t : x));
+            });
+            socket.on('task:deleted', id => setTasks(p => p.filter(x => x.id !== id)));
+            socket.on('task:delegated', t => {
+                if (!t?.id) return;
+                setTasks(p => [t, ...p.filter(x => x.id !== t.id)]);
+            });
+            socket.on('task:refused', t => {
+                if (!t?.id) return;
+                setTasks(p => p.map(x => x.id === t.id ? t : x));
+            });
+            // Backwards-compat underscore variants
+            socket.on('task_created', t => t?.id && setTasks(p => [t, ...p.filter(x => x.id !== t.id)]));
+            socket.on('task_updated', t => t?.id && setTasks(p => p.map(x => x.id === t.id ? t : x)));
+            socket.on('task_deleted', id => setTasks(p => p.filter(x => x.id !== id)));
 
-            socket.current.on('event_created', e => setEvents(p => [...p, e].sort((a, b) => new Date(a.event_date) - new Date(b.event_date))));
-            socket.current.on('event_updated', e => setEvents(p => p.map(x => x.id === e.id ? e : x).sort((a, b) => new Date(a.event_date) - new Date(b.event_date))));
-            socket.current.on('event_deleted', id => setEvents(p => p.filter(x => x.id !== id)));
+            // ── Event events ───────────────────────────────────────────────────
+            socket.on('event_created', e => {
+                if (!e?.id) return;
+                setEvents(p => [...p, e].sort((a, b) => new Date(a.event_date) - new Date(b.event_date)));
+            });
+            socket.on('event_updated', e => {
+                if (!e?.id) return;
+                setEvents(p => p.map(x => x.id === e.id ? e : x).sort((a, b) => new Date(a.event_date) - new Date(b.event_date)));
+            });
+            socket.on('event_deleted', id => setEvents(p => p.filter(x => x.id !== id)));
 
-            // Handle both event name conventions for backwards compatibility
+            // ── Notification events ────────────────────────────────────────────
             const handleNewNotif = (n) => {
+                if (!n) return;
                 setNotifications(p => [n, ...p]);
                 setUnreadCount(c => c + 1);
             };
-            socket.current.on('notification_new', handleNewNotif);
-            socket.current.on('notification:new', handleNewNotif);
+            socket.on('notification_new', handleNewNotif);
+            socket.on('notification:new', handleNewNotif);
+
+            // ── Team events ────────────────────────────────────────────────────
+            // team:refresh — emitted when member joins or is removed
+            socket.on('team:refresh', () => refreshTeams());
+            socket.on('team:member_added', () => refreshTeams());
+            socket.on('team:member_removed', () => refreshTeams());
+
+            socket.on('team:leave_request', () => {
+                // Admin receives a leave request — refresh notifications
+                refreshNotifications();
+            });
+
+            // Team deleted — wipe tasks/members, then re-fetch remaining data
+            socket.on('team:deleted', () => {
+                setTasks([]);
+                setTeamMembers([]);
+                refreshTasks();
+                refreshTeams();
+                refreshNotifications();
+            });
         };
 
         initData();
 
+        // Auto-sync when app returns to foreground
+        const appStateRef = { current: AppState.currentState };
+        const sub = AppState.addEventListener('change', nextState => {
+            if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
+                // Re-fetch all data when app comes to foreground
+                Promise.all([
+                    tasksApi.list(),
+                    teamApi.getMembers(),
+                    notificationsApi.list(),
+                ]).then(([tRes, tmRes, nRes]) => {
+                    setTasks(Array.isArray(tRes.data) ? tRes.data : []);
+                    setTeamMembers(Array.isArray(tmRes.data) ? tmRes.data : []);
+                    const notifs = Array.isArray(nRes.data) ? nRes.data : (nRes.data?.notifications || []);
+                    setNotifications(notifs);
+                    setUnreadCount(notifs.filter(n => !n.is_read).length);
+                }).catch(() => {});
+
+                // Reconnect socket if it dropped
+                if (socketRef.current && !socketRef.current.connected) {
+                    socketRef.current.connect();
+                }
+            }
+            appStateRef.current = nextState;
+        });
+
         return () => {
-            if (socket.current) {
-                socket.current.disconnect();
-                socket.current = null;
+            sub?.remove();
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
             }
         };
-    }, [user]);
+    }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // ─── Task mutations ────────────────────────────────────────────────────────
     const createTask = async (data) => {
         const res = await tasksApi.create(data);
-        const newTask = await tasksApi.get(res.data.id || res.taskId);
-        setTasks(p => [newTask.data, ...p]);
-        return newTask.data;
+        const newTask = res.data;
+        if (newTask?.id) {
+            setTasks(p => [newTask, ...p.filter(t => t.id !== newTask.id)]);
+        }
+        return newTask;
+    };
+
+    const updateTask = async (id, data) => {
+        const res = await tasksApi.update(id, data);
+        if (res?.data) setTasks(p => p.map(t => t.id === id ? res.data : t));
+        return res?.data;
     };
 
     const updateTaskStatus = async (id, status) => {
+        // Optimistic update first
         setTasks(p => p.map(t => t.id === id ? { ...t, status } : t));
-        await tasksApi.updateStatus(id, status).catch(e => console.error("Update failed", e));
+        try {
+            const res = await tasksApi.updateStatus(id, status);
+            // Update with full server response (includes all names/fields)
+            if (res?.data) setTasks(p => p.map(t => t.id === id ? res.data : t));
+            return res?.data;
+        } catch (e) {
+            // Revert on failure by re-fetching
+            refreshTasks();
+            throw e;
+        }
     };
 
     const deleteTask = async (id) => {
         setTasks(p => p.filter(t => t.id !== id));
-        await tasksApi.delete(id).catch(console.error);
+        await tasksApi.delete(id).catch(e => {
+            console.error('Delete failed', e);
+            refreshTasks();
+        });
     };
 
+    const delegateTask = async (id, assigneeId) => {
+        const res = await tasksApi.delegate(id, assigneeId);
+        if (res?.data) {
+            setTasks(p => [res.data, ...p.filter(t => t.id !== res.data.id)]);
+        }
+        return res;
+    };
+
+    const splitTask = async (id, subtasks) => {
+        const res = await tasksApi.split(id, subtasks);
+        if (res?.data) {
+            setTasks(p => {
+                const newTasks = res.data.filter(nt => !p.some(pt => pt.id === nt.id));
+                return [...newTasks, ...p];
+            });
+        }
+        return res;
+    };
+
+    // ─── Event mutations ───────────────────────────────────────────────────────
     const createEvent = async (data) => {
         await eventsApi.create(data);
         const res = await eventsApi.list();
@@ -146,6 +309,7 @@ export const DataProvider = ({ children }) => {
         await eventsApi.delete(id).catch(console.error);
     };
 
+    // ─── Notification mutations ────────────────────────────────────────────────
     const markNotifRead = async (id) => {
         setNotifications(p => p.map(n => n.id === id ? { ...n, is_read: 1 } : n));
         setUnreadCount(c => Math.max(0, c - 1));
@@ -158,11 +322,31 @@ export const DataProvider = ({ children }) => {
         await notificationsApi.markAllRead().catch(console.error);
     };
 
+    // ─── Manual full refresh ───────────────────────────────────────────────────
+    const refreshAll = async () => {
+        try {
+            const [taskRes, eventRes, memberRes, notifRes] = await Promise.all([
+                tasksApi.list(),
+                eventsApi.list(),
+                teamApi.getMembers(),
+                notificationsApi.list(),
+            ]);
+            setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
+            const evData = eventRes.data;
+            setEvents(Array.isArray(evData) ? evData : Array.isArray(evData?.events) ? evData.events : []);
+            setTeamMembers(Array.isArray(memberRes.data) ? memberRes.data : []);
+            const notifs = Array.isArray(notifRes.data) ? notifRes.data : (notifRes.data?.notifications || []);
+            setNotifications(notifs);
+            setUnreadCount(notifs.filter(n => !n.is_read).length);
+        } catch (e) { console.error('refreshAll failed:', e); }
+    };
+
     return (
         <DataContext.Provider value={{
             tasks, events, teamMembers, notifications, unreadCount, onlineUsers, loading,
-            createTask, updateTaskStatus, deleteTask,
+            createTask, updateTaskStatus, updateTask, deleteTask, delegateTask, splitTask,
             createEvent, deleteEvent, markNotifRead, markAllNotifRead,
+            refreshAll, refreshTasks, refreshTeams, refreshNotifications,
         }}>
             {children}
         </DataContext.Provider>
