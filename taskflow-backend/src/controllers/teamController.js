@@ -68,7 +68,15 @@ const leaveTeam = asyncWrapper(async (req, res) => {
     const admins = allMembers.filter(m => m.role === 'admin');
 
     // This inserts a leave request row for non-admins, or removes admin directly
-    await teamModel.leaveTeam(req.user.id, teamId);
+    try {
+        await teamModel.leaveTeam(req.user.id, teamId);
+    } catch (modelErr) {
+        // Handle 'already pending' gracefully so client gets a 400, not a 500
+        if (modelErr.message && modelErr.message.includes('already pending')) {
+            throw new AppError('A leave request is already pending for this team.', 400);
+        }
+        throw modelErr;
+    }
 
     // If member (not admin): notify all admins about the leave request
     if (!isAdmin) {
