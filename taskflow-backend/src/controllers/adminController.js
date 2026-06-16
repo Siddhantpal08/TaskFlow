@@ -120,11 +120,13 @@ const getStorageBreakdown = asyncWrapper(async (req, res) => {
          FROM users u
          LEFT JOIN notes_pages np ON np.user_id = u.id
          LEFT JOIN notes_blocks nb ON nb.page_id = np.id
-         GROUP BY u.id ORDER BY content_bytes DESC LIMIT 20`
+         GROUP BY u.id, u.name, u.email, u.plan
+         ORDER BY content_bytes DESC LIMIT 20`
     );
-    const [[{ totalMB }]] = await db.query(
-        `SELECT COALESCE(SUM(LENGTH(nb.content)), 0) / 1024 / 1024 AS totalMB FROM notes_blocks nb`
+    const [rows] = await db.query(
+        `SELECT COALESCE(SUM(LENGTH(content)), 0) / 1024 / 1024 AS totalMB FROM notes_blocks`
     );
+    const totalMB = rows[0] && rows[0].totalMB ? parseFloat(rows[0].totalMB) : 0;
 
     res.json({ status: 'success', data: { topUsers, totalMB: +totalMB.toFixed(3) } });
 });
