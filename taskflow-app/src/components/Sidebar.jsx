@@ -6,8 +6,9 @@ import TFLogo from "./ui/TFLogo.jsx";
 import { PlanBadge } from "./ui/UpgradeModal.jsx";
 
 export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded,
-    notePageId, navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, updateNotePage, onUpgrade, className }) {
-    const { user, logout } = useAuth();
+    notePageId, navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, updateNotePage, onUpgrade, user: userProp, className }) {
+    const { user: authUser, logout } = useAuth();
+    const user = userProp || authUser;
     const [width, setWidth] = useState(230);
     const [noteSearch, setNoteSearch] = useState("");
 
@@ -30,6 +31,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
         { id: "calendar", label: "Calendar", ic: IC.cal },
         { id: "team", label: "Team", ic: IC.team },
         { id: "friends", label: "Friends", ic: IC.user },
+        ...(user?.role === 'admin' ? [{ id: "admin", label: "⚙ Admin", ic: IC.edt }] : []),
     ];
     const rootPage = pages["root"];
     const toggleExp = (id, e) => { e.stopPropagation(); setExpanded(p => ({ ...p, [id]: !p[id] })); };

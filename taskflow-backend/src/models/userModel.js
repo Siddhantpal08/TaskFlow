@@ -26,23 +26,31 @@ const getUserByEmail = async (email) => {
 const getUserById = async (id) => {
     try {
         const [rows] = await db.query(
-            'SELECT id, name, email, avatar_initials, role, bio, avatar_url, is_online, created_at FROM users WHERE id = ?',
+            'SELECT id, name, email, avatar_initials, role, plan, plan_expires_at, bio, avatar_url, is_online, created_at FROM users WHERE id = ?',
             [id]
         );
         return rows[0] || null;
     } catch (e) {
         if (e.code === 'ER_BAD_FIELD_ERROR') {
-            // Self-healing: if role doesn't exist yet, alter and retry
+            // Self-healing: if role/plan doesn't exist yet, alter and retry
             try {
                 await db.query("ALTER TABLE users ADD COLUMN role ENUM('admin','user') DEFAULT 'user'");
-                const [retry] = await db.query('SELECT id, name, email, avatar_initials, role, bio, avatar_url, is_online, created_at FROM users WHERE id = ?', [id]);
+            } catch (_) { }
+            try {
+                await db.query("ALTER TABLE users ADD COLUMN plan ENUM('free','pro') DEFAULT 'free'");
+            } catch (_) { }
+            try {
+                const [retry] = await db.query(
+                    'SELECT id, name, email, avatar_initials, role, plan, plan_expires_at, bio, avatar_url, is_online, created_at FROM users WHERE id = ?',
+                    [id]
+                );
                 return retry[0] || null;
-            } catch (alterErr) {
-                const [rows] = await db.query(
+            } catch (_) {
+                const [rows2] = await db.query(
                     'SELECT id, name, email, avatar_initials, is_online, created_at FROM users WHERE id = ?',
                     [id]
                 );
-                return rows[0] || null;
+                return rows2[0] || null;
             }
         }
         throw e;

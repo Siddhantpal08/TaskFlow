@@ -17,8 +17,9 @@ const calendarRoutes     = require('./routes/calendarRoutes');
 const teamRoutes         = require('./routes/teamRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const userRoutes         = require('./routes/userRoutes');
-const friendRoutes       = require('./routes/friendRoutes');        // friends (full product only)
-const collegeRoutes      = require('./routes/collegeRoutes');       // basic college submission
+const friendRoutes       = require('./routes/friendRoutes');
+const adminRoutes        = require('./routes/adminRoutes');         // admin panel
+const collegeRoutes      = require('./routes/collegeRoutes');
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 const app = express();
@@ -134,11 +135,12 @@ app.get('/health', (req, res) => {
 //           friends, calendar, notifications, profile
 app.use('/api/v1/auth',          authRoutes);
 app.use('/api/v1/tasks',         taskRoutes);
-app.use('/api/v1/notes',         notesRoutes);         // flat notes fallback
+app.use('/api/v1/notes',         notesRoutes);
 app.use('/api/v1/calendar',      calendarRoutes);
 app.use('/api/v1/team',          teamRoutes);
-app.use('/api/v1/friends',       friendRoutes);         // friends — full product
+app.use('/api/v1/friends',       friendRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/admin',         adminRoutes);          // admin panel (role=admin gated)
 app.use('/api/v1',               userRoutes);
 
 // Rich Notes (pages/blocks/share) also under /api/v1/ for full product

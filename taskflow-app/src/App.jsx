@@ -28,6 +28,8 @@ import Tasks from "./components/Tasks.jsx";
 import Calendar from "./components/Calendar.jsx";
 import TeamPage from "./components/TeamPage.jsx";
 import Friends from "./components/Friends.jsx";
+import AdminPanel from "./pages/AdminPanel.jsx";
+
 import NotesPage from "./components/notes/NotesPage.jsx";
 import NotesHome from "./components/notes/NotesHome.jsx";
 
@@ -362,9 +364,10 @@ function MainApp() {
                         notePageId={notePageId} navigateNote={navigateNote}
                         addNotePage={addNotePage} deleteNotePage={deleteNotePage}
                         duplicateNotePage={duplicateNotePage} reorderNotePage={reorderNotePage}
-                        updateNotePage={updateNotePage}
+                        updateNotePage={updateNotePage} user={user}
                         onUpgrade={() => setUpgradeModal({ feature: 'Upgrade to TaskFlow Pro' })}
                         className="sidebar-desktop" />
+
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                         <Topbar t={t} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
@@ -380,6 +383,7 @@ function MainApp() {
                             {page === "team" && <TeamPage t={t} />}
                             {page === "friends" && <Friends t={t} />}
                             {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
+                            {page === "admin" && user?.role === 'admin' && <AdminPanel t={t} user={user} />}
                         </main>
                     </div>
 

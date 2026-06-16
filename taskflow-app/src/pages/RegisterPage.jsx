@@ -4,6 +4,8 @@ import zxcvbn from 'zxcvbn';
 import { useAuth } from '../context/AuthContext.jsx';
 import { GoogleLogin } from '@react-oauth/google';
 import { toastSuccess, toastError } from '../components/ui/Toast.jsx';
+import TermsModal from '../components/ui/TermsModal.jsx';
+
 
 const t = DARK;
 
@@ -61,26 +63,26 @@ function Field({ label, type, value, onChange, placeholder, focusKey, focused, s
 
 export default function RegisterPage({ onGoLogin }) {
     const { register, verifyEmail, resendOtp } = useAuth();
-    const [step, setStep] = useState('form'); // 'form' or 'otp'
+    const [step, setStep] = useState('form');
 
-    // Form state
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
-
-    // OTP state
     const [otp, setOtp] = useState('');
+    const [termsAccepted, setTermsAccepted] = useState(false);
+    const [showTerms, setShowTerms] = useState(false);
 
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [focused, setFocused] = useState('');
 
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        if (!termsAccepted) { setError('You must accept the Terms of Service to continue.'); return; }
         if (password !== confirm) { setError('Passwords do not match.'); return; }
-        // Stricter validation: length and character variety
         const hasUpper = /[A-Z]/.test(password);
         const hasLower = /[a-z]/.test(password);
         const hasNumber = /[0-9]/.test(password);
@@ -100,6 +102,7 @@ export default function RegisterPage({ onGoLogin }) {
             setLoading(false);
         }
     };
+
 
     const handleVerify = async (e) => {
         e.preventDefault();
@@ -130,6 +133,13 @@ export default function RegisterPage({ onGoLogin }) {
             minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: t.bg, fontFamily: t.disp,
         }}>
+            {showTerms && (
+                <TermsModal
+                    onAccept={() => { setTermsAccepted(true); setShowTerms(false); }}
+                    onDecline={() => { setTermsAccepted(false); setShowTerms(false); }}
+                />
+            )}
+
             <div style={{
                 position: 'fixed', top: '15%', left: '50%', transform: 'translateX(-50%)',
                 width: 600, height: 300,
@@ -206,9 +216,31 @@ export default function RegisterPage({ onGoLogin }) {
                                 }}>{error}</div>
                             )}
 
-                            <button type="submit" disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.65 : 1 }}>
+                            {/* Terms & Conditions checkbox */}
+                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    id="termsCheck"
+                                    checked={termsAccepted}
+                                    onChange={e => setTermsAccepted(e.target.checked)}
+                                    style={{ marginTop: 3, accentColor: t.accent, width: 15, height: 15, flexShrink: 0 }}
+                                />
+                                <span style={{ fontSize: 12, color: t.t2, lineHeight: 1.5 }}>
+                                    I have read and agree to the{' '}
+                                    <button type="button" onClick={() => setShowTerms(true)} style={{
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        color: t.accent, fontWeight: 600, fontFamily: t.disp,
+                                        fontSize: 12, padding: 0, textDecoration: 'underline',
+                                    }}>Terms of Service & Privacy Policy</button>
+                                    {' '}of TaskFlow by Crevio.
+                                </span>
+                            </label>
+
+                            <button type="submit" disabled={loading || !termsAccepted}
+                                style={{ ...btnStyle, opacity: loading || !termsAccepted ? 0.55 : 1, cursor: loading || !termsAccepted ? 'not-allowed' : 'pointer' }}>
                                 {loading ? 'Creating account…' : 'Create Account →'}
                             </button>
+
                         </form>
 
                         <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 12 }}>
