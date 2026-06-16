@@ -11,7 +11,7 @@ const getStats = asyncWrapper(async (req, res) => {
     const [[{ totalUsers }]]    = await db.query('SELECT COUNT(*) AS totalUsers FROM users');
     const [[{ proUsers }]]      = await db.query("SELECT COUNT(*) AS proUsers FROM users WHERE plan = 'pro'");
     const [[{ freeUsers }]]     = await db.query("SELECT COUNT(*) AS freeUsers FROM users WHERE plan = 'free' OR plan IS NULL");
-    const [[{ verifiedUsers }]] = await db.query("SELECT COUNT(*) AS verifiedUsers FROM users WHERE is_verified = 1");
+    const [[{ verifiedUsers }]] = await db.query("SELECT COUNT(*) AS verifiedUsers FROM users WHERE is_email_verified = 1");
     const [[{ newToday }]]      = await db.query("SELECT COUNT(*) AS newToday FROM users WHERE DATE(created_at) = CURDATE()");
     const [[{ newThisWeek }]]   = await db.query("SELECT COUNT(*) AS newThisWeek FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
 
@@ -26,7 +26,7 @@ const getStats = asyncWrapper(async (req, res) => {
 
     // Recent signups (last 10)
     const [recentUsers] = await db.query(
-        `SELECT id, name, email, plan, role, is_verified, created_at
+        `SELECT id, name, email, plan, role, is_email_verified, created_at
          FROM users ORDER BY created_at DESC LIMIT 10`
     );
 
@@ -63,7 +63,7 @@ const getUsers = asyncWrapper(async (req, res) => {
 
     const [[{ total }]] = await db.query(`SELECT COUNT(*) AS total FROM users ${where}`, params);
     const [users] = await db.query(
-        `SELECT id, name, email, avatar_initials, plan, role, is_verified, terms_accepted_at, created_at, plan_expires_at
+        `SELECT id, name, email, avatar_initials, plan, role, is_email_verified, terms_accepted_at, created_at, plan_expires_at
          FROM users ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         [...params, limit, offset]
     );
