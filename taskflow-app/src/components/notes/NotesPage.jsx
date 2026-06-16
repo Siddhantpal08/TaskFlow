@@ -6,6 +6,8 @@ import SlashMenu from "./SlashMenu.jsx";
 import { notesApi } from "../../api/notes.js";
 import { toastError } from "../ui/Toast.jsx";
 import { io } from "socket.io-client";
+import { isPro } from "../../utils/planLimits.js";
+import { UpgradeModal } from "../ui/UpgradeModal.jsx";
 
 // ── Lock Gate ──────────────────────────────────────────────────────────────────
 function LockGate({ notePageId, t, onUnlock }) {
@@ -271,7 +273,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [loading, setLoading] = useState(true);
     const [slash, setSlash] = useState(null);
     const [emojiOpen, setEmojiOpen] = useState(false);
-    const [writingMode, setWritingMode] = useState(pg.writing_mode || null);
+    const [writingMode, setWritingMode] = useState(
+        pg.writingMode || pg.writing_mode || localStorage.getItem(`tf_wm_${notePageId}`) || null
+    );
     const [saveStatus, setSaveStatus] = useState("saved"); // 'saving' | 'saved'
     const [docTheme, setDocTheme] = useState(() => localStorage.getItem("tf_docTheme") || 'light');
     const [useTypewriter, setUseTypewriter] = useState(() => localStorage.getItem("tf_docFont") === 'true');
@@ -285,6 +289,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [unlocked, setUnlocked] = useState(false);
     const [selectedBlockIds, setSelectedBlockIds] = useState(new Set());
     const [dragBox, setDragBox] = useState(null); // { x1, y1, x2, y2 }
+    const [showUpgradeModal, setShowUpgradeModal] = useState(null); // { feature } | null
 
     const titleRef = useRef();
     const socketRef = useRef(null);
@@ -454,7 +459,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             if (active) setBlocks([mkBlock("p", "")]);
         }).finally(() => { if (active) setLoading(false); });
 
-        const s = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000', { transports: ['websocket'] });
+        const socketBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000')
+            .replace('/api/college/v1', '').replace('/api/v1', '');
+        const s = io(socketBase, { transports: ['websocket'] });
         socketRef.current = s;
         s.emit('note:join', notePageId);
 
@@ -1067,6 +1074,12 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 value={writingMode || ""}
                                 onChange={e => {
                                     const val = e.target.value || null;
+                                    // ── Writing modes are Pro only ──
+                                    if (val && !isPro()) {
+                                        setShowUpgradeModal({ feature: 'Script & Lyrics Mode is a Pro feature' });
+                                        e.target.value = writingMode || '';
+                                        return;
+                                    }
                                     setWritingMode(val);
                                     // Persist to localStorage (immediate) + DB (durable)
                                     if (val) localStorage.setItem(`tf_wm_${notePageId}`, val);
@@ -1116,12 +1129,16 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             </button>
                         )}
 
-                        {/* Share */}
-                        <button type="button" onClick={openShareModal}
+                        {/* Share — Pro only */}
+                        <button type="button" onClick={() => {
+                            if (!isPro()) { setShowUpgradeModal({ feature: 'Note Sharing is a Pro feature' }); return; }
+                            openShareModal();
+                        }}
+                            title={isPro() ? "Share this note" : "Upgrade to Pro to share notes"}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <I d={IC.lnk} sz={12} c="currentColor" />Share
+                            <I d={IC.lnk} sz={12} c="currentColor" />{isPro() ? "Share" : "🔒 Share"}
                         </button>
                         <button type="button" onClick={() => addNotePage(notePageId)}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
@@ -1300,7 +1317,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                                         isDragOver={dragOver === idx}
                                                         onDragStart={(i) => { dragFromIdx.current = i; }}
                                                         onDragOver={(i) => setDragOver(i)}
-                                                        onDrop={(i) => moveBlk(dragFromIdx.current, i)}
+                                                        onDrop={(i) => handleDrop(i)}
                                                         onConvert={type => convertBlk(idx, type)}
                                                     />
                                                 </div>
@@ -1353,6 +1370,11 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     t={t}
                     onClose={() => setShowShareModal(false)}
                 />
+            )}
+
+            {/* Upgrade modal (for pro features) */}
+            {showUpgradeModal && (
+                <UpgradeModal t={t} feature={showUpgradeModal.feature} onClose={() => setShowUpgradeModal(null)} />
             )}
         </div>
     );

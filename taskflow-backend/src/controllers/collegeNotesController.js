@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const getPages = asyncWrapper(async (req, res) => {
     const userId = req.user.id;
     const [rows] = await db.query(
-        'SELECT id, title, emoji, parent_id, position, updated_at FROM notes_pages WHERE user_id = ? ORDER BY position ASC',
+        'SELECT id, title, emoji, parent_id, position, updated_at, writing_mode FROM notes_pages WHERE user_id = ? ORDER BY position ASC',
         [userId]
     );
     // Build tree

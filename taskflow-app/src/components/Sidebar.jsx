@@ -3,9 +3,10 @@ import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import NoteTreeItem from "./NoteTreeItem.jsx";
 import TFLogo from "./ui/TFLogo.jsx";
+import { PlanBadge } from "./ui/UpgradeModal.jsx";
 
 export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded,
-    notePageId, navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, updateNotePage, className }) {
+    notePageId, navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, updateNotePage, onUpgrade, className }) {
     const { user, logout } = useAuth();
     const [width, setWidth] = useState(230);
     const [noteSearch, setNoteSearch] = useState("");
@@ -126,6 +127,11 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                         deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage}
                         reorderNotePage={reorderNotePage} updateNotePage={updateNotePage} depth={0} t={t} />
                 ))}
+            </div>
+
+            {/* Plan Badge */}
+            <div style={{ padding: "6px 12px 0" }}>
+                <PlanBadge t={t} onClick={onUpgrade} />
             </div>
 
             {/* User */}

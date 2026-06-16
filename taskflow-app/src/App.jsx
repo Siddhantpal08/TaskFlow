@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { wakeupBackend } from "./utils/renderWakeup.js";
 import { FONTS, THEMES, buildCustomTheme } from "./data/themes.js";
 import { INIT_PAGES, mkId, mkBlock, EMOJIS } from "./data/notes.js";
 import { I, IC } from "./components/ui/Icon.jsx";
@@ -6,6 +7,8 @@ import TFLogo from "./components/ui/TFLogo.jsx";
 import "./styles/global.css";
 import { notesApi } from "./api/notes.js";
 import ThemePicker from "./components/ui/ThemePicker.jsx";
+import { checkLimit, isPro } from "./utils/planLimits.js";
+import { UpgradeModal } from "./components/ui/UpgradeModal.jsx";
 
 // Auth
 import { useAuth } from "./context/AuthContext.jsx";
@@ -150,7 +153,15 @@ function MainApp() {
                     let firstId = null;
                     const walk = (node, parentId) => {
                         if (!firstId) firstId = node.id;
-                        newPages[node.id] = { id: node.id, title: node.title, emoji: node.emoji || "📄", parentId: parentId || "root", childIds: [], updatedAt: "Server Sync" };
+                        newPages[node.id] = {
+                            id: node.id,
+                            title: node.title,
+                            emoji: node.emoji || "📄",
+                            parentId: parentId || "root",
+                            childIds: [],
+                            updatedAt: "Server Sync",
+                            writingMode: node.writing_mode || null,
+                        };
                         newPages[parentId || "root"].childIds.push(node.id);
                         node.children?.forEach(c => walk(c, node.id));
                     };
@@ -239,9 +250,18 @@ function MainApp() {
 
     const [isAddingPage, setIsAddingPage] = useState(false);
     const addingPageRef = useRef(false);
+    const [upgradeModal, setUpgradeModal] = useState(null); // { feature: string } | null
 
     const addNotePage = async (parentId, meta = {}) => {
         if (addingPageRef.current) return;
+        // ── Freemium page limit check ──────────────────────────────────────────
+        const totalPages = Object.keys(pages).filter(k => k !== 'root').length;
+        const { allowed, reason } = checkLimit('notePages', totalPages);
+        if (!allowed) {
+            setUpgradeModal({ feature: reason });
+            return;
+        }
+        // ──────────────────────────────────────────────────────────────────────
         addingPageRef.current = true;
         setIsAddingPage(true);
         const title = meta.title || "Untitled";
@@ -343,6 +363,7 @@ function MainApp() {
                         addNotePage={addNotePage} deleteNotePage={deleteNotePage}
                         duplicateNotePage={duplicateNotePage} reorderNotePage={reorderNotePage}
                         updateNotePage={updateNotePage}
+                        onUpgrade={() => setUpgradeModal({ feature: 'Upgrade to TaskFlow Pro' })}
                         className="sidebar-desktop" />
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
@@ -371,6 +392,10 @@ function MainApp() {
                             onApplyPreset={applyPreset} onApplyCustom={applyCustom}
                             onClose={() => setShowThemePicker(false)} />
                     )}
+                    {/* Freemium upgrade modal */}
+                    {upgradeModal && (
+                        <UpgradeModal t={t} feature={upgradeModal.feature} onClose={() => setUpgradeModal(null)} />
+                    )}
 
                     {/* Mobile bottom nav */}
                     <nav className="mobile-nav">
@@ -398,10 +423,22 @@ function MainApp() {
 export default function App() {
     const { user, loading, login, register, logout, requestReset, verifyReset } = useAuth();
     const [authPage, setAuthPage] = useState("login");
+    const [wakeStatus, setWakeStatus] = useState("waking"); // 'waking' | 'ready' | 'timeout'
+
+    // Fire backend wake-up on mount (Render free-tier cold starts)
+    useEffect(() => {
+        wakeupBackend((status) => setWakeStatus(status));
+    }, []);
 
     if (loading) {
         return (
             <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#060B12", flexDirection: "column", gap: 16 }}>
+                <style>{`
+                    @keyframes fadeSlideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+                    @keyframes pulse { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.15)} }
+                    @keyframes glow { 0%,100%{filter:drop-shadow(0 0 16px #00E5CC88)} 50%{filter:drop-shadow(0 0 28px #00E5CCcc)} }
+                    @keyframes spin { to{transform:rotate(360deg)} }
+                `}</style>
                 <div style={{ animation: "fadeSlideIn 0.5s ease both" }}>
                     <svg width="56" height="56" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ animation: "glow 1.5s ease infinite", filter: "drop-shadow(0 0 16px #00E5CC88)" }}>
                         <defs>
@@ -421,6 +458,16 @@ export default function App() {
                         <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "#00E5CC", opacity: 0.5, animation: "pulse 1.2s ease infinite", animationDelay: i * 0.2 + "s" }} />
                     ))}
                 </div>
+                {/* Render cold-start indicator */}
+                {wakeStatus === 'waking' && (
+                    <div style={{ marginTop: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, animation: "fadeSlideIn .6s ease .4s both" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 18px", borderRadius: 999, background: "rgba(0,229,204,0.08)", border: "1px solid rgba(0,229,204,0.2)" }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", border: "2px solid #00E5CC", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+                            <span style={{ fontSize: 12, color: "#00E5CC", fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.3px" }}>Waking server…</span>
+                        </div>
+                        <span style={{ fontSize: 10.5, color: "#2E4A68", fontFamily: "'IBM Plex Mono', monospace" }}>Free-tier servers sleep after inactivity. This takes ~15 s.</span>
+                    </div>
+                )}
             </div>
         );
     }
