@@ -130,20 +130,7 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'TaskFlow API is running.' });
 });
 
-// ─── /api/v1/ — TaskFlow Full Product (taskflow-web + mobile) ────────────────
-// Includes: auth, tasks, rich notes tree (pages/blocks), teams,
-//           friends, calendar, notifications, profile
-app.use('/api/v1/auth',          authRoutes);
-app.use('/api/v1/tasks',         taskRoutes);
-app.use('/api/v1/notes',         notesRoutes);
-app.use('/api/v1/calendar',      calendarRoutes);
-app.use('/api/v1/team',          teamRoutes);
-app.use('/api/v1/friends',       friendRoutes);
-app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1/admin',         adminRoutes);          // admin panel (role=admin gated)
-app.use('/api/v1',               userRoutes);
-
-// Rich Notes (pages/blocks/share) also under /api/v1/ for full product
+// Rich Notes (pages/blocks/share) under /api/v1/ (loaded before flat notes to prevent interception of /pages routes)
 const nc = require('./controllers/collegeNotesController');
 const { authenticate: auth } = require('./middleware/auth');
 const richNotesRouter = require('express').Router();
@@ -162,6 +149,16 @@ richNotesRouter.post('/pages/:pageId/blocks',    nc.createBlock);
 richNotesRouter.put('/blocks/:blockId',          nc.updateBlock);
 richNotesRouter.delete('/blocks/:blockId',       nc.deleteBlock);
 app.use('/api/v1/notes', richNotesRouter);
+
+app.use('/api/v1/auth',          authRoutes);
+app.use('/api/v1/tasks',         taskRoutes);
+app.use('/api/v1/notes',         notesRoutes);
+app.use('/api/v1/calendar',      calendarRoutes);
+app.use('/api/v1/team',          teamRoutes);
+app.use('/api/v1/friends',       friendRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/admin',         adminRoutes);          // admin panel (role=admin gated)
+app.use('/api/v1',               userRoutes);
 
 // ─── /api/college/v1/ — Basic College Submission (taskflow-app on Vercel) ────
 // Intentionally simple: auth + tasks + flat notes + calendar only. No friends.
