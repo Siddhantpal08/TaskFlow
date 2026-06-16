@@ -91,6 +91,7 @@ function TopLoader({ active, color }) {
 }
 
 function MainApp() {
+    const { user } = useAuth();
     // ── Theme State ──────────────────────────────────────────────────────────
     const storedTheme = (() => { try { return JSON.parse(localStorage.getItem("tf_theme") || "{}"); } catch { return {}; } })();
     const [themeKey, setThemeKey] = useState(storedTheme.key || "dark");
