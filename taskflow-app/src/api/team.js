@@ -10,4 +10,5 @@ export const teamApi = {
     approveLeaveRequest: (reqId)    => api.post(`/team/leave-requests/${reqId}/approve`),
     rejectLeaveRequest:  (reqId)    => api.post(`/team/leave-requests/${reqId}/reject`),
     getMemberActivity:   (memberId) => api.get(`/team/members/${memberId}/activity`),
+    getMembers:          ()         => api.get('/team/members'),
 };
