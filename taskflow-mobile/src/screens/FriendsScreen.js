@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { DARK as t } from '../data/themes';
 
 export default function FriendsScreen() {
-    const { friends, friendRequests, sendFriendRequest, acceptFriendRequest, removeFriend, refreshFriends, loading } = useData();
+    const { friends, friendRequests, sendFriendRequest, acceptFriendRequest, removeFriend, refreshFriends, loading, onlineUsers } = useData();
     const { user } = useAuth();
     const [tab, setTab] = useState('friends'); // 'friends' | 'requests' | 'add'
     const [email, setEmail] = useState('');
@@ -58,7 +58,9 @@ export default function FriendsScreen() {
         setRefreshing(false);
     };
 
-    const renderFriend = ({ item: f }) => (
+    const renderFriend = ({ item: f }) => {
+        const isOnline = onlineUsers.has(String(f.id));
+        return (
         <View style={s.card}>
             {f.avatar_url ? (
                 <Image source={{ uri: f.avatar_url }} style={s.avatar} />
@@ -71,9 +73,9 @@ export default function FriendsScreen() {
                 <Text style={s.name}>{f.name}</Text>
                 <Text style={s.email}>{f.email}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                    <View style={[s.dot, { backgroundColor: f.is_online ? t.green : t.border }]} />
-                    <Text style={[s.statusTxt, { color: f.is_online ? t.green : t.t3 }]}>
-                        {f.is_online ? 'Online' : 'Offline'}
+                    <View style={[s.dot, { backgroundColor: isOnline ? t.green : t.border }]} />
+                    <Text style={[s.statusTxt, { color: isOnline ? t.green : t.t3 }]}>
+                        {isOnline ? 'Online' : 'Offline'}
                     </Text>
                 </View>
             </View>
@@ -81,7 +83,8 @@ export default function FriendsScreen() {
                 <Text style={s.removeTxt}>Remove</Text>
             </TouchableOpacity>
         </View>
-    );
+        );
+    };
 
     const renderRequest = ({ item: r }) => (
         <View style={s.card}>
@@ -256,7 +259,7 @@ const s = StyleSheet.create({
         padding: 14, color: t.t1, fontSize: 14, marginBottom: 14,
     },
     sendBtn: { backgroundColor: t.accent, borderRadius: 12, padding: 14, alignItems: 'center' },
-    sendTxt: { color: '#000', fontWeight: '800', fontSize: 15 },
+    sendTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
     modalOverlay: { flex: 1, backgroundColor: '#000000BB', justifyContent: 'center', alignItems: 'center', padding: 20 },
     modalBox: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 },
     modalTitle: { fontSize: 18, fontWeight: '800', color: t.t1, marginBottom: 8 },
@@ -268,5 +271,5 @@ const s = StyleSheet.create({
     modalBtnDanger: { backgroundColor: t.red + '20', borderWidth: 1, borderColor: t.red + '50' },
     modalBtnDangerTxt: { color: t.red, fontWeight: '800', fontSize: 14 },
     modalBtnAccept: { backgroundColor: t.accent, borderWidth: 1, borderColor: t.accent },
-    modalBtnAcceptTxt: { color: '#000', fontWeight: '800', fontSize: 14 },
+    modalBtnAcceptTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
 });

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    Modal, TextInput, Alert, ActivityIndicator, RefreshControl
+    Modal, TextInput, Alert, ActivityIndicator, RefreshControl,
+    KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { notesApi } from '../api/notes';
@@ -35,8 +36,11 @@ export default function NotesListScreen({ navigation }) {
     }, []);
 
     useEffect(() => {
-        loadPages().finally(() => setLoading(false));
-    }, []);
+        const unsubscribe = navigation.addListener('focus', () => {
+            loadPages().finally(() => setLoading(false));
+        });
+        return unsubscribe;
+    }, [navigation, loadPages]);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -76,7 +80,6 @@ export default function NotesListScreen({ navigation }) {
     const handleView = (page) => {
         navigation.navigate('NoteEditor', {
             page,
-            onBack: loadPages,
         });
     };
 
@@ -140,8 +143,11 @@ export default function NotesListScreen({ navigation }) {
             />
 
             {/* Create Modal */}
-            <Modal visible={showCreate} animationType="slide" transparent>
-                <View style={s.modalBg}>
+            <Modal visible={showCreate} animationType="slide" transparent onRequestClose={() => setShowCreate(false)}>
+                <KeyboardAvoidingView
+                    style={s.modalBg}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
                     <View style={s.modalCard}>
                         <Text style={s.modalTitle}>New Note</Text>
                         <TextInput
@@ -157,11 +163,11 @@ export default function NotesListScreen({ navigation }) {
                                 <Text style={[s.btnTxt, { color: t.t2 }]}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleCreate} disabled={creating} style={[s.btn, { flex: 1, backgroundColor: t.accent }]}>
-                                {creating ? <ActivityIndicator color="#000" /> : <Text style={[s.btnTxt, { color: '#000' }]}>Create</Text>}
+                                {creating ? <ActivityIndicator color="#fff" /> : <Text style={[s.btnTxt, { color: '#fff' }]}>Create</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             {/* Custom Delete Modal */}
@@ -197,7 +203,7 @@ const s = StyleSheet.create({
     headerTitle: { fontSize: 18, fontWeight: '800', color: t.t1, letterSpacing: -0.4 },
     headerSub: { fontSize: 11, color: t.t3, marginTop: 2 },
     addBtn: { backgroundColor: t.accent, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10 },
-    addBtnTxt: { color: '#000', fontWeight: '800', fontSize: 13 },
+    addBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 13 },
 
     card: {
         flexDirection: 'row', alignItems: 'center',

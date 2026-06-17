@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert
+    ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert, StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { notesApi } from '../api/notes';
 import { DARK as t } from '../data/themes';
 
+// Push header below Android status/notification bar.
+// StatusBar.currentHeight gives the exact pixel height of the status bar.
+const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0;
+
 export default function NoteEditorScreen({ route, navigation }) {
-    const { page, onBack } = route.params || {};
+    const { page } = route.params || {};
 
     const [loading, setLoading] = useState(true);
     const [title, setTitle] = useState(page?.title || '');
@@ -39,7 +43,6 @@ export default function NoteEditorScreen({ route, navigation }) {
         setSaving(true);
         try {
             await notesApi.updatePage(page.id, { title, content });
-            if (onBack) onBack(); // trigger parent refresh
             navigation.goBack();
         } catch (e) {
             Alert.alert('Error', e.message || 'Failed to save note');
@@ -57,18 +60,30 @@ export default function NoteEditorScreen({ route, navigation }) {
     }
 
     return (
-        <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+            style={s.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            {/* Header — padded below the status/notification bar */}
             <View style={s.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
                     <Ionicons name="arrow-back" size={24} color={t.t1} />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={s.saveBtn} onPress={handleSave} disabled={saving}>
-                    {saving ? <ActivityIndicator color="#000" size="small" /> : <Text style={s.saveBtnTxt}>Save</Text>}
+                    {saving
+                        ? <ActivityIndicator color="#fff" size="small" />
+                        : <Text style={s.saveBtnTxt}>Save</Text>
+                    }
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={s.editor} contentContainerStyle={{ paddingBottom: 100 }}>
+            <ScrollView
+                style={s.editor}
+                contentContainerStyle={{ paddingBottom: 120 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+            >
                 <TextInput
                     style={s.titleInput}
                     value={title}
@@ -76,7 +91,7 @@ export default function NoteEditorScreen({ route, navigation }) {
                     placeholder="Note Title"
                     placeholderTextColor={t.t3}
                 />
-                
+
                 <TextInput
                     style={s.contentInput}
                     value={content}
@@ -85,6 +100,7 @@ export default function NoteEditorScreen({ route, navigation }) {
                     placeholderTextColor={t.t3}
                     multiline
                     textAlignVertical="top"
+                    scrollEnabled={false}
                 />
             </ScrollView>
         </KeyboardAvoidingView>
@@ -95,13 +111,24 @@ const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: t.bg },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: t.bg },
     header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 20, paddingVertical: 14,
-        borderBottomWidth: 1, borderBottomColor: t.border, backgroundColor: t.nav,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: STATUS_BAR_HEIGHT + 14,  // clears the notification/status bar
+        paddingBottom: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: t.border,
+        backgroundColor: t.nav,
     },
     backBtn: { padding: 4 },
-    saveBtn: { backgroundColor: t.accent, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 10 },
-    saveBtnTxt: { color: '#000', fontWeight: '800', fontSize: 14 },
+    saveBtn: {
+        backgroundColor: t.accent,
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 10,
+    },
+    saveBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
     editor: { flex: 1, padding: 20 },
     titleInput: {
         fontSize: 24,

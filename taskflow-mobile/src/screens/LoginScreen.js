@@ -97,7 +97,7 @@ export default function LoginScreen({ navigation }) {
                 />
 
                 <TouchableOpacity style={s.btn} onPress={handleLogin} disabled={loading}>
-                    {loading ? <ActivityIndicator color="#000" /> : <Text style={s.btntxt}>Sign In</Text>}
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btntxt}>Sign In</Text>}
                 </TouchableOpacity>
 
                 <View style={s.orContainer}>
@@ -128,12 +128,12 @@ const s = StyleSheet.create({
     card: { backgroundColor: t.surf, borderRadius: 20, padding: 24, borderWidth: 1, borderColor: t.border },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 30 },
     logo: { width: 38, height: 38, borderRadius: 10, backgroundColor: t.accent, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-    logotxt: { fontSize: 20, fontWeight: '900', color: '#000' },
+    logotxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
     title: { fontSize: 24, fontWeight: '800', color: t.t1, letterSpacing: -0.5 },
     lbl: { fontSize: 12, fontWeight: 'bold', color: t.t3, marginBottom: 8, marginTop: 15 },
     inp: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 10, padding: 14, color: t.t1, fontSize: 15 },
     btn: { backgroundColor: t.accent, borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 25 },
-    btntxt: { color: '#000', fontWeight: 'bold', fontSize: 16 },
+    btntxt: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
     err: { color: t.red, backgroundColor: t.red + '22', padding: 10, borderRadius: 8, marginBottom: 10, fontSize: 13, overflow: 'hidden' },
     link: { marginTop: 14, alignItems: 'center' },
     linkTxt: { color: t.t3, fontSize: 13 },

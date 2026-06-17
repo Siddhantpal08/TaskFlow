@@ -5,7 +5,7 @@ import { useData } from '../context/DataContext';
 import { eventsApi } from '../api/events';
 import { DARK as t } from '../data/themes';
 
-const PCOLORS = ['#FF3D5A', '#00E5CC', '#00D67B', '#B083FF', '#FFAA00'];
+const PCOLORS = ['#FF4D6A', '#60A5FA', '#34D399', '#A78BFA', '#FFAA00'];
 
 export default function CalendarScreen() {
     const { events, createEvent, deleteEvent, loading } = useData();
@@ -161,7 +161,7 @@ export default function CalendarScreen() {
                                 <Text style={[s.btnTxt, { color: t.t2 }]}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleAdd} disabled={adding} style={[s.btn, { backgroundColor: t.accent }]}>
-                                {adding ? <ActivityIndicator color="#000" /> : <Text style={[s.btnTxt, { color: '#000' }]}>Save Event</Text>}
+                                {adding ? <ActivityIndicator color="#fff" /> : <Text style={[s.btnTxt, { color: '#fff' }]}>Save Event</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>

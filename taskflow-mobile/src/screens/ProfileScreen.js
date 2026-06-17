@@ -162,7 +162,7 @@ export default function ProfileScreen() {
                             <Text style={{ color: t.t2, fontWeight: '700', fontSize: 13 }}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={handleSave} disabled={saving} style={s.editBtn}>
-                            {saving ? <ActivityIndicator color="#000" size="small" /> : <Text style={{ color: '#000', fontWeight: '800', fontSize: 13 }}>Save</Text>}
+                            {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>Save</Text>}
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -233,7 +233,7 @@ export default function ProfileScreen() {
                     />
                 </View>
                 <TouchableOpacity onPress={handleChangePassword} disabled={changingPwd} style={[s.editBtn, { width: '100%', marginBottom: 16 }]}>
-                    {changingPwd ? <ActivityIndicator color="#000" size="small" /> : <Text style={{ color: '#000', fontWeight: '800', fontSize: 13 }}>Update Password</Text>}
+                    {changingPwd ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>Update Password</Text>}
                 </TouchableOpacity>
 
                 <TouchableOpacity style={s.actionRow} onPress={testNotification}>

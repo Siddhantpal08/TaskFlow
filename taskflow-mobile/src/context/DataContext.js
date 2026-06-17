@@ -8,6 +8,7 @@ import { tasksApi } from '../api/tasks';
 import { eventsApi } from '../api/events';
 import { teamApi } from '../api/team';
 import { notificationsApi } from '../api/notifications';
+import { friendsApi } from '../api/friends';
 
 const BASE_URL = (process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:5000/api/v1' : 'http://localhost:5000/api/v1'))
     .replace('/api/v1', ''); // Socket.IO connects to base URL, not /api/v1
@@ -24,6 +25,8 @@ export const DataProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
+    const [friends, setFriends] = useState([]);
+    const [friendRequests, setFriendRequests] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const socketRef = useRef(null);
@@ -52,6 +55,16 @@ export const DataProvider = ({ children }) => {
         } catch (e) { console.error('refreshNotifications failed:', e); }
     }, []);
 
+    const refreshFriends = useCallback(async () => {
+        try {
+            const res = await friendsApi.list();
+            if (res?.data) {
+                setFriends(Array.isArray(res.data.friends) ? res.data.friends : []);
+                setFriendRequests(Array.isArray(res.data.requests) ? res.data.requests : []);
+            }
+        } catch (e) { console.error('refreshFriends failed:', e); }
+    }, []);
+
     useEffect(() => {
         if (!user) {
             setTasks([]); setEvents([]); setTeamMembers([]);
@@ -66,11 +79,12 @@ export const DataProvider = ({ children }) => {
         const initData = async () => {
             setLoading(true);
             try {
-                const [tRes, eRes, tmRes, nRes] = await Promise.all([
+                const [tRes, eRes, tmRes, nRes, fRes] = await Promise.all([
                     tasksApi.list(),
                     eventsApi.list(),
                     teamApi.getMembers(),
                     notificationsApi.list(),
+                    friendsApi.list(),
                 ]);
 
                 setTasks(Array.isArray(tRes.data) ? tRes.data : []);
@@ -81,6 +95,11 @@ export const DataProvider = ({ children }) => {
                 const notifs = Array.isArray(nRes.data) ? nRes.data : (nRes.data?.notifications || []);
                 setNotifications(notifs);
                 setUnreadCount(notifs.filter(n => !n.is_read).length);
+
+                if (fRes?.data) {
+                    setFriends(Array.isArray(fRes.data.friends) ? fRes.data.friends : []);
+                    setFriendRequests(Array.isArray(fRes.data.requests) ? fRes.data.requests : []);
+                }
 
                 setupSocket();
             } catch (err) {
@@ -118,11 +137,17 @@ export const DataProvider = ({ children }) => {
                 socket.emit('join', { userId: user.id });
             });
 
+            let _errCount = 0;
             socket.on('connect_error', (err) => {
-                console.warn('[Socket] connect_error:', err.message);
+                _errCount++;
+                // Only log on first error, then every 10 attempts to reduce spam
+                if (_errCount === 1 || _errCount % 10 === 0) {
+                    console.warn(`[Socket] connect_error (attempt ${_errCount}):`, err.message);
+                }
             });
 
             socket.on('disconnect', (reason) => {
+                _errCount = 0; // reset on disconnect
                 console.warn('[Socket] Disconnected:', reason);
                 // Socket.IO auto-reconnects unless disconnected by server intentionally
             });
@@ -177,6 +202,9 @@ export const DataProvider = ({ children }) => {
                 if (!n) return;
                 setNotifications(p => [n, ...p]);
                 setUnreadCount(c => c + 1);
+                if (n.type === 'friend_request' || n.type === 'friend_accepted') {
+                    refreshFriends();
+                }
             };
             socket.on('notification_new', handleNewNotif);
             socket.on('notification:new', handleNewNotif);
@@ -213,12 +241,17 @@ export const DataProvider = ({ children }) => {
                     tasksApi.list(),
                     teamApi.getMembers(),
                     notificationsApi.list(),
-                ]).then(([tRes, tmRes, nRes]) => {
+                    friendsApi.list(),
+                ]).then(([tRes, tmRes, nRes, fRes]) => {
                     setTasks(Array.isArray(tRes.data) ? tRes.data : []);
                     setTeamMembers(Array.isArray(tmRes.data) ? tmRes.data : []);
                     const notifs = Array.isArray(nRes.data) ? nRes.data : (nRes.data?.notifications || []);
                     setNotifications(notifs);
                     setUnreadCount(notifs.filter(n => !n.is_read).length);
+                    if (fRes?.data) {
+                        setFriends(Array.isArray(fRes.data.friends) ? fRes.data.friends : []);
+                        setFriendRequests(Array.isArray(fRes.data.requests) ? fRes.data.requests : []);
+                    }
                 }).catch(() => {});
 
                 // Reconnect socket if it dropped
@@ -325,11 +358,12 @@ export const DataProvider = ({ children }) => {
     // ─── Manual full refresh ───────────────────────────────────────────────────
     const refreshAll = async () => {
         try {
-            const [taskRes, eventRes, memberRes, notifRes] = await Promise.all([
+            const [taskRes, eventRes, memberRes, notifRes, friendRes] = await Promise.all([
                 tasksApi.list(),
                 eventsApi.list(),
                 teamApi.getMembers(),
                 notificationsApi.list(),
+                friendsApi.list(),
             ]);
             setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
             const evData = eventRes.data;
@@ -338,14 +372,42 @@ export const DataProvider = ({ children }) => {
             const notifs = Array.isArray(notifRes.data) ? notifRes.data : (notifRes.data?.notifications || []);
             setNotifications(notifs);
             setUnreadCount(notifs.filter(n => !n.is_read).length);
+            if (friendRes?.data) {
+                setFriends(Array.isArray(friendRes.data.friends) ? friendRes.data.friends : []);
+                setFriendRequests(Array.isArray(friendRes.data.requests) ? friendRes.data.requests : []);
+            }
         } catch (e) { console.error('refreshAll failed:', e); }
+    };
+
+    const sendFriendRequest = async (email) => {
+        const res = await friendsApi.sendRequest(email);
+        await refreshFriends();
+        return res;
+    };
+
+    const acceptFriendRequest = async (requestId) => {
+        const res = await friendsApi.acceptRequest(requestId);
+        await refreshFriends();
+        return res;
+    };
+
+    const removeFriend = async (friendshipId) => {
+        setFriends(p => p.filter(f => f.friendship_id !== friendshipId));
+        const res = await friendsApi.remove(friendshipId).catch(e => {
+            console.error('removeFriend failed:', e);
+            refreshFriends();
+            throw e;
+        });
+        return res;
     };
 
     return (
         <DataContext.Provider value={{
             tasks, events, teamMembers, notifications, unreadCount, onlineUsers, loading,
+            friends, friendRequests,
             createTask, updateTaskStatus, updateTask, deleteTask, delegateTask, splitTask,
             createEvent, deleteEvent, markNotifRead, markAllNotifRead,
+            sendFriendRequest, acceptFriendRequest, removeFriend, refreshFriends,
             refreshAll, refreshTasks, refreshTeams, refreshNotifications,
         }}>
             {children}

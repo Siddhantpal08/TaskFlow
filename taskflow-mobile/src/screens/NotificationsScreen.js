@@ -114,7 +114,7 @@ const s = StyleSheet.create({
     center: { flex: 1, backgroundColor: t.bg, justifyContent: 'center', alignItems: 'center' },
     topBar: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingHorizontal: 16, paddingVertical: 12,
+        paddingHorizontal: 16, paddingVertical: 14,
         borderBottomWidth: 1, borderBottomColor: t.border,
         backgroundColor: t.nav,
     },

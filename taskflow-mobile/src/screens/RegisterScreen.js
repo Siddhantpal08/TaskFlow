@@ -131,7 +131,7 @@ export default function RegisterScreen({ navigation }) {
 
                             <TouchableOpacity style={s.btn} onPress={handleRegister} disabled={loading}>
                                 {loading
-                                    ? <ActivityIndicator color="#000" />
+                                    ? <ActivityIndicator color="#fff" />
                                     : <Text style={s.btnTxt}>Create Account</Text>
                                 }
                             </TouchableOpacity>
@@ -172,7 +172,7 @@ export default function RegisterScreen({ navigation }) {
 
                             <TouchableOpacity style={s.btn} onPress={handleVerify} disabled={loading}>
                                 {loading
-                                    ? <ActivityIndicator color="#000" />
+                                    ? <ActivityIndicator color="#fff" />
                                     : <Text style={s.btnTxt}>Verify & Continue</Text>
                                 }
                             </TouchableOpacity>
@@ -204,7 +204,7 @@ const s = StyleSheet.create({
     lbl: { fontSize: 11, fontWeight: '800', color: t.t3, marginBottom: 7, marginTop: 15, letterSpacing: 0.5 },
     inp: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 10, padding: 14, color: t.t1, fontSize: 15 },
     btn: { backgroundColor: t.accent, borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24 },
-    btnTxt: { color: '#000', fontWeight: '800', fontSize: 16 },
+    btnTxt: { color: '#fff', fontWeight: '800', fontSize: 16 },
     linkRow: { alignItems: 'center', marginTop: 18 },
     linkTxt: { color: t.t2, fontSize: 13 },
     otpRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginVertical: 22 },

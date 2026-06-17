@@ -1,24 +1,25 @@
+// ── TaskFlow Mobile Theme — Bluish Midnight (matches website MIDNIGHT theme) ──
 export const DARK = {
-    bg: "#060B12",
-    nav: "#09101A",
-    card: "#0C1420",
-    inset: "#060A10",
-    surf: "#0F1927",
+    bg: "#0B0F1C",
+    nav: "#080C18",
+    card: "#1A2233",
+    inset: "#0B0F1C",
+    surf: "#111827",
 
-    t1: "#F1F5F9",
-    t2: "#94A3B8",
-    t3: "#64748B",
+    t1: "#F0F4FF",
+    t2: "#8EA3BF",
+    t3: "#3D5070",
 
-    border: "#1E2A3B",
+    border: "#1E3050",
 
-    accent: "#00E5CC",
-    accentDim: "rgba(0, 229, 204, 0.12)",
-    accentGlow: "0 0 16px rgba(0, 229, 204, 0.4)",
+    accent: "#60A5FA",
+    accentDim: "rgba(96, 165, 250, 0.12)",
+    accentGlow: "0 0 28px rgba(96, 165, 250, 0.4)",
 
     amber: "#FFAA00",
-    red: "#FF3D5A",
-    green: "#00D67B",
-    purple: "#B083FF",
+    red: "#FF4D6A",
+    green: "#34D399",
+    purple: "#A78BFA",
 
     disp: "Outfit-Bold",
     body: "Outfit-Regular",

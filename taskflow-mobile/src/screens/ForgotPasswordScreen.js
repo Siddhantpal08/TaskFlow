@@ -119,7 +119,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                         />
                         {!!err && <Text style={s.err}>{err}</Text>}
                         <TouchableOpacity style={s.btn} onPress={handleRequestOtp} disabled={loading}>
-                            {loading ? <ActivityIndicator color="#000" /> : <Text style={s.btnTxt}>Send OTP</Text>}
+                            {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnTxt}>Send OTP</Text>}
                         </TouchableOpacity>
                     </>
                 )}
@@ -179,7 +179,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                         />
                         {!!err && <Text style={s.err}>{err}</Text>}
                         <TouchableOpacity style={s.btn} onPress={handleReset} disabled={loading}>
-                            {loading ? <ActivityIndicator color="#000" /> : <Text style={s.btnTxt}>Reset Password</Text>}
+                            {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnTxt}>Reset Password</Text>}
                         </TouchableOpacity>
                     </>
                 )}
@@ -199,7 +199,7 @@ const s = StyleSheet.create({
         width: 38, height: 38, borderRadius: 10,
         backgroundColor: t.accent, justifyContent: 'center', alignItems: 'center', marginRight: 10,
     },
-    logoTxt: { color: '#000', fontWeight: '900', fontSize: 20 },
+    logoTxt: { color: '#fff', fontWeight: '900', fontSize: 20 },
     brand: { fontSize: 22, fontWeight: '800', color: t.t1, letterSpacing: -0.5 },
     title: { fontSize: 26, fontWeight: '900', color: t.t1, marginBottom: 4, letterSpacing: -0.5 },
     sub: { fontSize: 14, color: t.t3, marginBottom: 16 },
@@ -222,7 +222,7 @@ const s = StyleSheet.create({
         backgroundColor: t.accent, borderRadius: 12, padding: 15,
         alignItems: 'center', marginTop: 16,
     },
-    btnTxt: { color: '#000', fontWeight: '800', fontSize: 15 },
+    btnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
     link: { marginTop: 20 },
     linkTxt: { color: t.accent, fontSize: 13, fontWeight: '600', textAlign: 'center' },
 

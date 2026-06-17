@@ -35,6 +35,7 @@ const navTheme = {
     text: DARK.t1,
     border: DARK.border,
     primary: DARK.accent,
+    notification: DARK.accent,
   },
 };
 

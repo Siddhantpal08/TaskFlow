@@ -327,7 +327,7 @@ const s = StyleSheet.create({
     formRow: { flexDirection: 'row', gap: 10 },
     input: { flex: 1, backgroundColor: t.inset, borderWidth: 1, borderColor: t.border, borderRadius: 8, padding: 12, color: t.t1, fontSize: 14 },
     submitBtn: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 20, justifyContent: 'center', alignItems: 'center' },
-    submitBtnTxt: { color: '#000', fontWeight: 'bold', fontSize: 14 },
+    submitBtnTxt: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
     teamCard: { backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, padding: 20, marginBottom: 12 },
     teamName: { fontSize: 18, fontWeight: 'bold', color: t.t1, marginBottom: 4 },
