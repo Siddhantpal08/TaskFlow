@@ -6,6 +6,7 @@ import { useData } from "../context/DataContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { toastError, toastSuccess } from "./ui/Toast.jsx";
 import CreateTaskModal from "./CreateTaskModal.jsx";
+import EmptyState from "./ui/EmptyState.jsx";
 
 function fmtDate(d) {
     if (!d) return "—";
@@ -61,18 +62,25 @@ export default function Tasks({ t, setTask, searchQuery }) {
 
             {/* Tasks table */}
             <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px", padding: "10px 18px", borderBottom: `1px solid ${t.border}`, fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", fontFamily: t.mono }}>
-                    <span>Task</span><span>Assigned By</span><span>Due</span><span>Priority</span><span>Status</span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "10px 18px", borderBottom: `1px solid ${t.border}`, fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", fontFamily: t.mono }}>
+                    <span>Task</span><span>Assigned By</span><span>Due</span><span>Priority</span><span>Status</span><span></span>
                 </div>
                 {loading && <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>Loading tasks…</div>}
                 {!loading && list.length === 0 && (
-                    <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>
-                        {searchQuery ? `No tasks matching "${searchQuery}".` : 'No tasks found.'}
+                    <div style={{ padding: '16px 20px 32px' }}>
+                        <EmptyState
+                            t={t}
+                            icon="task"
+                            title={searchQuery ? "No search results" : "Your task list is empty"}
+                            description={searchQuery ? `We couldn't find any tasks matching "${searchQuery}". Try a different keyword.` : "Keep track of your items by creating a new task now."}
+                            ctaText={searchQuery ? "" : "Add First Task"}
+                            onCta={searchQuery ? null : () => setShowCreate(true)}
+                        />
                     </div>
                 )}
                 {list.map(tk => (
                     <div key={tk.id} className="hvr" onClick={() => setTask(tk)}
-                        style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px", padding: "12px 18px", borderBottom: `1px solid ${t.border}`, alignItems: "center", cursor: "pointer", background: "transparent", transition: "background .15s" }}>
+                        style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "12px 18px", borderBottom: `1px solid ${t.border}`, alignItems: "center", cursor: "pointer", background: "transparent", transition: "background .15s" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                             {/* Checkbox: only clickable for pending/active tasks */}
                             <div onClick={async e => {
@@ -105,7 +113,22 @@ export default function Tasks({ t, setTask, searchQuery }) {
                         </div>
                         <span style={{ fontFamily: t.mono, fontSize: 11, color: t.t3 }}>{fmtDate(tk.due_date)}</span>
                         <PriTag p={tk.priority} t={t} />
-                        <StTag s={tk.status} t={t} />
+                        <div>
+                            <StTag s={tk.status} t={t} />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                            {tk.status === "done" && (
+                                <button onClick={async e => {
+                                    e.stopPropagation();
+                                    if (window.confirm("Are you sure you want to delete this completed task?")) {
+                                        try { await deleteTask(tk.id); toastSuccess("Task deleted."); }
+                                        catch (err) { toastError("Failed to delete task."); }
+                                    }
+                                }} style={{ background: "transparent", border: "none", color: t.t3, cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, transition: "background .15s" }} onMouseEnter={e => { e.currentTarget.style.color = t.red; e.currentTarget.style.background = t.red + "20"; }} onMouseLeave={e => { e.currentTarget.style.color = t.t3; e.currentTarget.style.background = "transparent"; }} title="Delete completed task">
+                                    <I d={IC.trash} sz={16} />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 ))}
             </div>

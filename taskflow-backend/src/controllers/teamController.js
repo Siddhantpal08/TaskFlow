@@ -37,6 +37,22 @@ const joinTeam = asyncWrapper(async (req, res) => {
         emitToUser(String(member.id), 'team:refresh', { teamId: team.id, teamName: team.name });
     }
 
+    // Notify the joiner themselves — welcome message in their notification panel
+    const selfNotif = {
+        id: `local_join_${Date.now()}`,
+        type: 'team_joined_self',
+        message: `You successfully joined the team "${team.name}"! 🎉`,
+        is_read: false,
+        created_at: new Date().toISOString(),
+    };
+    await notificationService.sendNotification(
+        req.user.id,
+        'team_joined_self',
+        selfNotif.message,
+        team.id
+    );
+    emitToUser(String(req.user.id), 'notification:new', selfNotif);
+
     res.status(200).json({ success: true, data: team });
 });
 

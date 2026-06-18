@@ -154,8 +154,8 @@ const bulkDeleteTasks = async (ids, userId) => {
 
     const placeholders = ids.map(() => '?').join(',');
     const [result] = await db.query(
-        `DELETE FROM tasks WHERE id IN (${placeholders}) AND assigned_by = ?`,
-        [...ids, userId]
+        `DELETE FROM tasks WHERE id IN (${placeholders}) AND (assigned_by = ? OR assigned_to = ?)`,
+        [...ids, userId, userId]
     );
     const deleted = result.affectedRows;
     const skipped = ids.length - deleted;

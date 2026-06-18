@@ -86,7 +86,7 @@ export default function TermsModal({ onAccept, onDecline }) {
                             <li><strong>Data we collect:</strong> Name, email address, encrypted password, user-generated content (notes, tasks), usage analytics, and device/browser information.</li>
                             <li><strong>How we use it:</strong> To provide, maintain, and improve the Service; to send transactional emails (OTP, account alerts); and for billing purposes.</li>
                             <li><strong>Data storage:</strong> Data is stored on secured cloud infrastructure (Aiven MySQL, Render). We use industry-standard encryption (TLS in transit, AES-256 at rest).</li>
-                            <li><strong>GDPR (EU users):</strong> You have the right to access, rectify, export, or delete your data at any time. Contact us at support@crevio.in to exercise these rights.</li>
+                            <li><strong>GDPR (EU users):</strong> You have the right to access, rectify, export, or delete your data at any time. Contact us at taskflowappbysidd@gmail.com to exercise these rights.</li>
                             <li><strong>India DPDP Act 2023:</strong> We comply with the Digital Personal Data Protection Act, 2023. Your data is processed with your consent and for lawful purposes only.</li>
                             <li><strong>Data retention:</strong> Account data is retained for 90 days after deletion request before permanent removal.</li>
                             <li><strong>Third parties:</strong> We may share data with payment processors (Razorpay) strictly for billing. No data is sold to advertisers.</li>
@@ -124,7 +124,7 @@ export default function TermsModal({ onAccept, onDecline }) {
                     <Section title="14. Contact">
                         For questions, data requests, or legal notices, contact us at:
                         <div style={{ marginTop: 8, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '10px 14px', fontFamily: t.mono, fontSize: 12, color: t.t1 }}>
-                            Crevio · support@crevio.in
+                            Crevio · taskflowappbysidd@gmail.com
                         </div>
                     </Section>
 

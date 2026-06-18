@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { teamApi } from '../api/team.js';
 import { toastSuccess, toastError } from './ui/Toast.jsx';
 import CreateTaskModal from './CreateTaskModal.jsx';
+import TeamChatDrawer from './TeamChatDrawer.jsx';
 
 export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave }) {
     const { tasks = [], onlineUsers = new Set(), createTask, teamMembers: allTeamMembers, refreshTeams } = useData();
@@ -14,6 +15,7 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
     const [loading, setLoading] = useState(true);
     const [assignToUser, setAssignToUser] = useState(null);
     const [leaveRequests, setLeaveRequests] = useState([]);
+    const [showChat, setShowChat] = useState(false);
 
     useEffect(() => {
         if (!team) return;
@@ -82,9 +84,14 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
             {/* Team Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                 <h3 style={{ fontSize: 16, color: t.t1, margin: 0, fontFamily: t.disp }}>Members</h3>
-                <button onClick={handleLeave} style={{ background: `${t.red}12`, border: `1px solid ${t.red}44`, color: t.red, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
-                    Leave Team
-                </button>
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => setShowChat(true)} style={{ background: t.accent, border: 'none', color: '#000', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <I d={IC.msg} sz={14} /> Team Chat
+                    </button>
+                    <button onClick={handleLeave} style={{ background: `${t.red}12`, border: `1px solid ${t.red}44`, color: t.red, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
+                        Leave Team
+                    </button>
+                </div>
             </div>
 
             {/* Leave Requests (Admin Only) */}
@@ -115,44 +122,6 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                 </div>
             )}
 
-            {/* Delegation Chain Visualizer */}
-            {delegatedTasks.length > 0 && (
-                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 22, boxShadow: t.shadow }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: t.t1, marginBottom: 2 }}>Delegation Chain Visualizer</div>
-                    <div style={{ fontSize: 10.5, color: t.t3, fontFamily: t.mono, marginBottom: 22 }}>
-                        task: "{delegatedTasks[0]?.title}"
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", flexWrap: 'wrap', gap: 8 }}>
-                        {(() => {
-                            const tk = delegatedTasks[0];
-                            const steps = [
-                                { initials: tk.assigned_by_initials || '?', name: tk.assigned_by_name?.split(' ')[0] || '?', role: "Created & Assigned", lbl: "ASSIGNER", active: false },
-                                { initials: tk.assigned_to_initials || '?', name: tk.assigned_to_name?.split(' ')[0] || '?', role: "Received", lbl: "RECIPIENT", active: true },
-                            ];
-                            return steps.map((s, i) => (
-                                <div key={i} style={{ display: "flex", alignItems: "center" }}>
-                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 22px", borderRadius: 11, minWidth: 130, background: s.active ? t.accentDim : t.surf, border: `1px solid ${s.active ? t.accent : t.border}`, boxShadow: s.active ? t.accentGlow : "none" }}>
-                                        <div style={{ width: 46, height: 46, borderRadius: '50%', background: `linear-gradient(135deg, ${t.accent}40, #0072FF40)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: t.accent }}>{s.initials}</div>
-                                        <div style={{ marginTop: 9, fontSize: 12.5, fontWeight: 700, color: t.t1 }}>{s.name}</div>
-                                        <div style={{ fontSize: 9.5, color: t.t3, fontFamily: t.mono, marginTop: 1, textTransform: "uppercase", letterSpacing: "0.7px" }}>{s.lbl}</div>
-                                        <div style={{ marginTop: 8, fontSize: 10.5, padding: "3px 9px", borderRadius: 20, color: s.active ? t.accent : t.t2, background: s.active ? t.accentDim : t.card }}>{s.role}</div>
-                                    </div>
-                                    {i < steps.length - 1 && (
-                                        <div style={{ display: "flex", alignItems: "center", padding: "0 4px" }}>
-                                            <div style={{ width: 24, height: 1.5, background: `linear-gradient(to right,#009688,${t.accent})` }} />
-                                            <I d={IC.arr} sz={12} c={t.accent} />
-                                        </div>
-                                    )}
-                                </div>
-                            ));
-                        })()}
-                        <div style={{ marginLeft: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                            <div className="glw" style={{ width: 9, height: 9, borderRadius: "50%", background: t.green, boxShadow: `0 0 14px ${t.green}88` }} />
-                            <span style={{ fontSize: 9, color: t.green, fontFamily: t.mono }}>LIVE</span>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Team member cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }} className="team-grid">
@@ -216,6 +185,7 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                     onCreate={createTask}
                 />
             )}
+            {showChat && <TeamChatDrawer t={t} team={team} members={members} user={user} onClose={() => setShowChat(false)} />}
         </div>
     );
 }

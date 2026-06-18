@@ -8,29 +8,38 @@ const PRESETS = [
     { key: "pureLight", label: "Pure White", bg: "#FFFFFF", accent: "#007A6A" },
     { key: "sepia", label: "Sepia", bg: "#F5EDD6", accent: "#8B5E3C" },
     { key: "midnight", label: "Midnight", bg: "#0B0F1C", accent: "#60A5FA" },
+    { key: "monochrome", label: "Mono", bg: "#000000", accent: "#FFFFFF" },
 ];
 
-export default function ThemePicker({ t, themeKey, customTheme, onApplyPreset, onApplyCustom, onClose }) {
+export default function ThemePicker({ t, themeKey, customTheme, onApplyPreset, onApplyCustom, onClose, embedded = false }) {
     const [primary, setPrimary] = useState("#00E5CC");
     const [secondary, setSecondary] = useState("#0072FF");
     const [base, setBase] = useState("dark");
     const panelRef = useRef();
 
-    // Close on outside click
+    // Close on outside click only when NOT embedded
     useEffect(() => {
+        if (embedded) return;
         const h = e => { if (panelRef.current && !panelRef.current.contains(e.target)) onClose(); };
         document.addEventListener("mousedown", h);
         return () => document.removeEventListener("mousedown", h);
-    }, [onClose]);
+    }, [onClose, embedded]);
 
     const preview = buildCustomTheme(primary, secondary, base);
 
-    return (
-        <div ref={panelRef} className="slideDown" style={{
+    const panelStyle = embedded
+        ? {
+            background: t.card, border: `1px solid ${t.border}`,
+            borderRadius: 20, boxShadow: t.shadow, width: 340, overflow: "hidden",
+        }
+        : {
             position: "fixed", top: 56, right: 16, zIndex: 500,
             background: t.card, border: `1px solid ${t.border}`,
             borderRadius: 14, boxShadow: t.shadow, width: 280, overflow: "hidden",
-        }}>
+        };
+
+    return (
+        <div ref={panelRef} className={embedded ? "" : "slideDown"} style={panelStyle}>
             {/* Header */}
             <div style={{ padding: "12px 16px 10px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>🎨 Theme</span>

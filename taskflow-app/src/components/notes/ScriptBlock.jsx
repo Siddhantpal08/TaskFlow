@@ -77,7 +77,18 @@ export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
     const handleKey = e => {
         if (e.key === "Tab") { e.preventDefault(); cycleType(); return; }
         if (e.key === "Enter") {
+            if (e.shiftKey) return; // Allow shift+enter for normal newline without splitting block
             e.preventDefault();
+            
+            // split content
+            const sel = window.getSelection();
+            const offset = sel.anchorOffset;
+            const txt = ref.current?.innerText || "";
+            const before = txt.slice(0, offset);
+            const after = txt.slice(offset);
+            
+            onUpdate({ content: before });
+
             // Natural progression after each block type
             let next = "action";
             if (blk.type === "scene-heading") next = "action";
@@ -86,7 +97,9 @@ export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
             else if (blk.type === "dialogue") next = "action";
             else if (blk.type === "parenthetical") next = "dialogue";
             else if (blk.type === "transition") next = "scene-heading";
-            onAddAfter(next);
+            
+            onAddAfter(next, after);
+            return;
         }
         if (e.key === "Tab") {
             e.preventDefault();

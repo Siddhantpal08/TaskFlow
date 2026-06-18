@@ -199,7 +199,7 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
         (async () => {
             try {
                 const res = await notesApi.shareNote(notePageId);
-                if (!cancelled) setShareUrl(res.data.data.shareUrl);
+                if (!cancelled) setShareUrl(res.data?.shareUrl || res.data?.data?.shareUrl);
             } catch (e) {
                 if (!cancelled) setError(e.response?.data?.message || 'Failed to generate link.');
             } finally {
@@ -1307,7 +1307,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                                         onFocusBlock={i => activeBlkIdxRef.current = i}
                                                         onDelete={() => delBlk(idx)}
                                                         onDuplicate={() => dupBlk(idx)}
-                                                        onAddAfter={type => addBlk(idx, type)}
+                                                        onAddAfter={(type, content) => addBlk(idx, type, content)}
                                                         onSlash={(r, q) => setSlash({ x: r.left, y: r.bottom + 4, idx, q })}
                                                         onSlashClose={() => setSlash(null)}
                                                         onFocusPrev={() => document.getElementById("blk-" + (idx - 1))?.focus()}
@@ -1354,6 +1354,98 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                     </div>
                 )}
             </div>
+
+            {writingMode ? (
+                <div style={{
+                    position: "fixed",
+                    right: 24,
+                    bottom: 24,
+                    width: 220,
+                    background: t.card,
+                    border: `1px solid ${t.border}`,
+                    borderRadius: 12,
+                    padding: 16,
+                    boxShadow: t.shadow,
+                    zIndex: 50,
+                    opacity: 0.6,
+                    transition: "opacity .2s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                onMouseLeave={e => e.currentTarget.style.opacity = 0.6}
+                >
+                    <div style={{ fontSize: 11, fontWeight: 700, color: t.t3, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 12, fontFamily: t.disp }}>
+                        {writingMode === "script" ? "Script" : "Lyrics"} Shortcuts
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>Cycle Format</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>Tab</span>
+                        </div>
+                        {writingMode === "script" && (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: 12, color: t.t2 }}>Reverse Cycle</span>
+                                <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>⇧ Tab</span>
+                            </div>
+                        )}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>Next Block</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>Enter</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>Line Break</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>⇧ Enter</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>Delete Block</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>⌫</span>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div style={{
+                    position: "fixed",
+                    right: 24,
+                    bottom: 24,
+                    width: 220,
+                    background: t.card,
+                    border: `1px solid ${t.border}`,
+                    borderRadius: 12,
+                    padding: 16,
+                    boxShadow: t.shadow,
+                    zIndex: 50,
+                    opacity: 0.6,
+                    transition: "opacity .2s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                onMouseLeave={e => e.currentTarget.style.opacity = 0.6}
+                >
+                    <div style={{ fontSize: 11, fontWeight: 700, color: t.t3, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 12, fontFamily: t.disp }}>
+                        Formatting Shortcuts
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>Format Menu</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>/</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>Bullet List</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>- Space</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>Numbered List</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>1. Space</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>To-do List</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>[] Space</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: t.t2 }}>Quote Block</span>
+                            <span style={{ fontSize: 10, fontFamily: t.mono, background: t.inset, border: `1px solid ${t.border}`, padding: "2px 6px", borderRadius: 4, color: t.t2 }}>&gt; Space</span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Slash menu */}
             {slash && <SlashMenu t={t} filter={slash.filter} pos={{ x: slash.x, y: slash.y }} onSelect={insertSlashType} onClose={() => setSlash(null)} blockTypes={slashBlockTypes} />}

@@ -4,6 +4,7 @@ import { PriTag, StTag } from './ui/Tag.jsx';
 import { useData } from '../context/DataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toastSuccess, toastError } from './ui/Toast.jsx';
+import ConfirmModal from './ui/ConfirmModal.jsx';
 
 function fmtDate(d) {
     if (!d) return '—';
@@ -34,6 +35,7 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     const [delegateTo, setDelegateTo] = useState('');
     const [saving, setSaving] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showRefuseModal, setShowRefuseModal] = useState(false);
 
     const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
     // isCreator is purely who assigned_by the task, not role-based
@@ -238,16 +240,8 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                         )}
 
                         {canRefuse && (
-                            <button onClick={async () => {
-                                try {
-                                    setSaving(true);
-                                    const updated = await updateTaskStatus(task.id, 'refused');
-                                    setTask(updated);
-                                } catch (e) {
-                                    toastError(e.message || 'Failed to refuse task.');
-                                } finally { setSaving(false); }
-                            }} disabled={saving} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red }}>
-                                {saving ? 'Refusing…' : 'Refuse Task'}
+                            <button onClick={() => setShowRefuseModal(true)} disabled={saving} style={{ padding: '10px', borderRadius: 9, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red }}>
+                                {saving ? 'Processing…' : 'Refuse Task'}
                             </button>
                         )}
 
@@ -281,23 +275,42 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                 </div>
             </div>
 
-            {/* Custom Delete Modal Overlay */}
+            {/* Modals */}
             {showDeleteModal && (
-                <div onClick={() => setShowDeleteModal(false)} style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div onClick={e => e.stopPropagation()} className="popIn" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: 24, width: 320, boxShadow: t.shadow, textAlign: 'center' }}>
-                        <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, marginBottom: 8 }}>Delete Task?</div>
-                        <div style={{ fontSize: 13, color: t.t3, marginBottom: 20, lineHeight: 1.5 }}>
-                            Are you sure you want to delete <span style={{ color: t.accent }}>"{task.title}"</span>? This action cannot be undone.
-                        </div>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => setShowDeleteModal(false)} style={{ flex: 1, background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>Cancel</button>
-                            <button onClick={handleConfirmDelete} disabled={saving} style={{ flex: 1, background: t.red, border: 'none', borderRadius: 8, padding: '9px', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
-                                {saving ? "Deleting..." : "Delete"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ConfirmModal
+                    t={t}
+                    title="Delete Task?"
+                    description={<>Are you sure you want to delete <span style={{ color: t.accent }}>"{task.title}"</span>? This action cannot be undone.</>}
+                    confirmText="Delete"
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setShowDeleteModal(false)}
+                    danger={true}
+                    icon="🗑️"
+                    loading={saving}
+                />
+            )}
+
+            {showRefuseModal && (
+                <ConfirmModal
+                    t={t}
+                    title="Refuse Task?"
+                    description={<>Are you sure you want to refuse <span style={{ color: t.accent }}>"{task.title}"</span>? This will notify the creator.</>}
+                    confirmText="Refuse"
+                    onConfirm={async () => {
+                        try {
+                            setSaving(true);
+                            const updated = await updateTaskStatus(task.id, 'refused');
+                            setTask(updated);
+                            setShowRefuseModal(false);
+                        } catch (e) {
+                            toastError(e.message || 'Failed to refuse task.');
+                        } finally { setSaving(false); }
+                    }}
+                    onCancel={() => setShowRefuseModal(false)}
+                    danger={true}
+                    icon="✋"
+                    loading={saving}
+                />
             )}
         </>
     );

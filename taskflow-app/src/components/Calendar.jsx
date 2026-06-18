@@ -3,6 +3,8 @@ import { I, IC } from "./ui/Icon.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { eventsApi } from "../api/events.js";
 import { toastSuccess, toastError } from "./ui/Toast.jsx";
+import EmptyState from "./ui/EmptyState.jsx";
+import ConfirmModal from "./ui/ConfirmModal.jsx";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const PCOLORS = ['#FF3D5A', '#00E5CC', '#00D67B', '#B083FF', '#FFAA00'];
@@ -199,10 +201,8 @@ export default function Calendar({ t }) {
         } finally {
             setEventToDelete(null);
         }
-    };
-
-    return (
-        <div style={{ padding: "22px 26px", display: "flex", gap: 18 }} className="cal-wrap">
+    };    return (
+        <div style={{ padding: "22px 28px", display: "flex", gap: 18, maxWidth: 1100, margin: "0 auto", width: "100%" }} className="cal-wrap">
             {/* Calendar grid */}
             <div style={{ flex: 1 }}>
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow }}>
@@ -222,15 +222,15 @@ export default function Calendar({ t }) {
                             <I d={IC.plus} sz={11} c={t.accent} /> Add Event
                         </button>
                     </div>
-
+ 
                     {/* Day headers */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", padding: "0 14px" }}>
                         {DAYS.map(d => <div key={d} style={{ padding: "10px 4px", textAlign: "center", fontSize: 10, fontWeight: 700, color: t.t3, letterSpacing: "0.8px", fontFamily: t.mono }}>{d}</div>)}
                     </div>
-
+ 
                     {/* Day cells */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 1, background: t.border, padding: "0 14px 14px" }}>
-                        {[...Array(offset)].map((_, i) => <div key={`b${i}`} style={{ background: t.card, minHeight: 72 }} />)}
+                        {[...Array(offset)].map((_, i) => <div key={`b${i}`} style={{ background: t.card, minHeight: 90 }} />)}
                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                             const dayEvs = evMap[d] || [];
                             const firstEv = dayEvs[0];
@@ -238,7 +238,7 @@ export default function Calendar({ t }) {
                             const isToday = isCurrentMonth && d === today;
                             const hasTask = taskDaySet.has(d);
                             return (
-                                <div key={d} onClick={() => handleDayClick(d)} className="hvr" style={{ background: t.card, minHeight: 72, padding: 6, cursor: 'pointer', transition: 'background .15s' }}>
+                                <div key={d} onClick={() => handleDayClick(d)} className="hvr" style={{ background: t.card, minHeight: 90, padding: 6, cursor: 'pointer', transition: 'background .15s' }}>
                                     <div style={{ width: 24, height: 24, borderRadius: "50%", background: isToday ? t.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isToday ? 800 : 400, color: isToday ? "#000" : t.t2, marginBottom: 3 }}>{d}</div>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                                         {dayEvs.slice(0, 3).map((ev, idx) => {
@@ -264,7 +264,16 @@ export default function Calendar({ t }) {
             <div style={{ width: 240, flexShrink: 0 }} className="cal-sidebar">
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 15, boxShadow: t.shadow }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>{MONTHS[viewMonth].slice(0, 3)} Events</div>
-                    {monthEventsList.length === 0 && <div style={{ fontSize: 12, color: t.t3 }}>No events. Click a day to add one.</div>}
+                    {monthEventsList.length === 0 && (
+                        <div style={{ padding: "10px 0" }}>
+                            <EmptyState
+                                t={t}
+                                icon="cal"
+                                title="No events"
+                                description="No events scheduled for this month."
+                            />
+                        </div>
+                    )}
                     {monthEventsList.map(ev => {
                         const c = PCOLORS[ev.id % PCOLORS.length];
                         const d = new Date(ev.event_date);
@@ -292,17 +301,16 @@ export default function Calendar({ t }) {
 
             {showAdd && <AddEventModal t={t} date={clickedDate} onClose={() => setShowAdd(false)} onAdd={createEvent} />}
             {eventToDelete && (
-                <div onClick={() => setEventToDelete(null)} style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div onClick={e => e.stopPropagation()} className="popIn" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: 24, width: 320, boxShadow: t.shadow, textAlign: 'center' }}>
-                        <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, marginBottom: 8 }}>Delete Event?</div>
-                        <div style={{ fontSize: 13, color: t.t3, marginBottom: 20 }}>Are you sure you want to delete <span style={{ color: t.accent }}>"{eventToDelete.title}"</span>?</div>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => setEventToDelete(null)} style={{ flex: 1, background: 'none', border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>Cancel</button>
-                            <button onClick={handleConfirmDelete} style={{ flex: 1, background: t.red, border: 'none', borderRadius: 8, padding: '9px', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>Delete</button>
-                        </div>
-                    </div>
-                </div>
+                <ConfirmModal
+                    t={t}
+                    title="Delete Event?"
+                    description={<>Are you sure you want to delete <span style={{ color: t.accent }}>"{eventToDelete.title}"</span>?</>}
+                    confirmText="Delete"
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setEventToDelete(null)}
+                    danger={true}
+                    icon="🗑️"
+                />
             )}
         </div>
     );

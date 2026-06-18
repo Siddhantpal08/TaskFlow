@@ -138,8 +138,8 @@ const splitTask = async (taskId, userId, subtasks) => {
 const deleteTask = async (taskId, userId) => {
     const task = await taskModel.getTaskById(taskId);
     if (!task) throw new AppError('Task not found.', 404);
-    if (task.assigned_by !== userId) {
-        throw new AppError('Only the task creator can delete this task.', 403);
+    if (task.assigned_by !== userId && task.assigned_to !== userId) {
+        throw new AppError('Only the task creator or assignee can delete this task.', 403);
     }
     await taskModel.deleteTask(taskId);
 };

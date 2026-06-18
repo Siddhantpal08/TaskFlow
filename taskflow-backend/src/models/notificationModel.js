@@ -42,4 +42,8 @@ const markOneRead = async (id, userId) => {
     return result.affectedRows > 0;
 };
 
-module.exports = { createNotification, getNotificationsForUser, getUnreadCount, markAllRead, markOneRead };
+const clearAllForUser = async (userId) => {
+    await db.query(`DELETE FROM notifications WHERE user_id = ?`, [userId]);
+};
+
+module.exports = { createNotification, getNotificationsForUser, getUnreadCount, markAllRead, markOneRead, clearAllForUser };

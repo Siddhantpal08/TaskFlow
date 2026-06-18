@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DARK } from '../data/themes.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { GoogleLogin } from '@react-oauth/google';
 import TFLogo from '../components/ui/TFLogo.jsx';
+import { wakeupBackend } from '../utils/renderWakeup.js';
 
 const t = DARK;
 
@@ -42,6 +43,11 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgot }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [focused, setFocused] = useState('');
+    const [wakeStatus, setWakeStatus] = useState(null);
+
+    useEffect(() => {
+        wakeupBackend((s) => setWakeStatus(s));
+    }, []);
 
     // OTP Verification State
     const [needsVerification, setNeedsVerification] = useState(false);
@@ -87,6 +93,19 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgot }) {
             minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: t.bg, fontFamily: t.disp,
         }}>
+            {/* Server warm-up indicator */}
+            {wakeStatus === 'waking' && (
+                <div style={{
+                    position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px',
+                    background: `${t.accent}14`, border: `1px solid ${t.accent}33`,
+                    borderRadius: 999, zIndex: 9999, fontSize: 12, color: t.accent,
+                    fontFamily: t.mono, backdropFilter: 'blur(8px)',
+                }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', border: `2px solid ${t.accent}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                    Warming up server… (~15s)
+                </div>
+            )}
             {/* Background glow */}
             <div style={{
                 position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)',

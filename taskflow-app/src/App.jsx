@@ -29,6 +29,7 @@ import Calendar from "./components/Calendar.jsx";
 import TeamPage from "./components/TeamPage.jsx";
 import Friends from "./components/Friends.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
+import FeedbackPage from "./pages/FeedbackPage.jsx";
 
 import NotesPage from "./components/notes/NotesPage.jsx";
 import NotesHome from "./components/notes/NotesHome.jsx";
@@ -38,6 +39,7 @@ import NotifPanel from "./components/NotifPanel.jsx";
 import TaskDrawer from "./components/TaskDrawer.jsx";
 import AssignModal from "./components/AssignModal.jsx";
 import { ToastProvider } from "./components/ui/Toast.jsx";
+import FeedbackModal from "./components/ui/FeedbackModal.jsx";
 
 // ── Credits Modal ────────────────────────────────────────────────────────────
 function CreditsModal({ onClose }) {
@@ -97,8 +99,18 @@ function MainApp() {
     const [themeKey, setThemeKey] = useState(storedTheme.key || "dark");
     const [customTheme, setCustomTheme] = useState(storedTheme.custom || null);
     const [showThemePicker, setShowThemePicker] = useState(false);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
     const t = customTheme || THEMES[themeKey] || THEMES.dark;
+
+    useEffect(() => {
+        const root = document.documentElement;
+        Object.entries(t).forEach(([key, val]) => {
+            if (typeof val === 'string') {
+                root.style.setProperty(`--theme-${key}`, val);
+            }
+        });
+    }, [t]);
 
     const applyPreset = (key) => {
         setThemeKey(key);
@@ -382,9 +394,17 @@ function MainApp() {
                             {page === "notes" && !notePageId && <NotesHome t={t} pages={pages} addNotePage={addNotePage} navigateNote={navigateNote} />}
                             {page === "calendar" && <Calendar t={t} />}
                             {page === "team" && <TeamPage t={t} />}
-                            {page === "friends" && <Friends t={t} />}
                             {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
                             {page === "admin" && user?.role === 'admin' && <AdminPanel t={t} user={user} />}
+                            {page === "feedback" && <FeedbackPage t={t} />}
+                            {page === "customize" && (
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                                    <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
+                                        onApplyPreset={applyPreset} onApplyCustom={applyCustom}
+                                        onClose={() => setPageWithPersist("dashboard")}
+                                        embedded={true} />
+                                </div>
+                            )}
                         </main>
                     </div>
 
@@ -392,6 +412,7 @@ function MainApp() {
                     {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
                     {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
                     {showCredits && <CreditsModal onClose={() => setShowCredits(false)} />}
+                    {showFeedbackModal && <FeedbackModal t={t} onClose={() => setShowFeedbackModal(false)} />}
                     {showThemePicker && (
                         <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
                             onApplyPreset={applyPreset} onApplyCustom={applyCustom}
@@ -426,7 +447,7 @@ function MainApp() {
 }
 
 export default function App() {
-    const { user, loading, login, register, logout, requestReset, verifyReset } = useAuth();
+    const { user, loading, login, register, logout, requestReset, verifyReset, googleLogin } = useAuth();
     const [authPage, setAuthPage] = useState("login");
     const [wakeStatus, setWakeStatus] = useState("waking"); // 'waking' | 'ready' | 'timeout'
 
@@ -479,7 +500,7 @@ export default function App() {
 
     if (!user) {
         if (authPage === "login") return <LoginPage onLogin={login} onGoRegister={() => setAuthPage("register")} onGoForgot={() => setAuthPage("forgot")} />;
-        if (authPage === "register") return <RegisterPage onRegister={register} onGoLogin={() => setAuthPage("login")} />;
+        if (authPage === "register") return <RegisterPage onGoLogin={() => setAuthPage("login")} googleLogin={googleLogin} />;
         if (authPage === "forgot") return <ForgotPasswordPage onRequest={requestReset} onVerify={verifyReset} onGoLogin={() => setAuthPage("login")} />;
     }
 

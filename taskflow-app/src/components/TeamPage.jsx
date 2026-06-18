@@ -3,7 +3,8 @@ import { useData } from '../context/DataContext.jsx';
 import { teamApi } from '../api/team.js';
 import { toastError, toastSuccess } from './ui/Toast.jsx';
 import Team from './Team.jsx';
-import HierarchyChart from './HierarchyChart.jsx';
+import EmptyState from './ui/EmptyState.jsx';
+
 
 export default function TeamPage({ t }) {
     const { refreshTeams, refreshAll } = useData();
@@ -148,13 +149,7 @@ export default function TeamPage({ t }) {
                     </div>
                 </div>
 
-                {/* Delegation Hierarchy Chart */}
-                <div style={{ marginBottom: 32 }}>
-                    <h3 style={{ fontSize: 16, color: t.t1, marginBottom: 16, marginTop: 0, fontFamily: t.disp }}>Task Delegation Hierarchy</h3>
-                    <HierarchyChart t={t} />
-                </div>
-
-                {/* List of User's Teams */}
+                {/* My Teams list */}
                 <h3 style={{ fontSize: 16, color: t.t1, marginBottom: 16, marginTop: 0, fontFamily: t.disp }}>My Teams</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
                     {teams.map(team => (
@@ -165,7 +160,14 @@ export default function TeamPage({ t }) {
                         </div>
                     ))}
                     {teams.length === 0 && !loading && (
-                        <div style={{ color: t.t3, fontSize: 13, gridColumn: '1 / -1', padding: '20px 0' }}>You are not in any teams yet.</div>
+                        <div style={{ gridColumn: '1 / -1', padding: '10px 0' }}>
+                            <EmptyState
+                                t={t}
+                                icon="team"
+                                title="No Teams Found"
+                                description="Create a team above or enter a join code to collaborate with others."
+                            />
+                        </div>
                     )}
                 </div>
             </div>

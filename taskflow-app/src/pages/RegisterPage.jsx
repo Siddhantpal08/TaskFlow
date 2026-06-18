@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DARK } from '../data/themes.js';
 import zxcvbn from 'zxcvbn';
 import { useAuth } from '../context/AuthContext.jsx';
 import { GoogleLogin } from '@react-oauth/google';
 import { toastSuccess, toastError } from '../components/ui/Toast.jsx';
 import TermsModal from '../components/ui/TermsModal.jsx';
-
+import { wakeupBackend } from '../utils/renderWakeup.js';
+import TFLogo from '../components/ui/TFLogo.jsx';
 
 const t = DARK;
 
@@ -61,9 +62,14 @@ function Field({ label, type, value, onChange, placeholder, focusKey, focused, s
     );
 }
 
-export default function RegisterPage({ onGoLogin }) {
+export default function RegisterPage({ onGoLogin, googleLogin }) {
     const { register, verifyEmail, resendOtp } = useAuth();
     const [step, setStep] = useState('form');
+    const [wakeStatus, setWakeStatus] = useState(null);
+
+    useEffect(() => {
+        wakeupBackend((s) => setWakeStatus(s));
+    }, []);
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -76,7 +82,6 @@ export default function RegisterPage({ onGoLogin }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [focused, setFocused] = useState('');
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -140,10 +145,24 @@ export default function RegisterPage({ onGoLogin }) {
                 />
             )}
 
+            {/* Server warm-up indicator */}
+            {wakeStatus === 'waking' && (
+                <div style={{
+                    position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px',
+                    background: `${t.accent}14`, border: `1px solid ${t.accent}33`,
+                    borderRadius: 999, zIndex: 9999, fontSize: 12, color: t.accent,
+                    fontFamily: t.mono, backdropFilter: 'blur(8px)',
+                }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', border: `2px solid ${t.accent}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                    Warming up server… (~15s)
+                </div>
+            )}
+
             <div style={{
                 position: 'fixed', top: '15%', left: '50%', transform: 'translateX(-50%)',
                 width: 600, height: 300,
-                background: `radial-gradient(ellipse at center, ${t.purple}0A 0%, transparent 70%)`,
+                background: `radial-gradient(ellipse at center, ${t.accent}0A 0%, transparent 70%)`,
                 pointerEvents: 'none',
             }} />
 
@@ -159,17 +178,9 @@ export default function RegisterPage({ onGoLogin }) {
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 28 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                        <div style={{
-                            width: 38, height: 38, borderRadius: 10,
-                            background: `linear-gradient(135deg, ${t.accent}, ${t.accent}88)`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 18, fontWeight: 900, color: '#060B12',
-                        }}>T</div>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: t.t1, letterSpacing: '-0.5px' }}>
-                            Task<span style={{ color: t.accent }}>Flow</span>
-                        </span>
+                        <TFLogo size={38} showText={true} textColor={t.t1} />
                     </div>
-                    <div style={{ fontSize: 13, color: t.t2 }}>Create your account</div>
+                    <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>Create your account</div>
                 </div>
 
                 {step === 'form' ? (

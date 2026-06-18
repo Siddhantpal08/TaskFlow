@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { DARK } from '../data/themes.js';
+import TFLogo from '../components/ui/TFLogo.jsx';
 
 const t = DARK;
 
@@ -124,15 +125,7 @@ export default function ForgotPasswordPage({ onRequest, onVerify, onGoLogin }) {
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 28 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                        <div style={{
-                            width: 38, height: 38, borderRadius: 10,
-                            background: `linear-gradient(135deg, ${t.accent}, ${t.accent}88)`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 18, fontWeight: 900, color: '#060B12',
-                        }}>T</div>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: t.t1, letterSpacing: '-0.5px' }}>
-                            Task<span style={{ color: t.accent }}>Flow</span>
-                        </span>
+                        <TFLogo size={38} showText={true} textColor={t.t1} />
                     </div>
 
                     {/* Step indicators */}

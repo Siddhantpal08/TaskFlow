@@ -73,6 +73,17 @@ export const MIDNIGHT = {
     calloutBg: "#1A2233", calloutBorder: "#60A5FA33", calloutText: "#93C5FD",
 };
 
+export const MONOCHROME = {
+    ...PURE_DARK,
+    red: "#A1A1AA", amber: "#D4D4D8", green: "#E4E4E7", blue: "#FAFAFA",
+    accent: "#FFFFFF", accentDim: "#FFFFFF14", accentGlow: "0 0 28px #FFFFFF44",
+    t1: "#FFFFFF", t2: "#A0A0A0", t3: "#505050",
+    noteHover: "#FFFFFF0A", noteActive: "#FFFFFF14",
+    codeBg: "#050505", codeText: "#FFFFFF",
+    quoteBorder: "#FFFFFF", quoteText: "#A0A0A0",
+    calloutBg: "#111111", calloutBorder: "#FFFFFF33", calloutText: "#FFFFFF",
+};
+
 export const THEMES = {
     dark: DARK,
     light: LIGHT,
@@ -80,6 +91,7 @@ export const THEMES = {
     pureLight: PURE_LIGHT,
     sepia: SEPIA,
     midnight: MIDNIGHT,
+    monochrome: MONOCHROME,
 };
 
 /**

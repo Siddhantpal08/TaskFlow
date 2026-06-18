@@ -19,6 +19,8 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const userRoutes         = require('./routes/userRoutes');
 const friendRoutes       = require('./routes/friendRoutes');
 const adminRoutes        = require('./routes/adminRoutes');         // admin panel
+const feedbackRoutes     = require('./routes/feedbackRoutes');       // user feedback
+const chatRoutes         = require('./routes/chatRoutes');           // team chat
 const collegeRoutes      = require('./routes/collegeRoutes');
 
 // ─── Express App ──────────────────────────────────────────────────────────────
@@ -158,11 +160,44 @@ app.use('/api/v1/team',          teamRoutes);
 app.use('/api/v1/friends',       friendRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/admin',         adminRoutes);          // admin panel (role=admin gated)
+app.use('/api/v1/feedback',      feedbackRoutes);       // user feedback
+app.use('/api/v1/chat',          chatRoutes);           // team chat
 app.use('/api/v1',               userRoutes);
 
-// ─── /api/college/v1/ — Basic College Submission (taskflow-app on Vercel) ────
-// Intentionally simple: auth + tasks + flat notes + calendar only. No friends.
+// ─── /api/college/v1/ — SaaS Frontend (taskflow-app on Vercel) ────────────────
 app.use('/api/college/v1', collegeRoutes);
+
+// ─── Auto-create feedback table (runs once on server start) ─────────────────
+(async () => {
+    try {
+        const db = require('./utils/db');
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                rating TINYINT NOT NULL,
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_feedback_user (user_id),
+                INDEX idx_feedback_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+            CREATE TABLE IF NOT EXISTS team_chats (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                team_id INT NOT NULL,
+                user_id INT NOT NULL,
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_chat_team (team_id),
+                INDEX idx_chat_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+    } catch (e) {
+        console.error('[STARTUP] feedback table init failed:', e.message);
+    }
+})();
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

@@ -34,8 +34,19 @@ export default function LyricsBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
     const handleKey = e => {
         if (e.key === "Tab") { e.preventDefault(); cycleType(); return; }
         if (e.key === "Enter") {
+            if (e.shiftKey) return; // Allow shift+enter for multiline inside same block
             e.preventDefault();
-            onAddAfter(blk.type); // continue same section type
+            
+            // split content
+            const sel = window.getSelection();
+            const offset = sel.anchorOffset;
+            const txt = ref.current?.innerText || "";
+            const before = txt.slice(0, offset);
+            const after = txt.slice(offset);
+            
+            onUpdate({ content: before });
+            onAddAfter(blk.type, after); // continue same section type
+            return;
         }
         if (e.key === "Backspace" && ref.current?.innerText.trim() === "") { e.preventDefault(); onDelete(); }
         if (e.key === "/") {

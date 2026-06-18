@@ -34,9 +34,10 @@ export function DataProvider({ children }) {
     const refreshNotifications = useCallback(async () => {
         try {
             const res = await notificationsApi.list();
-            const notifs = Array.isArray(res.data)
-                ? res.data
+            let notifs = Array.isArray(res.data) ? res.data 
                 : (res.data?.notifications || []);
+            const clearedAt = parseInt(localStorage.getItem('tf_notifs_cleared_at') || '0', 10);
+            if (clearedAt) notifs = notifs.filter(n => new Date(n.created_at).getTime() > clearedAt);
             setNotifications(notifs);
         } catch (e) { console.error('refreshNotifications failed:', e); }
     }, []);
@@ -65,7 +66,9 @@ export function DataProvider({ children }) {
             setEvents(Array.isArray(calData) ? calData : (calData.events || []));
             setTaskDates(calData.taskDates || []);
             setTeamMembers(Array.isArray(tm.data) ? tm.data : []);
-            const notifs = Array.isArray(n.data) ? n.data : (n.data?.notifications || []);
+            let notifs = Array.isArray(n.data) ? n.data : (n.data?.notifications || []);
+            const clearedAt = parseInt(localStorage.getItem('tf_notifs_cleared_at') || '0', 10);
+            if (clearedAt) notifs = notifs.filter(notif => new Date(notif.created_at).getTime() > clearedAt);
             setNotifications(notifs);
         }).catch(console.error)
             .finally(() => setLoading(false));
@@ -138,6 +141,8 @@ export function DataProvider({ children }) {
         // ── Notification events ────────────────────────────────────────────────
         socket.on('notification:new', (notif) => {
             if (!notif) return;
+            const clearedAt = parseInt(localStorage.getItem('tf_notifs_cleared_at') || '0', 10);
+            if (clearedAt && new Date(notif.created_at).getTime() <= clearedAt) return;
             setNotifications(prev => [notif, ...(prev || [])]);
             // If a team member joined, refresh our team members list
             if (notif.type === 'team_joined') {
@@ -256,7 +261,11 @@ export function DataProvider({ children }) {
         setNotifications(prev => (prev || []).map(n => ({ ...n, is_read: true })));
     };
 
-    const clearAllNotif = () => setNotifications([]);
+    const clearAllNotif = async () => {
+        setNotifications([]);
+        localStorage.setItem('tf_notifs_cleared_at', Date.now().toString());
+        try { await notificationsApi.clearAll(); } catch(e) {}
+    };
 
     const unreadCount = (notifications || []).filter(n => !n.is_read).length;
 
@@ -271,7 +280,9 @@ export function DataProvider({ children }) {
             ]);
             setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
             setTeamMembers(Array.isArray(memberRes.data) ? memberRes.data : []);
-            const notifs = Array.isArray(notifRes.data) ? notifRes.data : (notifRes.data?.notifications || []);
+            let notifs = Array.isArray(notifRes.data) ? notifRes.data : (notifRes.data?.notifications || []);
+            const clearedAt = parseInt(localStorage.getItem('tf_notifs_cleared_at') || '0', 10);
+            if (clearedAt) notifs = notifs.filter(notif => new Date(notif.created_at).getTime() > clearedAt);
             setNotifications(notifs);
         } catch (e) { console.error('refreshAll failed:', e); }
     };

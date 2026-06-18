@@ -11,7 +11,7 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
 
-    const inp = { background: '#0C1420', border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px 12px', color: t.t1, fontSize: 13, fontFamily: t.disp, width: '100%', outline: 'none' };
+    const inp = { background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px 12px', color: t.t1, fontSize: 13, fontFamily: t.disp, width: '100%', outline: 'none' };
 
     const handleSubmit = async (e) => {
         e.preventDefault(); setErr(''); setLoading(true);

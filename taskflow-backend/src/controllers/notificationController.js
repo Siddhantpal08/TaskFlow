@@ -35,4 +35,9 @@ const markOneRead = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, message: 'Notification marked as read.' });
 });
 
-module.exports = { listNotifications, markAllRead, markOneRead };
+const clearAll = asyncWrapper(async (req, res) => {
+    await notificationModel.clearAllForUser(req.user.id);
+    res.status(200).json({ success: true, message: 'All notifications cleared.' });
+});
+
+module.exports = { listNotifications, markAllRead, markOneRead, clearAll };

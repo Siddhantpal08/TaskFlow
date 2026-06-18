@@ -3,7 +3,7 @@ import { I, IC } from "../ui/Icon.jsx";
 import BlockHandle from "./BlockHandle.jsx";
 import ScriptBlock from "./ScriptBlock.jsx";
 import LyricsBlock from "./LyricsBlock.jsx";
-import { SCRIPT_TYPES, LYRICS_TYPES } from "../../data/notes.js";
+import { SCRIPT_TYPES, LYRICS_TYPES, BLOCK_TYPES, SCRIPT_BLOCK_TYPES, LYRICS_BLOCK_TYPES } from "../../data/notes.js";
 
 // ── Right-click context menu ────────────────────────────────────────────────
 const CONVERT_OPTS = [
@@ -20,7 +20,7 @@ const CONVERT_OPTS = [
     { type: "divider", label: "Divider" },
 ];
 
-function ContextMenu({ x, y, t, blkType, onDelete, onDuplicate, onConvert, onClose }) {
+function ContextMenu({ x, y, t, blkType, writingMode, onDelete, onDuplicate, onConvert, onClose }) {
     const menuRef = useRef();
     // Adjust position so menu doesn't go off screen
     useEffect(() => {
@@ -66,7 +66,8 @@ function ContextMenu({ x, y, t, blkType, onDelete, onDuplicate, onConvert, onClo
                 <div style={{ padding: "4px 14px 2px", fontSize: 9.5, color: t.t3, fontFamily: t.mono, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                     Turn into
                 </div>
-                {CONVERT_OPTS.filter(o => o.type !== blkType).map(o =>
+                {(writingMode === "script" ? SCRIPT_BLOCK_TYPES : writingMode === "lyrics" ? LYRICS_BLOCK_TYPES : CONVERT_OPTS)
+                    .filter(o => o.type !== blkType).map(o =>
                     row(o.label, () => onConvert(o.type))
                 )}
             </div>
@@ -314,7 +315,7 @@ export default function NoteBlock({
 
     const contextMenuEl = ctxMenu && (
         <ContextMenu
-            x={ctxMenu.x} y={ctxMenu.y} t={t} blkType={blk.type}
+            x={ctxMenu.x} y={ctxMenu.y} t={t} blkType={blk.type} writingMode={writingMode}
             onDelete={() => { setCtxMenu(null); onDelete(); }}
             onDuplicate={() => { setCtxMenu(null); onDuplicate?.(); }}
             onConvert={type => { setCtxMenu(null); onConvert?.(type); }}

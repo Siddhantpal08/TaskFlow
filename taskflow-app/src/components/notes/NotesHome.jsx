@@ -1,5 +1,6 @@
 import { I, IC } from "../ui/Icon.jsx";
 import { mkBlock } from "../../data/notes.js";
+import EmptyState from "../ui/EmptyState.jsx";
 
 // Suggested note templates for the workspace home
 const TEMPLATES = [
@@ -126,17 +127,15 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
                 </div>
 
                 {/* Recent pages */}
-                {subPages.length > 0 && (
-                    <div style={{ marginBottom: 44 }}>
-                        <div style={{ fontSize: 10.5, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 14, fontFamily: t.mono }}>
-                            Recent Pages
-                        </div>
+                <div style={{ marginBottom: 44 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 14, fontFamily: t.mono }}>
+                        Recent Pages
+                    </div>
+                    {subPages.length > 0 ? (
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
                             {subPages.slice(0, 6).map(pg => (
-                                <div key={pg.id} onClick={() => navigateNote(pg.id)}
-                                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 10, border: `1px solid ${t.border}`, cursor: "pointer", background: t.card, transition: "all .15s" }}
-                                    onMouseEnter={e => { e.currentTarget.style.borderColor = t.accent + "66"; e.currentTarget.style.background = t.noteHover; }}
-                                    onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.background = t.card; }}>
+                                <div key={pg.id} onClick={() => navigateNote(pg.id)} className="note-card-hover"
+                                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 10, border: `1px solid ${t.border}`, cursor: "pointer", background: t.card }}>
                                     <span style={{ fontSize: 22 }}>{pg.emoji || "📄"}</span>
                                     <div style={{ minWidth: 0 }}>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: t.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pg.title || "Untitled"}</div>
@@ -145,8 +144,15 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <EmptyState
+                            t={t}
+                            icon="task"
+                            title="No pages yet"
+                            description="Create a blank page or choose a template below to start writing."
+                        />
+                    )}
+                </div>
 
                 {/* Start from template */}
                 <div style={{ fontSize: 10.5, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 14, fontFamily: t.mono }}>
@@ -154,10 +160,8 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
                     {TEMPLATES.map(tpl => (
-                        <div key={tpl.type} onClick={() => handleTemplate(tpl)}
-                            style={{ padding: "18px 16px", borderRadius: 12, border: `1px solid ${t.border}`, cursor: "pointer", background: t.card, transition: "all .18s" }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = t.accent + "66"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = t.accentGlow; }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
+                        <div key={tpl.type} onClick={() => handleTemplate(tpl)} className="tpl-card-hover"
+                            style={{ padding: "18px 16px", borderRadius: 12, border: `1px solid ${t.border}`, cursor: "pointer", background: t.card }}>
                             <div style={{ fontSize: 28, marginBottom: 8 }}>{tpl.emoji}</div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 4 }}>{tpl.title}</div>
                             <div style={{ fontSize: 11, color: t.t3, lineHeight: 1.5 }}>{tpl.desc}</div>
@@ -165,10 +169,8 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
                     ))}
 
                     {/* Blank page */}
-                    <div onClick={() => addNotePage("root")}
-                        style={{ padding: "18px 16px", borderRadius: 12, border: `1.5px dashed ${t.border}`, cursor: "pointer", background: "transparent", transition: "all .18s", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 100, gap: 6 }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = t.accent; e.currentTarget.style.background = t.accentDim; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.background = "transparent"; }}>
+                    <div onClick={() => addNotePage("root")} className="blank-card-hover"
+                        style={{ padding: "18px 16px", borderRadius: 12, border: `1.5px dashed ${t.border}`, cursor: "pointer", background: "transparent", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 100, gap: 6 }}>
                         <span style={{ fontSize: 24, color: t.t3 }}>+</span>
                         <span style={{ fontSize: 12, color: t.t3, fontFamily: t.disp }}>Blank Page</span>
                     </div>

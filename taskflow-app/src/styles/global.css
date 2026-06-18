@@ -1,5 +1,52 @@
 /* Global CSS — animations, scrollbar, utility classes */
 
+:root {
+  /* Spacing Scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 28px;
+  --sp-8: 32px;
+  --sp-9: 36px;
+  --sp-10: 40px;
+
+  /* Radius Scale */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+
+  /* Typography Scale */
+  --fs-meta: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 24px;
+
+  /* Theme mappings to injected react state */
+  --accent: var(--theme-accent, #00E5CC);
+  --accentDim: var(--theme-accentDim, rgba(0, 229, 204, 0.08));
+  --card: var(--theme-card, #0F1C2E);
+  --surf: var(--theme-surf, #0C1420);
+  --bg: var(--theme-bg, #060B12);
+  --border: var(--theme-border, #182A42);
+  --t1: var(--theme-t1, #E2EFFF);
+  --t2: var(--theme-t2, #6A88AA);
+  --t3: var(--theme-t3, #2E4A68);
+  --red: var(--theme-red, #FF3D5A);
+  --amber: var(--theme-amber, #FFAA00);
+  --green: var(--theme-green, #00D67B);
+  --blue: var(--theme-blue, #0072FF);
+  --nav: var(--theme-nav, #080E18);
+  --shadow: var(--theme-shadow, 0 8px 32px rgba(0,0,0,0.4));
+  --inset: var(--theme-inset, #060B12);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -8,21 +55,39 @@
 
 body {
   font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--t1);
 }
 
 ::-webkit-scrollbar {
-  width: 3px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
-input,
-textarea,
-[contenteditable] {
-  outline: none;
+/* Accessibility Focus States - WCAG 2.1 AA Compliant */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible,
+[contenteditable]:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* Remove default focus outline when using pointer, but keep focus-visible active */
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+[contenteditable]:focus:not(:focus-visible) {
+  outline: none !important;
 }
 
 input:focus,
@@ -93,6 +158,10 @@ textarea:focus {
 }
 
 /* ── Utility animation classes ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .fadeUp {
   animation: fadeUp 0.3s ease forwards;
 }
@@ -136,6 +205,35 @@ textarea:focus {
 .pill:hover {
   border-color: var(--accent) !important;
   color: var(--accent) !important;
+}
+
+.logout-btn:hover {
+  color: var(--red) !important;
+}
+
+.note-card-hover {
+  transition: all .15s ease;
+}
+.note-card-hover:hover {
+  border-color: var(--accent) !important;
+  background: var(--noteHover, rgba(255,255,255,0.03)) !important;
+}
+
+.tpl-card-hover {
+  transition: all .18s ease;
+}
+.tpl-card-hover:hover {
+  border-color: var(--accent) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow) !important;
+}
+
+.blank-card-hover {
+  transition: all .18s ease;
+}
+.blank-card-hover:hover {
+  border-color: var(--accent) !important;
+  background: var(--accentDim) !important;
 }
 
 .nsi:hover {
@@ -189,8 +287,19 @@ textarea:focus {
   }
 }
 
+@media (max-width: 860px) {
+  .welcome-strip {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--sp-4) !important;
+  }
+}
+
 /* ── Mobile Responsive ── */
 @media (max-width: 768px) {
+  .mobile-user-actions {
+    display: flex !important;
+  }
 
   /* Hide sidebar completely on mobile */
   .sidebar-desktop {

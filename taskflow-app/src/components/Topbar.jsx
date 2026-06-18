@@ -31,21 +31,6 @@ export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, 
                 <I d={IC.plus} sz={14} c="#000" sw={2.5} />Assign Task
             </button>
 
-            {/* Theme picker */}
-            <button onClick={() => setShowThemePicker(p => !p)} title="Change Theme"
-                style={{
-                    background: showThemePicker ? t.accentDim : t.card,
-                    border: `1px solid ${showThemePicker ? t.accent : t.border}`,
-                    borderRadius: 9, padding: 8, cursor: "pointer", display: "flex", color: t.t2, transition: "all .2s"
-                }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 2a10 10 0 0 1 10 10A10 10 0 0 1 12 22" />
-                    <path d="M12 2a10 10 0 0 0-7.07 17.07" />
-                    <circle cx="12" cy="12" r="3" fill="currentColor" />
-                </svg>
-            </button>
-
             <button onClick={() => setNotif(p => !p)} className="hvrI"
                 style={{
                     background: notif ? t.accentDim : t.card, border: `1px solid ${notif ? t.accent : t.border}`,
@@ -55,23 +40,25 @@ export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, 
                 {unreadCount > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: t.red, border: `2px solid ${t.nav}` }} />}
             </button>
 
-            {user && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div onClick={() => setPage('profile')} title="Edit Profile"
-                        style={{
-                            width: 32, height: 32, borderRadius: '50%',
-                            background: user.avatar_url ? `url(${user.avatar_url}) center/cover` : `linear-gradient(135deg, ${t.accent}40, #0072FF40)`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 11, fontWeight: 700, color: t.accent, flexShrink: 0,
-                            border: `1.5px solid ${t.accent}44`, cursor: 'pointer',
-                            backgroundSize: user.avatar_url ? 'cover' : 'auto',
-                        }}>{!user.avatar_url && user.avatar_initials}</div>
-                    <button onClick={logout} title="Logout" className="hvrI"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 16, fontFamily: t.mono, lineHeight: 1 }}>
-                        ⏻
-                    </button>
+            {/* Mobile-only User profile avatar and logout */}
+            <div className="mobile-user-actions" style={{ display: "none", alignItems: "center", gap: 10, marginLeft: 4 }}>
+                <div onClick={() => setPage("profile")} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
+                    <div style={{
+                        width: 32, height: 32, borderRadius: "50%",
+                        background: user?.avatar_url ? `url(${user.avatar_url}) center/cover` : `linear-gradient(135deg, ${t.accent}40, #0072FF40)`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 11, fontWeight: 700, color: t.accent,
+                        border: `1.5px solid ${t.accent}44`, backgroundSize: "cover", backgroundPosition: "center"
+                    }}>
+                        {!user?.avatar_url && (user?.avatar_initials || "?")}
+                    </div>
                 </div>
-            )}
+                <button onClick={logout} aria-label="Sign out" title="Logout"
+                    className="logout-btn"
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 5, color: t.t3, display: "flex", alignItems: "center", justifyContent: "center", transition: "color .15s" }}>
+                    <I d={IC.out} sz={16} c="currentColor" />
+                </button>
+            </div>
         </div>
     );
 }
