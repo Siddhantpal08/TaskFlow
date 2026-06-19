@@ -18,7 +18,7 @@ export default function ChatWidget({ t }) {
     const endRef = useRef();
 
     useEffect(() => {
-        teamApi.getUserTeams().then(res => setTeams(res.data || [])).catch(() => {});
+        teamApi.getMyTeams().then(res => setTeams(res.data || [])).catch(() => {});
     }, []);
 
     useEffect(() => {
