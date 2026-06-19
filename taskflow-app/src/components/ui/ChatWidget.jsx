@@ -101,7 +101,11 @@ export default function ChatWidget({ t }) {
             <div style={{ background: t.inset, padding: "14px 18px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                     <h3 style={{ margin: 0, fontSize: 15, color: t.t1, fontFamily: t.disp, display: "flex", alignItems: "center", gap: 8 }}>
-                        {selectedTeam && <button onClick={() => setSelectedTeam(null)} style={{ background:"none", border:"none", color:t.t3, cursor:"pointer", padding:0, display:"flex" }}><I d={IC.chk} sz={16}/></button>}
+                        {selectedTeam && (
+                            <button onClick={() => setSelectedTeam(null)} title="Back to Teams" style={{ background:"none", border:"none", color:t.t3, cursor:"pointer", padding:0, display:"flex", alignItems:"center", gap:4, fontSize: 12 }}>
+                                <span>←</span>
+                            </button>
+                        )}
                         {selectedTeam ? selectedTeam.name : "Team Chat Hub"}
                     </h3>
                     <div style={{ fontSize: 11, color: t.t3, marginTop: 2 }}>{selectedTeam ? "Real-time communication" : "Select a team to chat"}</div>

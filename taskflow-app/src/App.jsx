@@ -9,6 +9,7 @@ import { notesApi } from "./api/notes.js";
 import ThemePicker from "./components/ui/ThemePicker.jsx";
 import { checkLimit, isPro } from "./utils/planLimits.js";
 import { UpgradeModal } from "./components/ui/UpgradeModal.jsx";
+import ChatWidget from "./components/ui/ChatWidget.jsx";
 
 // Auth
 import { useAuth } from "./context/AuthContext.jsx";
@@ -422,6 +423,9 @@ function MainApp() {
                     {upgradeModal && (
                         <UpgradeModal t={t} feature={upgradeModal.feature} onClose={() => setUpgradeModal(null)} />
                     )}
+
+                    {/* Global Chat Widget */}
+                    <ChatWidget t={t} />
 
                     {/* Mobile bottom nav */}
                     <nav className="mobile-nav">

@@ -5,7 +5,6 @@ import { PriTag, StTag } from "./ui/Tag.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
 import EmptyState from "./ui/EmptyState.jsx";
-import ChatWidget from "./ui/ChatWidget.jsx";
 
 function fmtDate(d) {
     if (!d) return "—";
@@ -312,8 +311,6 @@ export default function Dashboard({ t, setPage, setTask }) {
                     )}
                 </div>
             </div>
-            {/* Global Chat Widget inside Dashboard */}
-            <ChatWidget t={t} />
         </div>
     );
 }
