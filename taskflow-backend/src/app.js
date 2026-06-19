@@ -119,7 +119,7 @@ app.get('/', (req, res) => {
                     System Operational
                 </div>
                 <div class="links">
-                    <a href="/health">Health Check</a>
+                    <a href="/ping">Health Check</a>
                 </div>
             </div>
         </body>
@@ -128,7 +128,7 @@ app.get('/', (req, res) => {
 });
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/health', (req, res) => {
+app.get('/ping', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'TaskFlow API is running.' });
 });
 

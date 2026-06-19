@@ -19,7 +19,7 @@ let woken = false;
 export async function wakeupBackend(onStatus) {
     if (woken) { onStatus?.('ready'); return; }
 
-    const HEALTH = `${BASE}/health`;
+    const HEALTH = `${BASE}/ping`;
     const MAX_WAIT_MS = 30_000;
     const POLL_MS = 3_500;
     const start = Date.now();
