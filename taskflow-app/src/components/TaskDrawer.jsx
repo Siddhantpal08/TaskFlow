@@ -5,6 +5,7 @@ import { useData } from '../context/DataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toastSuccess, toastError } from './ui/Toast.jsx';
 import ConfirmModal from './ui/ConfirmModal.jsx';
+import CustomSelect from './ui/CustomSelect.jsx';
 
 function fmtDate(d) {
     if (!d) return '—';
@@ -154,28 +155,47 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                             <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title" style={INP(t)} />
                             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Description…" rows={3} style={{ ...INP(t), resize: 'vertical' }} />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} style={INP(t)}>
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                </select>
+                                <CustomSelect
+                                    t={t}
+                                    value={form.priority}
+                                    onChange={val => setForm(f => ({ ...f, priority: val }))}
+                                    options={[
+                                        { value: "low", label: "Low" },
+                                        { value: "medium", label: "Medium" },
+                                        { value: "high", label: "High" },
+                                    ]}
+                                />
                                 <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} style={INP(t)} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: parseInt(e.target.value) || f.assigned_to }))} style={INP(t)} disabled={!canEdit}>
-                                    <option value={task.assigned_to}>{task.assigned_to_name}</option>
-                                    {teamMembers.filter(m => {
-                                        const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
-                                        return m.id !== task.assigned_to && (amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id));
-                                    }).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                </select>
-                                <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={INP(t)} disabled={!canStatus}>
-                                    <option value="pending">Pending</option>
-                                    <option value="active">Active/In Progress</option>
-                                    <option value="pending_approval">Pending Approval</option>
-                                    <option value="done">Done</option>
-                                    <option value="refused">Refused</option>
-                                </select>
+                                <CustomSelect
+                                    t={t}
+                                    disabled={!canEdit}
+                                    value={form.assigned_to}
+                                    onChange={val => setForm(f => ({ ...f, assigned_to: parseInt(val) || f.assigned_to }))}
+                                    options={[
+                                        { value: String(task.assigned_to), label: task.assigned_to_name },
+                                        ...teamMembers
+                                            .filter(m => {
+                                                const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
+                                                return m.id !== task.assigned_to && (amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id));
+                                            })
+                                            .map(m => ({ value: String(m.id), label: m.name }))
+                                    ]}
+                                />
+                                <CustomSelect
+                                    t={t}
+                                    disabled={!canStatus}
+                                    value={form.status}
+                                    onChange={val => setForm(f => ({ ...f, status: val }))}
+                                    options={[
+                                        { value: "pending", label: "Pending" },
+                                        { value: "active", label: "Active/In Progress" },
+                                        { value: "pending_approval", label: "Pending Approval" },
+                                        { value: "done", label: "Done" },
+                                        { value: "refused", label: "Refused" },
+                                    ]}
+                                />
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
                                 <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: t.accent, color: '#000', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
@@ -247,14 +267,17 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
 
                         {delegating && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <select value={delegateTo} onChange={e => setDelegateTo(e.target.value)} style={INP(t)}>
-                                    <option value="">Select team member…</option>
-                                    {teamMembers.filter(m => {
-                                        return m.id !== user?.id && (amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id));
-                                    }).map(m => (
-                                        <option key={m.id} value={m.id}>{m.name}</option>
-                                    ))}
-                                </select>
+                                <CustomSelect
+                                    t={t}
+                                    value={delegateTo}
+                                    onChange={setDelegateTo}
+                                    options={[
+                                        { value: "", label: "Select team member…" },
+                                        ...teamMembers
+                                            .filter(m => m.id !== user?.id && (amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id)))
+                                            .map(m => ({ value: String(m.id), label: m.name }))
+                                    ]}
+                                />
                                 <div style={{ display: 'flex', gap: 8 }}>
                                     <button onClick={handleDelegate} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: t.amber, color: '#000', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
                                         {saving ? 'Delegating…' : 'Confirm Delegate'}

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { useData } from "../../../src/context/DataContext.jsx";
-import { useAuth } from "../../../src/context/AuthContext.jsx";
-import { chatApi } from "../../../src/api/chat.js";
-import { teamApi } from "../../../src/api/team.js";
+import { useData } from "../../context/DataContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { chatApi } from "../../api/chat.js";
+import { teamApi } from "../../api/team.js";
 import { I, IC } from "./Icon.jsx";
 import { Av } from "./Av.jsx";
 
@@ -19,6 +19,15 @@ export default function ChatWidget({ t }) {
 
     useEffect(() => {
         teamApi.getMyTeams().then(res => setTeams(res.data || [])).catch(() => {});
+        const handleOpenChat = (e) => {
+            const teamToOpen = e.detail?.team;
+            if (teamToOpen) {
+                setSelectedTeam(teamToOpen);
+                setOpen(true);
+            }
+        };
+        window.addEventListener('open-team-chat', handleOpenChat);
+        return () => window.removeEventListener('open-team-chat', handleOpenChat);
     }, []);
 
     useEffect(() => {

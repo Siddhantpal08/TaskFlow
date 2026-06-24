@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../api/admin.js';
+import ConfirmModal from '../components/ui/ConfirmModal.jsx';
 
 const DARK = {
     bg: "#060B12", surf: "#0C1420", card: "#0F1C2E", border: "#182A42",
@@ -52,6 +53,7 @@ export default function AdminPanel({ t: themeProp, user }) {
     const [actionMsg, setActionMsg] = useState('');
     const [storage, setStorage] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
+    const [userToDelete, setUserToDelete] = useState(null);
 
     const thm = themeProp || t;
 
@@ -91,12 +93,7 @@ export default function AdminPanel({ t: themeProp, user }) {
     };
 
     const handleDelete = async (userId, name) => {
-        if (!confirm(`Permanently delete user "${name}"? This cannot be undone.`)) return;
-        try {
-            await adminApi.deleteUser(userId);
-            notify('User deleted');
-            loadUsers(); loadStats();
-        } catch { notify('Failed to delete user'); }
+        setUserToDelete({ id: userId, name });
     };
 
     const totalPages = Math.ceil(total / 15);
@@ -369,6 +366,28 @@ export default function AdminPanel({ t: themeProp, user }) {
                         </>
                     )}
                 </>
+            )}
+            {userToDelete && (
+                <ConfirmModal
+                    t={thm}
+                    title="Delete User?"
+                    description={`Permanently delete user "${userToDelete.name}"? This cannot be undone.`}
+                    confirmText="Delete"
+                    danger={true}
+                    icon="🗑️"
+                    onConfirm={async () => {
+                        try {
+                            await adminApi.deleteUser(userToDelete.id);
+                            notify('User deleted');
+                            loadUsers(); loadStats();
+                        } catch {
+                            notify('Failed to delete user');
+                        } finally {
+                            setUserToDelete(null);
+                        }
+                    }}
+                    onCancel={() => setUserToDelete(null)}
+                />
             )}
         </div>
     );

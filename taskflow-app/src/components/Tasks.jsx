@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { toastError, toastSuccess } from "./ui/Toast.jsx";
 import CreateTaskModal from "./CreateTaskModal.jsx";
 import EmptyState from "./ui/EmptyState.jsx";
+import ConfirmModal from "./ui/ConfirmModal.jsx";
 
 function fmtDate(d) {
     if (!d) return "—";
@@ -18,6 +19,7 @@ export default function Tasks({ t, setTask, searchQuery }) {
     const { user } = useAuth();
     const [fil, setFil] = useState("all");
     const [showCreate, setShowCreate] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState(null);
 
     const tabs = ["all", "mine", "pending", "active", "pending_approval", "done", "delegated"];
     const count = f => {
@@ -118,12 +120,9 @@ export default function Tasks({ t, setTask, searchQuery }) {
                         </div>
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
                             {tk.status === "done" && (
-                                <button onClick={async e => {
+                                <button onClick={e => {
                                     e.stopPropagation();
-                                    if (window.confirm("Are you sure you want to delete this completed task?")) {
-                                        try { await deleteTask(tk.id); toastSuccess("Task deleted."); }
-                                        catch (err) { toastError("Failed to delete task."); }
-                                    }
+                                    setTaskToDelete(tk);
                                 }} style={{ background: "transparent", border: "none", color: t.t3, cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, transition: "background .15s" }} onMouseEnter={e => { e.currentTarget.style.color = t.red; e.currentTarget.style.background = t.red + "20"; }} onMouseLeave={e => { e.currentTarget.style.color = t.t3; e.currentTarget.style.background = "transparent"; }} title="Delete completed task">
                                     <I d={IC.trash} sz={16} />
                                 </button>
@@ -134,6 +133,27 @@ export default function Tasks({ t, setTask, searchQuery }) {
             </div>
 
             {showCreate && <CreateTaskModal t={t} teamMembers={teamMembers} onClose={() => setShowCreate(false)} onCreate={createTask} />}
+            {taskToDelete && (
+                <ConfirmModal
+                    t={t}
+                    title="Delete Completed Task?"
+                    description={`Are you sure you want to delete "${taskToDelete.title}"?`}
+                    confirmText="Delete"
+                    danger={true}
+                    icon="🗑️"
+                    onConfirm={async () => {
+                        try {
+                            await deleteTask(taskToDelete.id);
+                            toastSuccess("Task deleted.");
+                        } catch (err) {
+                            toastError("Failed to delete task.");
+                        } finally {
+                            setTaskToDelete(null);
+                        }
+                    }}
+                    onCancel={() => setTaskToDelete(null)}
+                />
+            )}
         </div>
     );
 }

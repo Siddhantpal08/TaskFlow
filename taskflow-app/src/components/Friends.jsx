@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { friendsApi } from '../api/friends.js';
 import { toastSuccess, toastError } from './ui/Toast.jsx';
+import ConfirmModal from './ui/ConfirmModal.jsx';
 
 export default function Friends({ t }) {
     const [friends, setFriends] = useState([]);
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
     const [emailStr, setEmailStr] = useState('');
+    const [friendshipToRemove, setFriendshipToRemove] = useState(null);
 
     const fetchFriends = async () => {
         try {
@@ -54,7 +56,6 @@ export default function Friends({ t }) {
     };
 
     const handleRemove = async (friendshipId) => {
-        if (!confirm("Are you sure?")) return;
         try {
             setLoading(true);
             await friendsApi.removeFriend(friendshipId);
@@ -64,6 +65,7 @@ export default function Friends({ t }) {
             toastError(e.message || "Failed to remove");
         } finally {
             setLoading(false);
+            setFriendshipToRemove(null);
         }
     };
 
@@ -112,7 +114,7 @@ export default function Friends({ t }) {
                                         </div>
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <button onClick={() => handleAcceptRequest(req.request_id)} style={{ background: t.accentDim, color: t.accent, border: `1px solid ${t.accent}44`, borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>Accept</button>
-                                            <button onClick={() => handleRemove(req.request_id)} style={{ background: 'transparent', color: t.t3, border: `1px solid ${t.border}`, borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>Decline</button>
+                                            <button onClick={() => setFriendshipToRemove(req.request_id)} style={{ background: 'transparent', color: t.t3, border: `1px solid ${t.border}`, borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>Decline</button>
                                         </div>
                                     </div>
                                 ))}
@@ -152,6 +154,18 @@ export default function Friends({ t }) {
                     </div>
                 </div>
             </div>
+            {friendshipToRemove && (
+                <ConfirmModal
+                    t={t}
+                    title="Decline Request?"
+                    description="Are you sure you want to decline this request?"
+                    confirmText="Decline"
+                    danger={true}
+                    icon="✕"
+                    onConfirm={() => handleRemove(friendshipToRemove)}
+                    onCancel={() => setFriendshipToRemove(null)}
+                />
+            )}
         </div>
     );
 }

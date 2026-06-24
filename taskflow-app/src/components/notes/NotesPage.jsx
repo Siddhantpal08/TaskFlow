@@ -4,6 +4,7 @@ import { EMOJIS, mkBlock, BLOCK_TYPES, SCRIPT_BLOCK_TYPES, LYRICS_BLOCK_TYPES, S
 import NoteBlock from "./NoteBlock.jsx";
 import SlashMenu from "./SlashMenu.jsx";
 import { notesApi } from "../../api/notes.js";
+import CustomSelect from "../ui/CustomSelect.jsx";
 import { toastError } from "../ui/Toast.jsx";
 import { io } from "socket.io-client";
 import { isPro } from "../../utils/planLimits.js";
@@ -417,24 +418,28 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     };
 
 
-    // Global keyboard undo/redo — only fires when focus is NOT inside contenteditable
+    // Global keyboard undo/redo — works inside contenteditable blocks but ignores standard input/textarea
     useEffect(() => {
         const handler = (e) => {
             if (!(e.ctrlKey || e.metaKey)) return;
-            const inEditable = document.activeElement?.isContentEditable;
+            const activeTag = document.activeElement?.tagName;
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+            
             if (e.key === 'z' || e.key === 'Z') {
+                e.preventDefault();
                 if (e.shiftKey) {
-                    if (!inEditable) { e.preventDefault(); redo(); }
+                    redo();
                 } else {
-                    if (!inEditable) { e.preventDefault(); undo(); }
+                    undo();
                 }
             }
             if ((e.key === 'y' || e.key === 'Y') && !e.shiftKey) {
-                if (!inEditable) { e.preventDefault(); redo(); }
+                e.preventDefault();
+                redo();
             }
         };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
+        window.addEventListener('keydown', handler, true); // Use capture phase to intercept before browser native handler
+        return () => window.removeEventListener('keydown', handler, true);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
@@ -750,7 +755,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     // ── Speech-to-Text ────────────────────────────────────────────────────────
     const toggleSpeech = () => {
-        if (!hasSpeechSupport) { alert("Speech recognition is only supported in Chrome/Edge."); return; }
+        if (!hasSpeechSupport) { toastError("Speech recognition is only supported in Chrome/Edge."); return; }
 
         if (isListening || listeningRef.current) {
             listeningRef.current = false;
@@ -811,7 +816,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             recog.onerror = (ev) => {
                 if (ev.error === 'no-speech') return; // ignore silence
                 if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
-                    alert('Microphone access denied. Please allow microphone in browser settings.');
+                    toastError('Microphone access denied. Please allow microphone in browser settings.');
                     listeningRef.current = false;
                     setIsListening(false);
                 }
@@ -951,7 +956,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    }, [selectedBlockIds, handleSaveNow]);
 
     // Drag-to-select logic
     const handleWrapperMouseDown = (e) => {
@@ -1069,32 +1074,29 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </div>
 
                         {/* Writing mode dropdown */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 6px" }}>
-                            <select
+                        <div style={{ width: 140 }}>
+                            <CustomSelect
+                                t={t}
                                 value={writingMode || ""}
-                                onChange={e => {
-                                    const val = e.target.value || null;
+                                onChange={val => {
+                                    const finalVal = val || null;
                                     // ── Writing modes are Pro only ──
-                                    if (val && !isPro()) {
+                                    if (finalVal && !isPro()) {
                                         setShowUpgradeModal({ feature: 'Script & Lyrics Mode is a Pro feature' });
-                                        e.target.value = writingMode || '';
                                         return;
                                     }
-                                    setWritingMode(val);
+                                    setWritingMode(finalVal);
                                     // Persist to localStorage (immediate) + DB (durable)
-                                    if (val) localStorage.setItem(`tf_wm_${notePageId}`, val);
+                                    if (finalVal) localStorage.setItem(`tf_wm_${notePageId}`, finalVal);
                                     else localStorage.removeItem(`tf_wm_${notePageId}`);
-                                    notesApi.setWritingMode(notePageId, val).catch(() => {});
+                                    notesApi.setWritingMode(notePageId, finalVal).catch(() => {});
                                 }}
-                                style={{
-                                    background: "transparent", border: "none", color: writingMode ? t.accent : t.t2, fontSize: 11, fontFamily: t.disp, cursor: "pointer", outline: "none",
-                                    padding: "4px 0px"
-                                }}
-                            >
-                                <option value="">📄 Normal Note</option>
-                                <option value="script">📽️ Script Mode</option>
-                                <option value="lyrics">🎵 Lyrics Mode</option>
-                            </select>
+                                options={[
+                                    { value: "", label: "📄 Normal Note" },
+                                    { value: "script", label: "📽️ Script Mode" },
+                                    { value: "lyrics", label: "🎵 Lyrics Mode" },
+                                ]}
+                            />
                         </div>
 
                         <button type="button" onClick={handleSaveNow} disabled={saveStatus === "saving"}

@@ -30,6 +30,7 @@
         "node-cron": "^4.2.1",
         "nodemailer": "^7.0.13",
         "socket.io": "^4.8.1",
+        "stripe": "^22.2.3",
         "uuid": "^9.0.1"
     },
     "devDependencies": {

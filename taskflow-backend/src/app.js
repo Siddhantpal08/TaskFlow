@@ -22,6 +22,7 @@ const adminRoutes        = require('./routes/adminRoutes');         // admin pan
 const feedbackRoutes     = require('./routes/feedbackRoutes');       // user feedback
 const chatRoutes         = require('./routes/chatRoutes');           // team chat
 const collegeRoutes      = require('./routes/collegeRoutes');
+const billingRoutes      = require('./routes/billingRoutes');
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 const app = express();
@@ -62,7 +63,29 @@ app.use(cors({
 }));
 
 // ─── Security & Parsing Middleware ────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https:", "http://localhost:5000", "http://localhost:5173", "ws:", "wss:"],
+        }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Additional Security Headers
+app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+});
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use(morgan('dev'));
@@ -162,6 +185,7 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/admin',         adminRoutes);          // admin panel (role=admin gated)
 app.use('/api/v1/feedback',      feedbackRoutes);       // user feedback
 app.use('/api/v1/chat',          chatRoutes);           // team chat
+app.use('/api/v1/billing',       billingRoutes);        // stripe billing
 app.use('/api/v1',               userRoutes);
 
 // ─── /api/college/v1/ — SaaS Frontend (taskflow-app on Vercel) ────────────────
@@ -174,18 +198,19 @@ app.use('/api/college/v1', collegeRoutes);
         await db.query(`
             CREATE TABLE IF NOT EXISTS feedback (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT,
+                user_id INT UNSIGNED,
                 rating TINYINT NOT NULL,
                 message TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_feedback_user (user_id),
                 INDEX idx_feedback_created (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
+        `);
+        await db.query(`
             CREATE TABLE IF NOT EXISTS team_chats (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 team_id INT NOT NULL,
-                user_id INT NOT NULL,
+                user_id INT UNSIGNED NOT NULL,
                 message TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,

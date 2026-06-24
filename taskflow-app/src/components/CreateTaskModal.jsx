@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
+import CustomSelect from "./ui/CustomSelect.jsx";
 
 export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, initialAssignee }) {
     const { user } = useAuth();
@@ -37,20 +38,28 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
                     <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description (optional)" rows={2}
                         style={{ ...inp, resize: 'vertical' }} />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <select value={priority} onChange={e => setPriority(e.target.value)} style={{ ...inp }}>
-                            <option value="low">Low Priority</option>
-                            <option value="medium">Medium Priority</option>
-                            <option value="high">High Priority</option>
-                        </select>
-                        <select value={assigned_to} onChange={e => setAssignedTo(e.target.value)} style={{ ...inp }}>
-                            {teamMembers
+                        <CustomSelect
+                            t={t}
+                            value={priority}
+                            onChange={setPriority}
+                            options={[
+                                { value: "low", label: "Low Priority" },
+                                { value: "medium", label: "Medium Priority" },
+                                { value: "high", label: "High Priority" },
+                            ]}
+                        />
+                        <CustomSelect
+                            t={t}
+                            value={assigned_to}
+                            onChange={setAssignedTo}
+                            options={teamMembers
                                 .filter(m => {
                                     // Make sure current user is an admin to see admins, else hide admins
                                     const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
                                     return amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id);
                                 })
-                                .map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                        </select>
+                                .map(m => ({ value: String(m.id), label: m.name }))}
+                        />
                     </div>
                     <input type="date" value={due_date} onChange={e => setDueDate(e.target.value)} style={{ ...inp }} />
                     {err && <div style={{ color: t.red, fontSize: 12 }}>{err}</div>}

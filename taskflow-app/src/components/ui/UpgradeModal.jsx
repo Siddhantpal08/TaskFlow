@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { PLANS, getPlan, isPro } from "../../utils/planLimits.js";
 import { I, IC } from "./Icon.jsx";
+import { billingApi } from "../../api/billing.js";
 
 // ── Upgrade Modal ─────────────────────────────────────────────────────────────
 export function UpgradeModal({ t, feature, onClose }) {
-    const [step, setStep] = useState("plan"); // plan | billing | success
+    const [step, setStep] = useState(feature === "Upgrade Successful!" ? "success" : "plan"); // plan | billing | success
     const [billing, setBilling] = useState("yearly"); // monthly | yearly
     const [payMethod, setPayMethod] = useState("card"); // card | upi
     const [loading, setLoading] = useState(false);
@@ -43,6 +44,23 @@ export function UpgradeModal({ t, feature, onClose }) {
 
     const handleNextStep = () => {
         setStep("billing");
+    };
+
+    const handleStripeCheckout = async () => {
+        setLoading(true);
+        setError("");
+        try {
+            const res = await billingApi.createCheckoutSession(billing);
+            if (res.url) {
+                window.location.href = res.url;
+            } else {
+                setError("Failed to create Stripe Checkout session.");
+            }
+        } catch (err) {
+            setError(err.message || "Failed to contact billing service.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handlePaymentSubmit = (e) => {
@@ -307,6 +325,25 @@ export function UpgradeModal({ t, feature, onClose }) {
                         <p style={{ margin: "0 0 20px", fontSize: 12, color: t.t3 }}>
                             Pro Plan Sub ({billing === "yearly" ? "Yearly @ ₹2,868/yr" : "Monthly @ ₹299/mo"})
                         </p>
+
+                        {/* Stripe Checkout Button */}
+                        <button type="button" onClick={handleStripeCheckout} disabled={loading}
+                            style={{
+                                width: "100%", padding: "13px 0", borderRadius: 12, border: "none", cursor: "pointer",
+                                background: `linear-gradient(135deg, #635BFF, #877BFF)`,
+                                color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: t.disp,
+                                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                                marginBottom: 16, boxShadow: "0 4px 12px rgba(99, 91, 255, 0.35)",
+                                opacity: loading ? 0.8 : 1, transition: "all 0.2s"
+                            }}>
+                            {loading ? "Redirecting..." : "💳 Pay via Stripe Checkout"}
+                        </button>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 20px", color: t.t3, fontSize: 10, fontFamily: t.mono }}>
+                            <div style={{ flex: 1, height: 1, background: t.border }}></div>
+                            <span>OR DEMO PLAYGROUND</span>
+                            <div style={{ flex: 1, height: 1, background: t.border }}></div>
+                        </div>
 
                         {error && (
                             <div style={{ padding: "10px 14px", borderRadius: 8, background: `${t.red}15`, border: `1px solid ${t.red}33`, color: t.red, fontSize: 12, marginBottom: 16 }}>

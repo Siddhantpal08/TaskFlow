@@ -7,13 +7,13 @@ import { PlanBadge } from "./ui/UpgradeModal.jsx";
 import ConfirmModal from "./ui/ConfirmModal.jsx";
 
 // ── Tooltip wrapper for collapsed icons ─────────────────────────────────────
-function Tip({ label, children }) {
+function Tip({ label, disabled, children }) {
     const [show, setShow] = useState(false);
     return (
-        <div style={{ position: "relative", display: "flex" }}
-            onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+        <div style={{ position: "relative", display: "flex", width: "100%" }}
+            onMouseEnter={() => !disabled && setShow(true)} onMouseLeave={() => setShow(false)}>
             {children}
-            {show && (
+            {show && !disabled && (
                 <div style={{
                     position: "absolute", left: "calc(100% + 10px)", top: "50%", transform: "translateY(-50%)",
                     background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)",
@@ -57,7 +57,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
         { id: "dashboard", label: "Dashboard", ic: IC.dash },
         { id: "tasks",     label: "Tasks",     ic: IC.task },
         { id: "calendar",  label: "Calendar",  ic: IC.cal  },
-        ...(!isOpen ? [{ id: "notes",     label: "Notes",     ic: IC.note }] : []),
+        { id: "notes",     label: "Notes",     ic: IC.note },
         { id: "team",      label: "Team",      ic: IC.team },
     ];
 
@@ -69,26 +69,38 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
 
     const NavBtn = ({ n, bottom = false }) => {
         const a = page === n.id;
-        const btn = (
-            <button key={n.id} onClick={() => setPage(n.id)}
-                style={{
-                    display: "flex", alignItems: "center",
-                    gap: isOpen ? 10 : 0, justifyContent: isOpen ? "flex-start" : "center",
-                    padding: isOpen ? "10px 12px" : "10px 0",
-                    width: "100%",
-                    borderRadius: 9, border: "none", cursor: "pointer", textAlign: "left",
-                    fontFamily: t.disp, fontSize: 13.5, fontWeight: a ? 700 : 400,
-                    background: a ? t.accentDim : "transparent",
-                    color: a ? t.accent : t.t2,
-                    borderLeft: isOpen ? `3px solid ${a ? t.accent : "transparent"}` : "3px solid transparent",
-                    transition: "all .15s",
-                }}>
-                <I d={n.ic} sz={17} c={a ? t.accent : t.t3} sw={a ? 2.2 : 1.8} />
-                {isOpen && <span style={{ transition: "opacity .15s", opacity: isOpen ? 1 : 0 }}>{n.label}</span>}
-            </button>
+        return (
+            <Tip label={n.label} disabled={isOpen}>
+                <button key={n.id} onClick={() => setPage(n.id)}
+                    style={{
+                        display: "flex", alignItems: "center",
+                        gap: 10, justifyContent: "flex-start",
+                        padding: "10px 12px",
+                        width: "100%",
+                        borderRadius: 9, border: "none", cursor: "pointer", textAlign: "left",
+                        fontFamily: t.disp, fontSize: 13.5, fontWeight: a ? 700 : 400,
+                        background: a ? t.accentDim : "transparent",
+                        color: a ? t.accent : t.t2,
+                        borderLeft: `3px solid ${a ? t.accent : "transparent"}`,
+                        transition: "background 0.15s, color 0.15s, border-left 0.15s",
+                        overflow: "hidden"
+                    }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 20, flexShrink: 0 }}>
+                        <I d={n.ic} sz={17} c={a ? t.accent : t.t3} sw={a ? 2.2 : 1.8} />
+                    </div>
+                    <span style={{ 
+                        transition: "opacity 0.2s ease, max-width 0.22s ease", 
+                        opacity: isOpen ? 1 : 0,
+                        maxWidth: isOpen ? 150 : 0,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        display: "inline-block"
+                    }}>
+                        {n.label}
+                    </span>
+                </button>
+            </Tip>
         );
-        if (!isOpen) return <Tip label={n.label}>{btn}</Tip>;
-        return btn;
     };
 
     const rootPage = pages["root"];

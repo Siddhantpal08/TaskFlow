@@ -2,6 +2,7 @@ import { useState } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { eventsApi } from "../api/events.js";
+import CustomSelect from "./ui/CustomSelect.jsx";
 import { toastSuccess, toastError } from "./ui/Toast.jsx";
 import EmptyState from "./ui/EmptyState.jsx";
 import ConfirmModal from "./ui/ConfirmModal.jsx";
@@ -60,11 +61,16 @@ function AddEventModal({ t, date, onClose, onAdd }) {
                         </div>
                         <div>
                             <div style={{ fontSize: 10, color: t.t3, marginBottom: 4 }}>Recurrence</div>
-                            <select value={recurrence} onChange={e => setRecurrence(e.target.value)} style={inp}>
-                                <option value="none">None</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                            </select>
+                            <CustomSelect
+                                t={t}
+                                value={recurrence}
+                                onChange={setRecurrence}
+                                options={[
+                                    { value: "none", label: "None" },
+                                    { value: "weekly", label: "Weekly" },
+                                    { value: "monthly", label: "Monthly" },
+                                ]}
+                            />
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>

@@ -138,15 +138,15 @@ const acceptShare = asyncWrapper(async (req, res) => {
     const userId = req.user.id;
     const { token } = req.params;
     const [[share]] = await db.query(
-        'SELECT ns.*, np.title, np.emoji, np.id as page_id FROM note_shares ns JOIN notes_pages np ON ns.page_id = np.id WHERE ns.token = ? AND ns.expires_at > NOW()',
+        'SELECT ns.*, np.title, np.emoji, np.writing_mode, np.id as page_id FROM note_shares ns JOIN notes_pages np ON ns.page_id = np.id WHERE ns.token = ? AND ns.expires_at > NOW()',
         [token]
     );
     if (!share) return res.status(404).json({ status: 'fail', message: 'Share link invalid or expired' });
     // Deep copy the page
     const newId = uuidv4();
     await db.query(
-        'INSERT INTO notes_pages (id, user_id, parent_id, title, emoji, position) VALUES (?,?,NULL,?,?,0)',
-        [newId, userId, `${share.title} (Shared)`, share.emoji]
+        'INSERT INTO notes_pages (id, user_id, parent_id, title, emoji, position, writing_mode) VALUES (?,?,NULL,?,?,0,?)',
+        [newId, userId, `${share.title} (Shared)`, share.emoji, share.writing_mode || null]
     );
     const [blocks] = await db.query('SELECT * FROM notes_blocks WHERE page_id = ?', [share.page_id]);
     for (const b of blocks) {

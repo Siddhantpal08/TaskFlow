@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { teamApi } from '../api/team.js';
 import { toastSuccess, toastError } from './ui/Toast.jsx';
 import CreateTaskModal from './CreateTaskModal.jsx';
-import TeamChatDrawer from './TeamChatDrawer.jsx';
+import ConfirmModal from './ui/ConfirmModal.jsx';
 
 export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave }) {
     const { tasks = [], onlineUsers = new Set(), createTask, teamMembers: allTeamMembers, refreshTeams } = useData();
@@ -15,7 +15,7 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
     const [loading, setLoading] = useState(true);
     const [assignToUser, setAssignToUser] = useState(null);
     const [leaveRequests, setLeaveRequests] = useState([]);
-    const [showChat, setShowChat] = useState(false);
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
     useEffect(() => {
         if (!team) return;
@@ -37,7 +37,6 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
     }, [team]);
 
     const handleLeave = async () => {
-        if (!window.confirm(`Are you sure you want to leave ${team.name}?`)) return;
         try {
             const res = await teamApi.leaveTeam(team.id);
             const msg = res?.message || res?.data?.message || 'Done.';
@@ -85,10 +84,10 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                 <h3 style={{ fontSize: 16, color: t.t1, margin: 0, fontFamily: t.disp }}>Members</h3>
                 <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => setShowChat(true)} style={{ background: t.accent, border: 'none', color: '#000', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button onClick={() => window.dispatchEvent(new CustomEvent('open-team-chat', { detail: { team } }))} style={{ background: t.accent, border: 'none', color: '#000', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <I d={IC.msg} sz={14} /> Team Chat
                     </button>
-                    <button onClick={handleLeave} style={{ background: `${t.red}12`, border: `1px solid ${t.red}44`, color: t.red, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
+                    <button onClick={() => setShowLeaveConfirm(true)} style={{ background: `${t.red}12`, border: `1px solid ${t.red}44`, color: t.red, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
                         Leave Team
                     </button>
                 </div>
@@ -185,7 +184,18 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                     onCreate={createTask}
                 />
             )}
-            {showChat && <TeamChatDrawer t={t} team={team} members={members} user={user} onClose={() => setShowChat(false)} />}
+            {showLeaveConfirm && (
+                <ConfirmModal
+                    t={t}
+                    title="Leave Team?"
+                    description={`Are you sure you want to leave ${team.name}?`}
+                    confirmText="Leave"
+                    danger={true}
+                    icon="🚪"
+                    onConfirm={handleLeave}
+                    onCancel={() => setShowLeaveConfirm(false)}
+                />
+            )}
         </div>
     );
 }

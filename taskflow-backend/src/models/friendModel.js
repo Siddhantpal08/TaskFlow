@@ -1,18 +1,24 @@
 const db = require('../utils/db');
 
 // Ensure table exists on first run (development fallback)
-db.query(`
-    CREATE TABLE IF NOT EXISTS friends (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        requester_id INT UNSIGNED NOT NULL,
-        recipient_id INT UNSIGNED NOT NULL,
-        status ENUM('pending', 'accepted') DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (requester_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_friendship (requester_id, recipient_id)
-    )
-`).catch(console.error);
+(async () => {
+    try {
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS friends (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                requester_id INT UNSIGNED NOT NULL,
+                recipient_id INT UNSIGNED NOT NULL,
+                status ENUM('pending', 'accepted') DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (requester_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_friendship (requester_id, recipient_id)
+            )
+        `);
+    } catch (e) {
+        console.error('[friendModel] table init failed:', e.message);
+    }
+})();
 
 const sendRequest = async (requesterId, recipientId) => {
     // Check if any relationship already exists in either direction

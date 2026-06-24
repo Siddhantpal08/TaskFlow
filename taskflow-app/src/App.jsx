@@ -10,6 +10,7 @@ import ThemePicker from "./components/ui/ThemePicker.jsx";
 import { checkLimit, isPro } from "./utils/planLimits.js";
 import { UpgradeModal } from "./components/ui/UpgradeModal.jsx";
 import ChatWidget from "./components/ui/ChatWidget.jsx";
+import { billingApi } from "./api/billing.js";
 
 // Auth
 import { useAuth } from "./context/AuthContext.jsx";
@@ -159,9 +160,39 @@ function MainApp() {
     useEffect(() => {
         (async () => {
             try {
-                const res = await notesApi.getPages();
                 const urlParams = new URLSearchParams(window.location.search);
+                const sessionId = urlParams.get('session_id');
+                const paymentStatus = urlParams.get('payment');
+
+                if (sessionId && paymentStatus === 'success') {
+                    try {
+                        const verifyRes = await billingApi.verifySession(sessionId);
+                        if (verifyRes.success) {
+                            localStorage.setItem("tf_plan", "pro");
+                            setUpgradeModal({ feature: 'Upgrade Successful!' });
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }
+                    } catch (err) {
+                        console.error("Failed to verify subscription session:", err);
+                    }
+                }
+
                 const sharedNoteId = urlParams.get('note');
+                const token = urlParams.get('token');
+                let acceptedId = null;
+
+                if (token) {
+                    try {
+                        const acceptRes = await notesApi.acceptShare(token);
+                        if (acceptRes.data?.status === 'success' || acceptRes.data?.data) {
+                            acceptedId = acceptRes.data.data.id;
+                        }
+                    } catch (err) {
+                        console.error("Failed to accept share:", err);
+                    }
+                }
+
+                const res = await notesApi.getPages();
                 const roots = res.data;
 
                 const buildPages = (roots) => {
@@ -185,7 +216,7 @@ function MainApp() {
                     return { newPages, firstId };
                 };
 
-                if (roots.length === 0 && !sharedNoteId) {
+                if (roots.length === 0 && !sharedNoteId && !acceptedId) {
                     const initPages = async () => {
                         try {
                             const idMap = { root: null };
@@ -209,23 +240,24 @@ function MainApp() {
                     initPages();
                 } else {
                     const { newPages, firstId } = buildPages(roots);
-                    if (sharedNoteId) {
-                        // Fetch real title/emoji for shared note
+                    const noteToNavigate = acceptedId || sharedNoteId;
+                    if (noteToNavigate) {
+                        // Fetch real title/emoji for shared note (or the newly accepted note) if not in tree
                         let sharedTitle = "Shared Note"; let sharedEmoji = "🔗";
                         try {
-                            const meta = await notesApi.getPage(sharedNoteId);
+                            const meta = await notesApi.getPage(noteToNavigate);
                             sharedTitle = meta.data?.title || sharedTitle;
                             sharedEmoji = meta.data?.emoji || sharedEmoji;
                         } catch { }
-                        if (!newPages[sharedNoteId]) {
-                            newPages[sharedNoteId] = { id: sharedNoteId, title: sharedTitle, emoji: sharedEmoji, parentId: "root", childIds: [], updatedAt: "Shared Link" };
-                            newPages["root"].childIds.push(sharedNoteId);
+                        if (!newPages[noteToNavigate]) {
+                            newPages[noteToNavigate] = { id: noteToNavigate, title: sharedTitle, emoji: sharedEmoji, parentId: "root", childIds: [], updatedAt: "Shared Link" };
+                            newPages["root"].childIds.push(noteToNavigate);
                         } else {
-                            newPages[sharedNoteId].title = sharedTitle;
-                            newPages[sharedNoteId].emoji = sharedEmoji;
+                            newPages[noteToNavigate].title = sharedTitle;
+                            newPages[noteToNavigate].emoji = sharedEmoji;
                         }
                         setPages(newPages);
-                        setNotePageIdWithPersist(sharedNoteId);
+                        setNotePageIdWithPersist(noteToNavigate);
                         setPageWithPersist("notes");
                         window.history.replaceState({}, document.title, window.location.pathname);
                     } else {

@@ -43,7 +43,7 @@ export default function ThemePicker({ t, themeKey, customTheme, onApplyPreset, o
             {/* Header */}
             <div style={{ padding: "12px 16px 10px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>🎨 Theme</span>
-                <button onClick={onClose} style={{ background: "none", border: "none", color: t.t3, fontSize: 16, cursor: "pointer" }}>×</button>
+                <button type="button" onClick={onClose} style={{ background: "none", border: "none", color: t.t3, fontSize: 16, cursor: "pointer" }}>×</button>
             </div>
 
             {/* Presets grid */}
@@ -51,7 +51,7 @@ export default function ThemePicker({ t, themeKey, customTheme, onApplyPreset, o
                 <div style={{ fontSize: 9.5, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10, fontFamily: t.mono }}>Presets</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
                     {PRESETS.map(p => (
-                        <button key={p.key} onClick={() => onApplyPreset(p.key)}
+                        <button type="button" key={p.key} onClick={() => onApplyPreset(p.key)}
                             title={p.label}
                             style={{
                                 borderRadius: 8, border: themeKey === p.key ? `2px solid ${t.accent}` : `1px solid ${t.border}`,
@@ -95,7 +95,7 @@ export default function ThemePicker({ t, themeKey, customTheme, onApplyPreset, o
                     {/* Base toggle */}
                     <div style={{ display: "flex", gap: 6 }}>
                         {["dark", "light"].map(b => (
-                            <button key={b} onClick={() => setBase(b)}
+                            <button type="button" key={b} onClick={() => setBase(b)}
                                 style={{
                                     flex: 1, padding: "6px 0", borderRadius: 7, border: base === b ? `1.5px solid ${primary}` : `1px solid ${t.border}`,
                                     background: base === b ? primary + "18" : t.inset, color: base === b ? primary : t.t2,
@@ -120,7 +120,7 @@ export default function ThemePicker({ t, themeKey, customTheme, onApplyPreset, o
                         </div>
                     </div>
 
-                    <button onClick={() => onApplyCustom(primary, secondary, base)}
+                    <button type="button" onClick={() => onApplyCustom(primary, secondary, base)}
                         style={{
                             width: "100%", padding: "9px", borderRadius: 9, border: "none",
                             background: `linear-gradient(135deg, ${primary}, ${secondary})`,
