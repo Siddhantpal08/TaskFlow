@@ -7,7 +7,7 @@ import { notesApi } from "../../api/notes.js";
 import CustomSelect from "../ui/CustomSelect.jsx";
 import { toastError } from "../ui/Toast.jsx";
 import { io } from "socket.io-client";
-import { isPro } from "../../utils/planLimits.js";
+import { isPro, checkLimit } from "../../utils/planLimits.js";
 import { UpgradeModal } from "../ui/UpgradeModal.jsx";
 
 // ── Lock Gate ──────────────────────────────────────────────────────────────────
@@ -328,12 +328,12 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     // Sync writing mode when navigating to a different note page
     useEffect(() => {
-        const fromDb = pg.writing_mode || null;
+        const fromDb = pg.writingMode || pg.writing_mode || null;
         const fromStorage = localStorage.getItem(`tf_wm_${notePageId}`);
         // DB is authoritative; fall back to localStorage for legacy notes
         const resolved = fromDb || fromStorage || null;
         setWritingMode(resolved);
-    }, [notePageId, pg.writing_mode]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [notePageId, pg.writingMode, pg.writing_mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSaveNow = useCallback(() => {
         setSaveStatus("saving");
@@ -452,7 +452,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         setLoading(true);
         setUnlocked(false);
         // Restore writing mode — DB is source of truth, localStorage is fallback
-        const fromDb = pg.writing_mode || null;
+        const fromDb = pg.writingMode || pg.writing_mode || null;
         const fromStorage = localStorage.getItem(`tf_wm_${notePageId}`) || null;
         setWritingMode(fromDb || fromStorage || null);
         let active = true;
@@ -1078,6 +1078,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             <CustomSelect
                                 t={t}
                                 value={writingMode || ""}
+                                disabled={writingMode === "script" || writingMode === "lyrics"}
                                 onChange={val => {
                                     const finalVal = val || null;
                                     // ── Writing modes are Pro only ──
@@ -1089,12 +1090,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                     // Persist to localStorage (immediate) + DB (durable)
                                     if (finalVal) localStorage.setItem(`tf_wm_${notePageId}`, finalVal);
                                     else localStorage.removeItem(`tf_wm_${notePageId}`);
+                                    updateNotePage(notePageId, { writing_mode: finalVal, writingMode: finalVal });
                                     notesApi.setWritingMode(notePageId, finalVal).catch(() => {});
                                 }}
                                 options={[
                                     { value: "", label: "📄 Normal Note" },
-                                    { value: "script", label: "📽️ Script Mode" },
-                                    { value: "lyrics", label: "🎵 Lyrics Mode" },
+                                    { value: "script", label: "📽️ Script Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
+                                    { value: "lyrics", label: "🎵 Lyrics Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
                                 ]}
                             />
                         </div>
@@ -1131,16 +1133,16 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             </button>
                         )}
 
-                        {/* Share — Pro only */}
+                        {/* Share */}
                         <button type="button" onClick={() => {
-                            if (!isPro()) { setShowUpgradeModal({ feature: 'Note Sharing is a Pro feature' }); return; }
+                            if (!checkLimit('sharing').allowed) { setShowUpgradeModal({ feature: 'Note Sharing requires Starter or Pro plan.' }); return; }
                             openShareModal();
                         }}
-                            title={isPro() ? "Share this note" : "Upgrade to Pro to share notes"}
+                            title={checkLimit('sharing').allowed ? "Share this note" : "Upgrade to share notes"}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <I d={IC.lnk} sz={12} c="currentColor" />{isPro() ? "Share" : "🔒 Share"}
+                            <I d={IC.lnk} sz={12} c="currentColor" />{checkLimit('sharing').allowed ? "Share" : "🔒 Share"}
                         </button>
                         <button type="button" onClick={() => addNotePage(notePageId)}
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
@@ -1361,7 +1363,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 <div style={{
                     position: "fixed",
                     right: 24,
-                    bottom: 24,
+                    bottom: 84,
                     width: 220,
                     background: t.card,
                     border: `1px solid ${t.border}`,
@@ -1407,7 +1409,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 <div style={{
                     position: "fixed",
                     right: 24,
-                    bottom: 24,
+                    bottom: 84,
                     width: 220,
                     background: t.card,
                     border: `1px solid ${t.border}`,

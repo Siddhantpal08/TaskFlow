@@ -61,9 +61,10 @@ export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
         }
     }, [blk.content, blk.type]);
 
-    const cycleType = () => {
+    const cycleType = (shiftKey = false) => {
         const cur = SCRIPT_ORDER.indexOf(blk.type);
-        const next = SCRIPT_ORDER[(cur + 1) % SCRIPT_ORDER.length];
+        if (cur === -1) return;
+        const next = SCRIPT_ORDER[(cur + (shiftKey ? -1 : 1) + SCRIPT_ORDER.length) % SCRIPT_ORDER.length];
         onUpdate({ type: next, content: ref.current?.innerText || "" });
         setTimeout(() => ref.current?.focus(), 30);
     };
@@ -75,7 +76,7 @@ export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
     };
 
     const handleKey = e => {
-        if (e.key === "Tab") { e.preventDefault(); cycleType(); return; }
+        if (e.key === "Tab") { e.preventDefault(); cycleType(e.shiftKey); return; }
         if (e.key === "Enter") {
             if (e.shiftKey) return; // Allow shift+enter for normal newline without splitting block
             e.preventDefault();
@@ -99,16 +100,6 @@ export default function ScriptBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
             else if (blk.type === "transition") next = "scene-heading";
             
             onAddAfter(next, after);
-            return;
-        }
-        if (e.key === "Tab") {
-            e.preventDefault();
-            const types = Array.from(SCRIPT_ORDER_LABELS.map(o => o.type));
-            const _idx = types.indexOf(blk.type);
-            if (_idx !== -1) {
-                const nextType = types[(_idx + (e.shiftKey ? -1 : 1) + types.length) % types.length];
-                setType(nextType);
-            }
             return;
         }
         if (e.key === "/") {

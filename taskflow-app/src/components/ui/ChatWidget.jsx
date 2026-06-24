@@ -48,8 +48,17 @@ export default function ChatWidget({ t }) {
                 setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
             }
         };
+        const handleMsgDeleted = (data) => {
+            if (selectedTeam && data.team_id === selectedTeam.id) {
+                setMsgs(prev => prev.filter(m => m.id !== data.id));
+            }
+        };
         socket.on('chat:message', handleMsg);
-        return () => socket.off('chat:message', handleMsg);
+        socket.on('chat:message_deleted', handleMsgDeleted);
+        return () => {
+            socket.off('chat:message', handleMsg);
+            socket.off('chat:message_deleted', handleMsgDeleted);
+        };
     }, [socket, selectedTeam]);
 
     const send = async () => {
@@ -80,6 +89,15 @@ export default function ChatWidget({ t }) {
             // Revert on fail
             setMsgs(prev => prev.filter(m => m.id !== tempMsg.id));
             setTxt(msgText);
+        }
+    };
+
+    const handleDeleteMsg = async (messageId) => {
+        try {
+            await chatApi.deleteMessage(messageId);
+            setMsgs(prev => prev.filter(m => m.id !== messageId));
+        } catch (err) {
+            console.error("Failed to delete message:", err);
         }
     };
 
@@ -160,14 +178,37 @@ export default function ChatWidget({ t }) {
                                             )}
                                             <div style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start", maxWidth: "80%" }}>
                                                 {!isMe && <span style={{ fontSize: 9, color: t.t3, marginBottom: 2, marginLeft: 2 }}>{m.sender_name?.split(" ")[0]}</span>}
-                                                <div style={{
-                                                    background: isMe ? t.accent : t.inset,
-                                                    color: isMe ? "#000" : t.t1,
-                                                    padding: "8px 12px",
-                                                    borderRadius: isMe ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-                                                    fontSize: 12.5, fontFamily: t.disp, lineHeight: 1.4, wordBreak: "break-word"
-                                                }}>
-                                                    {m.message}
+                                                <div style={{ display: "flex", alignItems: "center", gap: 6, flexDirection: isMe ? "row-reverse" : "row" }}>
+                                                    <div style={{
+                                                        background: isMe ? t.accent : t.inset,
+                                                        color: isMe ? "#000" : t.t1,
+                                                        padding: "8px 12px",
+                                                        borderRadius: isMe ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+                                                        fontSize: 12.5, fontFamily: t.disp, lineHeight: 1.4, wordBreak: "break-word"
+                                                    }}>
+                                                        {m.message}
+                                                    </div>
+                                                    {isMe && !String(m.id).startsWith("temp_") && (
+                                                        <button 
+                                                            onClick={() => handleDeleteMsg(m.id)}
+                                                            title="Delete message"
+                                                            style={{
+                                                                background: "none",
+                                                                border: "none",
+                                                                color: t.red,
+                                                                fontSize: 11,
+                                                                cursor: "pointer",
+                                                                opacity: 0.35,
+                                                                padding: "4px",
+                                                                display: "flex",
+                                                                alignItems: "center"
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                                                            onMouseLeave={e => e.currentTarget.style.opacity = 0.35}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 <span style={{ fontSize: 8.5, color: t.t3, marginTop: 4, fontFamily: t.mono }}>{time}</span>
                                             </div>

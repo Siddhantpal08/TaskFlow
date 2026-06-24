@@ -130,7 +130,7 @@ export default function Dashboard({ t, setPage, setTask }) {
     const greeting = hr < 5 ? "Good night" : hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
 
     return (
-        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, maxWidth: 1200, margin: "0 auto", width: "100%" }}>
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}>
 
             {/* ── Welcome strip ── */}
             <div className="welcome-strip" style={{
@@ -179,12 +179,12 @@ export default function Dashboard({ t, setPage, setTask }) {
             </div>
 
             {/* ── Main two-column grid ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20 }} className="dash-grid">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, flex: 1, minHeight: 0, overflow: "hidden" }} className="dash-grid">
 
                 {/* ─ Tasks Panel ─ */}
-                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow }}>
+                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, display: "flex", flexDirection: "column" }}>
                     {/* Header */}
-                    <div style={{ padding: "14px 18px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ padding: "14px 18px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: t.t1 }}>Tasks</span>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                             {["all", "pending", "active", "done"].map(f => (
@@ -207,31 +207,33 @@ export default function Dashboard({ t, setPage, setTask }) {
                     </div>
 
                     {/* Rows */}
-                    {filteredTasks.length === 0 ? (
-                        <div style={{ padding: "12px 18px 24px" }}>
-                            <EmptyState
-                                t={t}
-                                icon="task"
-                                title={taskFilter === "all" ? "No tasks found" : `No ${taskFilter} tasks`}
-                                description={taskFilter === "all" ? "You don't have any tasks assigned or created yet." : `There are no tasks currently marked as ${taskFilter}.`}
-                                ctaText={taskFilter === "all" ? "Create Task" : ""}
-                                onCta={taskFilter === "all" ? () => setPage("tasks") : null}
-                            />
-                        </div>
-                    ) : (
-                        filteredTasks.slice(0, 8).map(tk => (
-                            <TaskRow key={tk.id} tk={tk} t={t} onClick={() => setTask(tk)} />
-                        ))
-                    )}
-                    {filteredTasks.length > 8 && (
-                        <div onClick={() => setPage("tasks")} style={{ padding: "11px 18px", textAlign: "center", fontSize: 12, color: t.accent, cursor: "pointer", fontWeight: 600, borderTop: `1px solid ${t.border}` }}>
-                            View {filteredTasks.length - 8} more →
-                        </div>
-                    )}
+                    <div style={{ flex: 1, overflowY: "auto" }}>
+                        {filteredTasks.length === 0 ? (
+                            <div style={{ padding: "12px 18px 24px" }}>
+                                <EmptyState
+                                    t={t}
+                                    icon="task"
+                                    title={taskFilter === "all" ? "No tasks found" : `No ${taskFilter} tasks`}
+                                    description={taskFilter === "all" ? "You don't have any tasks assigned or created yet." : `There are no tasks currently marked as ${taskFilter}.`}
+                                    ctaText={taskFilter === "all" ? "Create Task" : ""}
+                                    onCta={taskFilter === "all" ? () => setPage("tasks") : null}
+                                />
+                            </div>
+                        ) : (
+                            filteredTasks.slice(0, 5).map(tk => (
+                                <TaskRow key={tk.id} tk={tk} t={t} onClick={() => setTask(tk)} />
+                            ))
+                        )}
+                        {filteredTasks.length > 5 && (
+                            <div onClick={() => setPage("tasks")} style={{ padding: "11px 18px", textAlign: "center", fontSize: 12, color: t.accent, cursor: "pointer", fontWeight: 600, borderTop: `1px solid ${t.border}` }}>
+                                View {filteredTasks.length - 5} more →
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* ─ Right column ─ */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", paddingRight: 4 }}>
 
                     {/* Upcoming Events */}
                     <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow }}>

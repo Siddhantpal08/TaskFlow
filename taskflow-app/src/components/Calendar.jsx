@@ -6,6 +6,7 @@ import CustomSelect from "./ui/CustomSelect.jsx";
 import { toastSuccess, toastError } from "./ui/Toast.jsx";
 import EmptyState from "./ui/EmptyState.jsx";
 import ConfirmModal from "./ui/ConfirmModal.jsx";
+import CustomDateTimePicker from "./ui/CustomDateTimePicker.jsx";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const PCOLORS = ['#FF3D5A', '#00E5CC', '#00D67B', '#B083FF', '#FFAA00'];
@@ -47,17 +48,17 @@ function AddEventModal({ t, date, onClose, onAdd }) {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <div>
                             <div style={{ fontSize: 10, color: t.t3, marginBottom: 4 }}>From Date</div>
-                            <input type="date" required value={selDate} onChange={e => setSelDate(e.target.value)} style={inp} />
+                            <CustomDateTimePicker t={t} value={selDate} onChange={setSelDate} type="date" placeholder="Select start date..." />
                         </div>
                         <div>
                             <div style={{ fontSize: 10, color: t.t3, marginBottom: 4 }}>To Date (Optional)</div>
-                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inp} min={selDate} />
+                            <CustomDateTimePicker t={t} value={endDate} onChange={setEndDate} type="date" placeholder="Select end date..." />
                         </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <div>
                             <div style={{ fontSize: 10, color: t.t3, marginBottom: 4 }}>Time (Optional)</div>
-                            <input type="time" value={time} onChange={e => setTime(e.target.value)} style={inp} />
+                            <CustomDateTimePicker t={t} value={time} onChange={setTime} type="time" placeholder="Select time..." />
                         </div>
                         <div>
                             <div style={{ fontSize: 10, color: t.t3, marginBottom: 4 }}>Recurrence</div>

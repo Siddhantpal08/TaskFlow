@@ -86,7 +86,12 @@ app.use((req, res, next) => {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     next();
 });
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({
+    limit: '1mb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 app.use(cookieParser());
 app.use(morgan('dev'));
 

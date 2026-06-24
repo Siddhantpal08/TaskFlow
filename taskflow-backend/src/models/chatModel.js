@@ -22,4 +22,13 @@ const getMessages = async (teamId, limit = 50) => {
     return rows.reverse();
 };
 
-module.exports = { saveMessage, getMessages };
+const getMessageById = async (id) => {
+    const [rows] = await db.query(`SELECT * FROM team_chats WHERE id = ?`, [id]);
+    return rows[0];
+};
+
+const deleteMessage = async (id) => {
+    await db.query(`DELETE FROM team_chats WHERE id = ?`, [id]);
+};
+
+module.exports = { saveMessage, getMessages, getMessageById, deleteMessage };

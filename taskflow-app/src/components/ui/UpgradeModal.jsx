@@ -3,10 +3,10 @@ import { PLANS, getPlan, isPro } from "../../utils/planLimits.js";
 import { I, IC } from "./Icon.jsx";
 import { billingApi } from "../../api/billing.js";
 
-// ── Upgrade Modal ─────────────────────────────────────────────────────────────
 export function UpgradeModal({ t, feature, onClose }) {
     const [step, setStep] = useState(feature === "Upgrade Successful!" ? "success" : "plan"); // plan | billing | success
     const [billing, setBilling] = useState("yearly"); // monthly | yearly
+    const [selectedPlan, setSelectedPlan] = useState("pro"); // starter | pro
     const [payMethod, setPayMethod] = useState("card"); // card | upi
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -23,7 +23,14 @@ export function UpgradeModal({ t, feature, onClose }) {
         "20 Tasks",
         "3 Team Members",
         "Basic block editor",
-        "Calendar & Events",
+    ];
+
+    const starterFeatures = [
+        "25 Note Pages",
+        "100 Tasks",
+        "5 Team Members",
+        "Note Sharing 🔗",
+        "Custom Date & Time Pickers",
     ];
 
     const proFeatures = [
@@ -42,19 +49,20 @@ export function UpgradeModal({ t, feature, onClose }) {
         { text: "“The custom themes are gorgeous. Easily the most premium PM tool I've used.”", author: "Rohit J., Designer" }
     ];
 
-    const handleNextStep = () => {
+    const handleSelectPlan = (planKey) => {
+        setSelectedPlan(planKey);
         setStep("billing");
     };
 
-    const handleStripeCheckout = async () => {
+    const handleCheckoutRedirect = async () => {
         setLoading(true);
         setError("");
         try {
-            const res = await billingApi.createCheckoutSession(billing);
+            const res = await billingApi.createCheckoutSession(billing, selectedPlan);
             if (res.url) {
                 window.location.href = res.url;
             } else {
-                setError("Failed to create Stripe Checkout session.");
+                setError("Failed to create LemonSqueezy checkout session.");
             }
         } catch (err) {
             setError(err.message || "Failed to contact billing service.");
@@ -94,15 +102,15 @@ export function UpgradeModal({ t, feature, onClose }) {
         }
 
         setLoading(true);
-        // Simulate payment processing for 1.8 seconds
+        // Simulate payment processing
         setTimeout(() => {
             setLoading(false);
             setStep("success");
-        }, 1800);
+        }, 1500);
     };
 
     const handleFinalize = () => {
-        localStorage.setItem("tf_plan", "pro");
+        localStorage.setItem("tf_plan", selectedPlan);
         onClose?.();
         window.location.reload();
     };
@@ -119,12 +127,13 @@ export function UpgradeModal({ t, feature, onClose }) {
         background: `linear-gradient(145deg, ${t.surf}, ${t.card})`,
         border: `1px solid ${t.border}`,
         borderRadius: 24, padding: "32px 36px",
-        maxWidth: 580, width: "100%",
+        maxWidth: step === "plan" ? 820 : 540, width: "100%",
         boxShadow: t.shadow || "0 32px 80px rgba(0,0,0,0.6)",
         position: "relative",
         maxHeight: "90vh",
         overflowY: "auto",
         scrollbarWidth: "none",
+        transition: "max-width 0.25s ease"
     };
 
     const closeButtonStyle = {
@@ -148,14 +157,22 @@ export function UpgradeModal({ t, feature, onClose }) {
     };
 
     const ctaButtonStyle = {
-        width: "100%", padding: "13px 0", borderRadius: 12,
+        width: "100%", padding: "12px 0", borderRadius: 12,
         border: "none", cursor: "pointer",
         background: `linear-gradient(135deg, ${t.accent}, ${t.blue || '#0072FF'})`,
-        color: "#000", fontSize: 14.5, fontWeight: 800,
+        color: "#000", fontSize: 14, fontWeight: 800,
         fontFamily: t.disp, letterSpacing: "0.3px",
         boxShadow: t.accentGlow,
         transition: "transform .15s, box-shadow .15s",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+    };
+
+    // Price calculation
+    const getPlanPrice = (plan) => {
+        if (plan === "starter") {
+            return billing === "yearly" ? "₹499/yr" : "₹49/mo";
+        }
+        return billing === "yearly" ? "₹999/yr" : "₹99/mo";
     };
 
     return (
@@ -217,21 +234,21 @@ export function UpgradeModal({ t, feature, onClose }) {
                     <div>
                         {/* Header Section */}
                         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 999, background: t.accentDim, border: `1px solid ${t.accent}40`, fontSize: 11, color: t.accent, fontFamily: t.mono, fontWeight: 700, letterSpacing: "0.5px", marginBottom: 16 }}>
-                            ✦ UPGRADE TO PRO
+                            ✦ CHOOSE YOUR FLOW
                         </div>
 
                         <h2 style={{ margin: "0 0 8px", fontSize: 24, fontWeight: 800, fontFamily: t.disp, background: `linear-gradient(135deg, ${t.accent}, ${t.blue || '#0072FF'})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.2 }}>
-                            Unlock the full TaskFlow
+                            Unlock the full TaskFlow Experience
                         </h2>
 
                         {feature && (
                             <p style={{ margin: "0 0 20px", fontSize: 12.5, color: t.t2, fontFamily: t.disp }}>
-                                🔒 <strong style={{ color: t.t1 }}>{feature}</strong> requires a Pro subscription.
+                                🔒 <strong style={{ color: t.t1 }}>{feature}</strong> requires a premium subscription.
                             </p>
                         )}
 
                         {/* Billing Switcher */}
-                        <div style={{ display: "flex", gap: 0, borderRadius: 10, overflow: "hidden", border: `1px solid ${t.accent}30`, marginBottom: 20, width: "fit-content", background: t.inset }}>
+                        <div style={{ display: "flex", gap: 0, borderRadius: 10, overflow: "hidden", border: `1px solid ${t.accent}30`, marginBottom: 24, width: "fit-content", background: t.inset }}>
                             {["monthly", "yearly"].map(b => (
                                 <button key={b} onClick={() => setBilling(b)} style={{
                                     padding: "8px 18px", border: "none", cursor: "pointer", fontSize: 12,
@@ -246,24 +263,63 @@ export function UpgradeModal({ t, feature, onClose }) {
                         </div>
 
                         {/* Plan Cards Grid */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
                             {/* Free Plan */}
-                            <div style={{ padding: "20px 18px", borderRadius: 16, background: `${t.t3}05`, border: `1px solid ${t.border}` }}>
+                            <div style={{ padding: "20px 18px", borderRadius: 16, background: `${t.t3}05`, border: `1px solid ${t.border}`, display: "flex", flexDirection: "column" }}>
                                 <div style={{ fontSize: 11, color: t.t3, fontFamily: t.mono, marginBottom: 6, letterSpacing: "0.5px", fontWeight: 700 }}>FREE</div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, marginBottom: 16 }}>₹0<span style={{ fontSize: 12, fontWeight: 400, color: t.t3 }}>/mo</span></div>
-                                {freeFeatures.map(f => (
-                                    <div key={f} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", fontSize: 12, color: t.t2, fontFamily: t.disp }}>
-                                        <span style={{ color: t.green }}>✓</span> {f}
-                                    </div>
-                                ))}
+                                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                                    {freeFeatures.map(f => (
+                                        <div key={f} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: t.t2, fontFamily: t.disp }}>
+                                            <span style={{ color: t.green }}>✓</span> {f}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button disabled style={{ width: "100%", padding: "10px", borderRadius: 8, border: `1px solid ${t.border}`, background: "transparent", color: t.t3, fontSize: 12.5, fontWeight: 700, fontFamily: t.disp }}>
+                                    Current Plan
+                                </button>
+                            </div>
+
+                            {/* Starter Plan */}
+                            <div style={{
+                                padding: "20px 18px", borderRadius: 16,
+                                background: `${t.t3}0a`,
+                                border: `1px solid ${t.border}`,
+                                display: "flex", flexDirection: "column",
+                            }}>
+                                <div style={{ fontSize: 11, color: t.t2, fontFamily: t.mono, marginBottom: 6, letterSpacing: "0.5px", fontWeight: 700 }}>STARTER</div>
+                                <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, marginBottom: 16 }}>
+                                    {billing === "yearly" ? "₹41" : "₹49"}
+                                    <span style={{ fontSize: 12, fontWeight: 400, color: t.t3 }}>/mo</span>
+                                </div>
+                                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                                    {starterFeatures.map(f => (
+                                        <div key={f} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: t.t2, fontFamily: t.disp }}>
+                                            <span style={{ color: t.accent }}>✓</span> {f}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => handleSelectPlan("starter")}
+                                    style={{
+                                        width: "100%", padding: "10px", borderRadius: 8, border: `1px solid ${t.accent}55`,
+                                        background: "transparent", color: t.accent, fontSize: 12.5, fontWeight: 700, fontFamily: t.disp, cursor: "pointer",
+                                        transition: "all 0.15s"
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = t.accentDim; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                                >
+                                    Get Starter
+                                </button>
                             </div>
 
                             {/* Pro Plan */}
                             <div style={{
                                 padding: "20px 18px", borderRadius: 16,
                                 background: `linear-gradient(145deg, ${t.accent}0a, ${t.blue || '#0072FF'}0a)`,
-                                border: `1px solid ${t.accent}40`,
+                                border: `1px solid ${t.accent}66`,
                                 position: "relative", overflow: "hidden",
+                                display: "flex", flexDirection: "column",
                             }}>
                                 <div style={{
                                     position: "absolute", top: 0, right: 0, left: 0, height: 3,
@@ -271,14 +327,28 @@ export function UpgradeModal({ t, feature, onClose }) {
                                 }} />
                                 <div style={{ fontSize: 11, color: t.accent, fontFamily: t.mono, marginBottom: 6, letterSpacing: "0.5px", fontWeight: 700 }}>PRO ✦</div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, marginBottom: 16 }}>
-                                    {billing === "yearly" ? "₹239" : "₹299"}
+                                    {billing === "yearly" ? "₹83" : "₹99"}
                                     <span style={{ fontSize: 12, fontWeight: 400, color: t.t3 }}>/mo</span>
                                 </div>
-                                {proFeatures.map(f => (
-                                    <div key={f} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", fontSize: 12, color: t.t1, fontFamily: t.disp }}>
-                                        <span style={{ color: t.accent }}>✦</span> {f}
-                                    </div>
-                                ))}
+                                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                                    {proFeatures.map(f => (
+                                        <div key={f} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: t.t1, fontFamily: t.disp }}>
+                                            <span style={{ color: t.accent }}>✦</span> {f}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => handleSelectPlan("pro")}
+                                    style={{
+                                        width: "100%", padding: "10px", borderRadius: 8, border: "none",
+                                        background: t.accent, color: "#000", fontSize: 12.5, fontWeight: 800, fontFamily: t.disp, cursor: "pointer",
+                                        transition: "all 0.15s"
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.02)"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                                >
+                                    Get Pro ✦
+                                </button>
                             </div>
                         </div>
 
@@ -291,25 +361,6 @@ export function UpgradeModal({ t, feature, onClose }) {
                                 </div>
                             ))}
                         </div>
-
-                        {/* CTA button */}
-                        <button
-                            onClick={handleNextStep}
-                            style={ctaButtonStyle}
-                            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = `0 12px 32px ${t.accent}44`; }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = t.accentGlow; }}
-                        >
-                            Upgrade to Pro — {billing === "yearly" ? "₹239/mo" : "₹299/mo"}
-                        </button>
-
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginTop: 14 }}>
-                            <div style={{ fontSize: 11, color: t.t3, fontFamily: t.disp, display: "flex", alignItems: "center", gap: 4 }}>
-                                🔒 Secure · Razorpay encrypted
-                            </div>
-                            <div style={{ fontSize: 11, color: t.t3, fontFamily: t.disp }}>
-                                7-day free trial · cancel anytime
-                            </div>
-                        </div>
                     </div>
                 )}
 
@@ -318,30 +369,30 @@ export function UpgradeModal({ t, feature, onClose }) {
                     <form onSubmit={handlePaymentSubmit}>
                         <button onClick={() => setStep("plan")} type="button"
                             style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 18, fontFamily: t.disp }}>
-                            ← Back to plan details
+                            ← Back to plans
                         </button>
 
                         <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 800, color: t.t1 }}>Checkout & Payment</h3>
-                        <p style={{ margin: "0 0 20px", fontSize: 12, color: t.t3 }}>
-                            Pro Plan Sub ({billing === "yearly" ? "Yearly @ ₹2,868/yr" : "Monthly @ ₹299/mo"})
+                        <p style={{ margin: "0 0 20px", fontSize: 13.5, color: t.t2, fontFamily: t.disp }}>
+                            Selected Plan: <strong style={{ color: t.accent, textTransform: "capitalize" }}>{selectedPlan}</strong> ({getPlanPrice(selectedPlan)})
                         </p>
 
-                        {/* Stripe Checkout Button */}
-                        <button type="button" onClick={handleStripeCheckout} disabled={loading}
+                        {/* LemonSqueezy Checkout Button */}
+                        <button type="button" onClick={handleCheckoutRedirect} disabled={loading}
                             style={{
                                 width: "100%", padding: "13px 0", borderRadius: 12, border: "none", cursor: "pointer",
-                                background: `linear-gradient(135deg, #635BFF, #877BFF)`,
-                                color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: t.disp,
+                                background: `linear-gradient(135deg, #FFC233, #FFAA00)`,
+                                color: "#000", fontSize: 14, fontWeight: 800, fontFamily: t.disp,
                                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                                marginBottom: 16, boxShadow: "0 4px 12px rgba(99, 91, 255, 0.35)",
+                                marginBottom: 16, boxShadow: "0 4px 12px rgba(255, 170, 0, 0.25)",
                                 opacity: loading ? 0.8 : 1, transition: "all 0.2s"
                             }}>
-                            {loading ? "Redirecting..." : "💳 Pay via Stripe Checkout"}
+                            {loading ? "Redirecting..." : "🍋 Pay via LemonSqueezy Checkout"}
                         </button>
 
                         <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 20px", color: t.t3, fontSize: 10, fontFamily: t.mono }}>
                             <div style={{ flex: 1, height: 1, background: t.border }}></div>
-                            <span>OR DEMO PLAYGROUND</span>
+                            <span>OR DEMO PLAYGROUND MANUAL CHECKOUT</span>
                             <div style={{ flex: 1, height: 1, background: t.border }}></div>
                         </div>
 
@@ -394,7 +445,6 @@ export function UpgradeModal({ t, feature, onClose }) {
                                     maxLength={19}
                                     value={number}
                                     onChange={e => {
-                                        // Auto format credit card grouping
                                         const val = e.target.value.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim();
                                         setNumber(val);
                                     }}
@@ -472,12 +522,12 @@ export function UpgradeModal({ t, feature, onClose }) {
                                     Processing Payment...
                                 </div>
                             ) : (
-                                `Pay Now — ${billing === "yearly" ? "₹2,868" : "₹299"}`
+                                `Pay Now — ${getPlanPrice(selectedPlan)}`
                             )}
                         </button>
 
                         <p style={{ textAlign: "center", fontSize: 10.5, color: t.t3, marginTop: 14, fontFamily: t.mono }}>
-                            🛡️ Razorpay encrypted secure sandbox checkout
+                            🛡️ Encrypted secure sandbox checkout
                         </p>
                     </form>
                 )}
@@ -496,7 +546,7 @@ export function UpgradeModal({ t, feature, onClose }) {
 
                         <h3 style={{ margin: "0 0 10px", fontSize: 22, fontWeight: 800, color: t.t1 }}>Upgrade Successful!</h3>
                         <p style={{ margin: "0 0 28px", fontSize: 13, color: t.t2, maxWidth: 360, lineHeight: 1.6 }}>
-                            Welcome to <strong>TaskFlow Pro</strong>. Your unlimited workspace capabilities have been successfully unlocked!
+                            Welcome to <strong>TaskFlow {selectedPlan.toUpperCase()}</strong>. Your workspace capabilities have been successfully unlocked!
                         </p>
 
                         <button
@@ -518,43 +568,41 @@ export function UpgradeModal({ t, feature, onClose }) {
     );
 }
 
-// ── Plan Badge (for sidebar / topbar) ─────────────────────────────────────────
 export function PlanBadge({ t, onClick }) {
     const plan = getPlan();
     return (
         <button
             onClick={onClick}
-            title={plan === "pro" ? "TaskFlow Pro — All features unlocked" : "Upgrade to Pro"}
+            title={plan !== "free" ? `TaskFlow ${plan.toUpperCase()} — Active` : "Upgrade plan"}
             style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "4px 12px", borderRadius: 999, border: "none", cursor: "pointer",
-                background: plan === "pro"
+                background: plan !== "free"
                     ? "linear-gradient(135deg, rgba(0,229,204,0.15), rgba(0,114,255,0.15))"
                     : "rgba(255,255,255,0.05)",
                 fontFamily: t.mono, fontSize: 10.5,
                 fontWeight: 700, letterSpacing: "0.4px",
-                color: plan === "pro" ? t.accent : t.t2,
+                color: plan !== "free" ? t.accent : t.t2,
                 transition: "all .15s",
             }}
             onMouseEnter={e => {
-                if (plan !== "pro") {
+                if (plan === "free") {
                     e.currentTarget.style.background = `${t.accent}14`;
                     e.currentTarget.style.color = t.accent;
                 }
             }}
             onMouseLeave={e => {
-                if (plan !== "pro") {
+                if (plan === "free") {
                     e.currentTarget.style.background = "rgba(255,255,255,0.05)";
                     e.currentTarget.style.color = t.t2;
                 }
             }}
         >
-            {plan === "pro" ? "✦ PRO" : "FREE · Upgrade ↗"}
+            {plan !== "free" ? `✦ ${plan.toUpperCase()}` : "FREE · Upgrade ↗"}
         </button>
     );
 }
 
-// ── Inline limit banner ────────────────────────────────────────────────────────
 export function LimitBanner({ t, message, onUpgrade }) {
     return (
         <div style={{

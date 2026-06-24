@@ -45,4 +45,35 @@ const sendTeamMessage = asyncWrapper(async (req, res) => {
     res.status(201).json({ success: true, data: msg });
 });
 
-module.exports = { getTeamMessages, sendTeamMessage };
+const deleteTeamMessage = asyncWrapper(async (req, res) => {
+    const messageId = parseInt(req.params.messageId, 10);
+    const msg = await chatModel.getMessageById(messageId);
+    if (!msg) {
+        throw new AppError('Message not found.', 404);
+    }
+
+    const teamId = msg.team_id;
+    const members = await teamModel.getMembersOfTeam(teamId);
+    const member = members.find(m => m.id === req.user.id);
+    if (!member) {
+        throw new AppError('You are not a member of this team.', 403);
+    }
+
+    // Allow sender OR team admin to delete
+    const isSender = msg.user_id === req.user.id;
+    const isAdmin = member.role === 'admin';
+    if (!isSender && !isAdmin) {
+        throw new AppError('You do not have permission to delete this message.', 403);
+    }
+
+    await chatModel.deleteMessage(messageId);
+
+    // Broadcast deletion
+    for (const mem of members) {
+        emitToUser(String(mem.id), 'chat:message_deleted', { id: messageId, team_id: teamId });
+    }
+
+    res.status(200).json({ success: true, data: { id: messageId } });
+});
+
+module.exports = { getTeamMessages, sendTeamMessage, deleteTeamMessage };

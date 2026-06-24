@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../api/admin.js';
+import { feedbackApi } from '../api/feedback.js';
 import ConfirmModal from '../components/ui/ConfirmModal.jsx';
 
 const DARK = {
@@ -54,6 +55,8 @@ export default function AdminPanel({ t: themeProp, user }) {
     const [storage, setStorage] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [userToDelete, setUserToDelete] = useState(null);
+    const [feedback, setFeedback] = useState([]);
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
 
     const thm = themeProp || t;
 
@@ -78,9 +81,18 @@ export default function AdminPanel({ t: themeProp, user }) {
         try { const res = await adminApi.getStorage(); setStorage(res.data); } catch { }
     }, []);
 
+    const loadFeedback = useCallback(async () => {
+        try {
+            setFeedbackLoading(true);
+            const res = await feedbackApi.list();
+            setFeedback(res.data || []);
+        } catch { } finally { setFeedbackLoading(false); }
+    }, []);
+
     useEffect(() => { loadStats(); }, [loadStats]);
     useEffect(() => { loadUsers(); }, [loadUsers]);
     useEffect(() => { if (activeTab === 'storage') loadStorage(); }, [activeTab, loadStorage]);
+    useEffect(() => { if (activeTab === 'feedback') loadFeedback(); }, [activeTab, loadFeedback]);
 
     const notify = (msg) => { setActionMsg(msg); setTimeout(() => setActionMsg(''), 3000); };
 
@@ -102,6 +114,7 @@ export default function AdminPanel({ t: themeProp, user }) {
         { id: 'overview', label: '📊 Overview' },
         { id: 'users', label: '👥 Users' },
         { id: 'storage', label: '💾 Storage' },
+        { id: 'feedback', label: '💬 Feedback' },
     ];
 
     return (
@@ -116,7 +129,7 @@ export default function AdminPanel({ t: themeProp, user }) {
                         Crevio — TaskFlow internal dashboard · {user?.email}
                     </div>
                 </div>
-                <button onClick={() => { loadStats(); loadUsers(); }} style={{
+                <button onClick={() => { loadStats(); loadUsers(); if (activeTab === 'feedback') loadFeedback(); }} style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '8px 16px', borderRadius: 8, border: `1px solid ${thm.border}`,
                     background: 'transparent', color: thm.t2, fontSize: 12,
@@ -367,6 +380,49 @@ export default function AdminPanel({ t: themeProp, user }) {
                     )}
                 </>
             )}
+
+            {/* ── FEEDBACK TAB ── */}
+            {activeTab === 'feedback' && (
+                <>
+                    <div style={{ background: thm.card, border: `1px solid ${thm.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                        <div style={{
+                            display: 'grid', gridTemplateColumns: '180px 100px 1fr 180px',
+                            padding: '10px 18px', borderBottom: `1px solid ${thm.border}`,
+                            fontSize: 10, fontWeight: 600, color: thm.t3, textTransform: 'uppercase',
+                            letterSpacing: '0.6px', fontFamily: thm.mono,
+                        }}>
+                            <span>User</span><span>Rating</span><span>Message</span><span>Submitted At</span>
+                        </div>
+                        {feedbackLoading ? (
+                            <div style={{ padding: 20, color: thm.t3, fontSize: 13 }}>Loading feedback…</div>
+                        ) : feedback.length === 0 ? (
+                            <div style={{ padding: 20, color: thm.t3, fontSize: 13, textAlign: 'center' }}>No feedback entries found.</div>
+                        ) : feedback.map(f => (
+                            <div key={f.id} style={{
+                                display: 'grid', gridTemplateColumns: '180px 100px 1fr 180px',
+                                padding: '11px 18px', borderBottom: `1px solid ${thm.border}`,
+                                alignItems: 'center', transition: 'background .12s',
+                            }}
+                                onMouseEnter={e => e.currentTarget.style.background = thm.surf}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: thm.t1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name || 'Anonymous'}</div>
+                                    <div style={{ fontSize: 10, color: thm.t3, fontFamily: thm.mono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.email || 'N/A'}</div>
+                                </div>
+                                <span style={{ fontSize: 12, color: thm.amber, letterSpacing: 1 }}>
+                                    {'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}
+                                </span>
+                                <div style={{ fontSize: 12.5, color: thm.t2, paddingRight: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>{f.message}</div>
+                                <div style={{ fontSize: 11, color: thm.t3, fontFamily: thm.mono }}>
+                                    {new Date(f.created_at).toLocaleString()}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+
             {userToDelete && (
                 <ConfirmModal
                     t={thm}

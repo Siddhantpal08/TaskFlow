@@ -40,6 +40,14 @@ export function AuthProvider({ children }) {
             .finally(() => setLoading(false));
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    useEffect(() => {
+        if (user && user.plan) {
+            localStorage.setItem('tf_plan', user.plan);
+        } else if (!user && !loading) {
+            localStorage.removeItem('tf_plan');
+        }
+    }, [user, loading]);
+
     const login = async (email, password) => {
         const res = await authApi.login(email, password);
         const { accessToken, refreshToken, ...userData } = res.data;

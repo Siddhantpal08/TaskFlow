@@ -20,7 +20,7 @@ const CONVERT_OPTS = [
     { type: "divider", label: "Divider" },
 ];
 
-function ContextMenu({ x, y, t, blkType, writingMode, onDelete, onDuplicate, onConvert, onClose }) {
+function ContextMenu({ x, y, t, blkType, writingMode, onDelete, onDuplicate, onAddBelow, onConvert, onClose }) {
     const menuRef = useRef();
     // Adjust position so menu doesn't go off screen
     useEffect(() => {
@@ -60,6 +60,7 @@ function ContextMenu({ x, y, t, blkType, writingMode, onDelete, onDuplicate, onC
                 minWidth: 190, overflow: "hidden",
                 pointerEvents: "all",
             }}>
+                {row("New Line Below", onAddBelow, null, "➕")}
                 {row("Duplicate", onDuplicate, null, "📋")}
                 {row("Delete", onDelete, t.red, "🗑")}
                 <div style={{ height: 1, background: t.border, margin: "3px 0" }} />
@@ -318,6 +319,7 @@ export default function NoteBlock({
             x={ctxMenu.x} y={ctxMenu.y} t={t} blkType={blk.type} writingMode={writingMode}
             onDelete={() => { setCtxMenu(null); onDelete(); }}
             onDuplicate={() => { setCtxMenu(null); onDuplicate?.(); }}
+            onAddBelow={() => { setCtxMenu(null); onAddAfter("p"); }}
             onConvert={type => { setCtxMenu(null); onConvert?.(type); }}
             onClose={() => setCtxMenu(null)}
         />

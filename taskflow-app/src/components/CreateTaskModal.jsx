@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import CustomSelect from "./ui/CustomSelect.jsx";
+import CustomDateTimePicker from "./ui/CustomDateTimePicker.jsx";
 
 export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, initialAssignee }) {
     const { user } = useAuth();
@@ -61,7 +62,7 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
                                 .map(m => ({ value: String(m.id), label: m.name }))}
                         />
                     </div>
-                    <input type="date" value={due_date} onChange={e => setDueDate(e.target.value)} style={{ ...inp }} />
+                    <CustomDateTimePicker t={t} value={due_date} onChange={setDueDate} type="date" placeholder="Select due date..." />
                     {err && <div style={{ color: t.red, fontSize: 12 }}>{err}</div>}
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
                         <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, background: 'none', color: t.t2, border: `1px solid ${t.border}`, cursor: 'pointer', fontFamily: t.disp }}>Cancel</button>

@@ -25,14 +25,16 @@ export default function LyricsBlock({ blk, idx, t, onUpdate, onDelete, onAddAfte
         }
     }, [blk.content, blk.type]);
 
-    const cycleType = () => {
+    const cycleType = (shiftKey = false) => {
         const cur = LYRICS_ORDER.indexOf(blk.type);
-        const next = LYRICS_ORDER[(cur + 1) % LYRICS_ORDER.length];
+        if (cur === -1) return;
+        const next = LYRICS_ORDER[(cur + (shiftKey ? -1 : 1) + LYRICS_ORDER.length) % LYRICS_ORDER.length];
         onUpdate({ type: next, content: ref.current?.innerText || "" });
+        setTimeout(() => ref.current?.focus(), 30);
     };
 
     const handleKey = e => {
-        if (e.key === "Tab") { e.preventDefault(); cycleType(); return; }
+        if (e.key === "Tab") { e.preventDefault(); cycleType(e.shiftKey); return; }
         if (e.key === "Enter") {
             if (e.shiftKey) return; // Allow shift+enter for multiline inside same block
             e.preventDefault();
