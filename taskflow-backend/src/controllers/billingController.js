@@ -12,8 +12,24 @@ const createCheckoutSession = asyncWrapper(async (req, res) => {
     const userId = req.user.id;
     const clientUrl = req.get('origin') || process.env.CLIENT_URL || 'http://localhost:5173';
 
-    // If LemonSqueezy webhook secret is not configured, run in sandbox mock mode
-    if (!process.env.LEMONSQUEEZY_WEBHOOK_SECRET) {
+    const apiKey = process.env.LEMONSQUEEZY_API_KEY;
+    const storeId = process.env.LEMONSQUEEZY_STORE_ID;
+
+    // Determine variant ID
+    let variantId = '';
+    if (plan === 'starter') {
+        variantId = billing === 'yearly'
+            ? (process.env.LEMONSQUEEZY_STARTER_YEARLY_VARIANT_ID || process.env.LEMONSQUEEZY_STARTER_MONTHLY_VARIANT_ID || process.env.LEMONSQUEEZY_STARTER_VARIANT_ID || '')
+            : (process.env.LEMONSQUEEZY_STARTER_MONTHLY_VARIANT_ID || process.env.LEMONSQUEEZY_STARTER_VARIANT_ID || '');
+    } else {
+        variantId = billing === 'yearly'
+            ? (process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID || process.env.LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID || process.env.LEMONSQUEEZY_PRO_VARIANT_ID || '')
+            : (process.env.LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID || process.env.LEMONSQUEEZY_PRO_VARIANT_ID || '');
+    }
+
+    // If LemonSqueezy is not fully configured, run in sandbox mock mode
+    if (!apiKey || !storeId || !variantId) {
+        console.warn(`[BILLING] LemonSqueezy not fully configured. Running in Sandbox mode. (apiKey=${!!apiKey}, storeId=${!!storeId}, variantId=${!!variantId})`);
         const mockSessionUrl = `${clientUrl}/?session_id=mock_sub_${Date.now()}_${userId}_${plan}_${billing}&payment=success&billing=${billing}&plan=${plan}`;
         return res.json({
             success: true,
@@ -23,26 +39,53 @@ const createCheckoutSession = asyncWrapper(async (req, res) => {
         });
     }
 
-    // Real LemonSqueezy mode
-    const storeUrl = process.env.LEMONSQUEEZY_STORE_URL || 'https://taskflow.lemonsqueezy.com';
-    let variantId = '';
-    if (plan === 'starter') {
-        variantId = billing === 'yearly' 
-            ? (process.env.LEMONSQUEEZY_STARTER_YEARLY_VARIANT || 'variant_starter_yearly_placeholder')
-            : (process.env.LEMONSQUEEZY_STARTER_MONTHLY_VARIANT || 'variant_starter_monthly_placeholder');
-    } else {
-        variantId = billing === 'yearly' 
-            ? (process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT || 'variant_pro_yearly_placeholder')
-            : (process.env.LEMONSQUEEZY_PRO_MONTHLY_VARIANT || 'variant_pro_monthly_placeholder');
+    // Real LemonSqueezy Checkout API call
+    const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/vnd.api+json',
+            'Content-Type': 'application/vnd.api+json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            data: {
+                type: 'checkouts',
+                attributes: {
+                    checkout_data: {
+                        custom: { user_id: String(userId) },
+                        email: req.user.email || undefined,
+                    },
+                    checkout_options: {
+                        embed: false,
+                        button_color: '#0072FF',
+                    },
+                    product_options: {
+                        redirect_url: `${clientUrl}/?payment=success&plan=${plan}&billing=${billing}`,
+                        receipt_button_text: 'Go to TaskFlow',
+                        receipt_link_url: clientUrl,
+                    }
+                },
+                relationships: {
+                    store: { data: { type: 'stores', id: String(storeId) } },
+                    variant: { data: { type: 'variants', id: String(variantId) } }
+                }
+            }
+        })
+    });
+
+    const json = await response.json();
+
+    if (!response.ok) {
+        console.error('[LEMONSQUEEZY] Checkout API error:', JSON.stringify(json));
+        throw new AppError(`LemonSqueezy checkout failed: ${json?.errors?.[0]?.detail || 'Unknown error'}`, 502);
     }
 
-    const checkoutUrl = `${storeUrl}/checkout/buy/${variantId}?checkout[custom][user_id]=${userId}&checkout[email]=${encodeURIComponent(req.user.email)}`;
+    const checkoutUrl = json?.data?.attributes?.url;
+    if (!checkoutUrl) {
+        throw new AppError('No checkout URL returned from LemonSqueezy.', 502);
+    }
 
-    res.json({
-        success: true,
-        mock: false,
-        url: checkoutUrl
-    });
+    res.json({ success: true, mock: false, url: checkoutUrl });
 });
 
 /**
@@ -146,6 +189,7 @@ const lemonsqueezyWebhook = asyncWrapper(async (req, res) => {
         // Determine plan based on variant ID (starter or pro)
         let plan = 'pro';
         if (
+            variantId === process.env.LEMONSQUEEZY_STARTER_VARIANT_ID ||
             variantId === process.env.LEMONSQUEEZY_STARTER_MONTHLY_VARIANT ||
             variantId === process.env.LEMONSQUEEZY_STARTER_YEARLY_VARIANT ||
             variantId.toLowerCase().includes('starter')
@@ -155,8 +199,8 @@ const lemonsqueezyWebhook = asyncWrapper(async (req, res) => {
 
         // Calculate expiresAt
         const expiresAt = new Date();
-        const isYearly = variantId === process.env.LEMONSQUEEZY_STARTER_YEARLY_VARIANT || 
-                         variantId === process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT ||
+        const isYearly = variantId === process.env.LEMONSQUEEZY_STARTER_YEARLY_VARIANT_ID || 
+                         variantId === process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID ||
                          JSON.stringify(payload).toLowerCase().includes('year') ||
                          JSON.stringify(payload).toLowerCase().includes('annual');
 

@@ -9,6 +9,7 @@ import { toastError } from "../ui/Toast.jsx";
 import { io } from "socket.io-client";
 import { isPro, checkLimit } from "../../utils/planLimits.js";
 import { UpgradeModal } from "../ui/UpgradeModal.jsx";
+import ConfirmModal from "../ui/ConfirmModal.jsx";
 
 // ── Lock Gate ──────────────────────────────────────────────────────────────────
 function LockGate({ notePageId, t, onUnlock }) {
@@ -291,6 +292,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [selectedBlockIds, setSelectedBlockIds] = useState(new Set());
     const [dragBox, setDragBox] = useState(null); // { x1, y1, x2, y2 }
     const [showUpgradeModal, setShowUpgradeModal] = useState(null); // { feature } | null
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const titleRef = useRef();
     const socketRef = useRef(null);
@@ -1150,6 +1152,17 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                             <I d={IC.plus} sz={12} c="currentColor" />Sub-page
                         </button>
+                        {/* Separator */}
+                        <div style={{ width: 1, height: 18, background: t.border, margin: "0 2px", flexShrink: 0 }} />
+                        {/* Delete note */}
+                        <button type="button"
+                            title="Delete this note"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.red || "#ef4444", fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                            onMouseEnter={e => { e.currentTarget.style.background = (t.red || "#ef4444") + "18"; e.currentTarget.style.borderColor = t.red || "#ef4444"; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = t.border; }}>
+                            🗑 Delete
+                        </button>
                     </div>
                 </div>
 
@@ -1471,6 +1484,21 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             {/* Upgrade modal (for pro features) */}
             {showUpgradeModal && (
                 <UpgradeModal t={t} feature={showUpgradeModal.feature} onClose={() => setShowUpgradeModal(null)} />
+            )}
+
+            {/* Delete note confirmation modal */}
+            {showDeleteConfirm && (
+                <ConfirmModal
+                    t={t}
+                    title="Delete Note?"
+                    description={`"${pg.title || 'Untitled'}" and all its sub-pages will be permanently deleted. This cannot be undone.`}
+                    confirmText="Delete Forever"
+                    cancelText="Cancel"
+                    danger={true}
+                    icon="🗑️"
+                    onCancel={() => setShowDeleteConfirm(false)}
+                    onConfirm={() => { setShowDeleteConfirm(false); deleteNotePage(notePageId); }}
+                />
             )}
         </div>
     );

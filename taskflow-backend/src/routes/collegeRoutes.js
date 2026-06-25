@@ -17,6 +17,8 @@ const teamRoutes         = require('./teamRoutes');
 const friendRoutes       = require('./friendRoutes');   // ✅ was missing — fixed
 const adminRoutes        = require('./adminRoutes');    // ✅ new admin panel
 const feedbackRoutes     = require('./feedbackRoutes'); // ✅ user feedback
+const chatRoutes         = require('./chatRoutes');
+const billingRoutes      = require('./billingRoutes');
 const nc                 = require('../controllers/collegeNotesController');
 
 // Auth (login/register/refresh/google) — no auth middleware needed
@@ -31,6 +33,8 @@ router.use('/team',          teamRoutes);
 router.use('/friends',       friendRoutes);            // ✅ fixed: was missing entirely
 router.use('/admin',         adminRoutes);             // ✅ admin panel
 router.use('/feedback',      feedbackRoutes);          // ✅ user feedback
+router.use('/chat',          chatRoutes);
+router.use('/billing',       billingRoutes);
 
 // ── Rich Notes (pages + blocks + sharing) ────────────────────────────────────
 router.get('/notes/pages',                    nc.getPages);

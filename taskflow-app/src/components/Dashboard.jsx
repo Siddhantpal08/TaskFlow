@@ -179,7 +179,7 @@ export default function Dashboard({ t, setPage, setTask }) {
             </div>
 
             {/* ── Main two-column grid ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, flex: 1, minHeight: 0, overflow: "hidden" }} className="dash-grid">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, flex: 1, minHeight: 0, overflow: "hidden" }} className="dash-grid">
 
                 {/* ─ Tasks Panel ─ */}
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, display: "flex", flexDirection: "column" }}>
@@ -233,7 +233,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                 </div>
 
                 {/* ─ Right column ─ */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", paddingRight: 4 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", paddingRight: 2, minHeight: 0 }}>
 
                     {/* Upcoming Events */}
                     <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow }}>
