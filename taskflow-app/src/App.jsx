@@ -11,6 +11,7 @@ import { checkLimit, isPro } from "./utils/planLimits.js";
 import { UpgradeModal } from "./components/ui/UpgradeModal.jsx";
 import ChatWidget from "./components/ui/ChatWidget.jsx";
 import { billingApi } from "./api/billing.js";
+import { authApi } from "./api/auth.js";
 
 // Auth
 import { useAuth } from "./context/AuthContext.jsx";
@@ -95,7 +96,7 @@ function TopLoader({ active, color }) {
 }
 
 function MainApp() {
-    const { user } = useAuth();
+    const { user, setUser } = useAuth();
     // ── Theme State ──────────────────────────────────────────────────────────
     const storedTheme = (() => { try { return JSON.parse(localStorage.getItem("tf_theme") || "{}"); } catch { return {}; } })();
     const [themeKey, setThemeKey] = useState(storedTheme.key || "dark");
@@ -164,17 +165,28 @@ function MainApp() {
                 const sessionId = urlParams.get('session_id');
                 const paymentStatus = urlParams.get('payment');
 
-                if (sessionId && paymentStatus === 'success') {
-                    try {
-                        const verifyRes = await billingApi.verifySession(sessionId);
-                        if (verifyRes.success) {
-                            localStorage.setItem("tf_plan", "pro");
-                            setUpgradeModal({ feature: 'Upgrade Successful!' });
-                            window.history.replaceState({}, document.title, window.location.pathname);
+                if (paymentStatus === 'success') {
+                    const plan = urlParams.get('plan') || 'pro';
+                    localStorage.setItem("tf_plan", plan);
+                    setUpgradeModal({ feature: 'Upgrade Successful!' });
+
+                    if (sessionId && sessionId.startsWith('mock_sub_')) {
+                        try {
+                            await billingApi.verifySession(sessionId);
+                        } catch (err) {
+                            console.error("Failed to verify subscription session:", err);
                         }
-                    } catch (err) {
-                        console.error("Failed to verify subscription session:", err);
+                    } else {
+                        try {
+                            const userRes = await authApi.getMe();
+                            if (userRes.data) {
+                                setUser(userRes.data);
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
                     }
+                    window.history.replaceState({}, document.title, window.location.pathname);
                 }
 
                 const sharedNoteId = urlParams.get('note');

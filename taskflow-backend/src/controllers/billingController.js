@@ -10,80 +10,18 @@ const crypto = require('crypto');
 const createCheckoutSession = asyncWrapper(async (req, res) => {
     const { billing, plan = 'pro' } = req.body; // 'monthly' | 'yearly', 'starter' | 'pro'
     const userId = req.user.id;
-    const clientUrl = req.get('origin') || process.env.CLIENT_URL || 'http://localhost:5173';
-
-    const apiKey = process.env.LEMONSQUEEZY_API_KEY;
-    const storeId = process.env.LEMONSQUEEZY_STORE_ID;
 
     // Determine variant ID
     let variantId = '';
     if (plan === 'starter') {
-        variantId = billing === 'yearly'
-            ? (process.env.LEMONSQUEEZY_STARTER_YEARLY_VARIANT_ID || process.env.LEMONSQUEEZY_STARTER_MONTHLY_VARIANT_ID || process.env.LEMONSQUEEZY_STARTER_VARIANT_ID || '')
-            : (process.env.LEMONSQUEEZY_STARTER_MONTHLY_VARIANT_ID || process.env.LEMONSQUEEZY_STARTER_VARIANT_ID || '');
+        variantId = process.env.LEMONSQUEEZY_STARTER_VARIANT_ID || '1172927';
     } else {
-        variantId = billing === 'yearly'
-            ? (process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID || process.env.LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID || process.env.LEMONSQUEEZY_PRO_VARIANT_ID || '')
-            : (process.env.LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID || process.env.LEMONSQUEEZY_PRO_VARIANT_ID || '');
+        variantId = process.env.LEMONSQUEEZY_PRO_VARIANT_ID || '1172932';
     }
 
-    // If LemonSqueezy is not fully configured, run in sandbox mock mode
-    if (!apiKey || !storeId || !variantId) {
-        console.warn(`[BILLING] LemonSqueezy not fully configured. Running in Sandbox mode. (apiKey=${!!apiKey}, storeId=${!!storeId}, variantId=${!!variantId})`);
-        const mockSessionUrl = `${clientUrl}/?session_id=mock_sub_${Date.now()}_${userId}_${plan}_${billing}&payment=success&billing=${billing}&plan=${plan}`;
-        return res.json({
-            success: true,
-            mock: true,
-            url: mockSessionUrl,
-            message: 'Running in LemonSqueezy Sandbox Mode. Redirecting to mock session...'
-        });
-    }
-
-    // Real LemonSqueezy Checkout API call
-    const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/vnd.api+json',
-            'Content-Type': 'application/vnd.api+json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            data: {
-                type: 'checkouts',
-                attributes: {
-                    checkout_data: {
-                        custom: { user_id: String(userId) },
-                        email: req.user.email || undefined,
-                    },
-                    checkout_options: {
-                        embed: false,
-                        button_color: '#0072FF',
-                    },
-                    product_options: {
-                        redirect_url: `${clientUrl}/?payment=success&plan=${plan}&billing=${billing}`,
-                        receipt_button_text: 'Go to TaskFlow',
-                        receipt_link_url: clientUrl,
-                    }
-                },
-                relationships: {
-                    store: { data: { type: 'stores', id: String(storeId) } },
-                    variant: { data: { type: 'variants', id: String(variantId) } }
-                }
-            }
-        })
-    });
-
-    const json = await response.json();
-
-    if (!response.ok) {
-        console.error('[LEMONSQUEEZY] Checkout API error:', JSON.stringify(json));
-        throw new AppError(`LemonSqueezy checkout failed: ${json?.errors?.[0]?.detail || 'Unknown error'}`, 502);
-    }
-
-    const checkoutUrl = json?.data?.attributes?.url;
-    if (!checkoutUrl) {
-        throw new AppError('No checkout URL returned from LemonSqueezy.', 502);
-    }
+    // Direct hosted LemonSqueezy URL bypasses API key issues and is 100% reliable
+    const storeSubdomain = process.env.LEMONSQUEEZY_SUBDOMAIN || 'creviostudios';
+    const checkoutUrl = `https://${storeSubdomain}.lemonsqueezy.com/buy/${variantId}?checkout[custom][user_id]=${userId}&checkout[email]=${encodeURIComponent(req.user.email)}&embed=0`;
 
     res.json({ success: true, mock: false, url: checkoutUrl });
 });

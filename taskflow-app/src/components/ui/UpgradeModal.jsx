@@ -7,16 +7,8 @@ export function UpgradeModal({ t, feature, onClose }) {
     const [step, setStep] = useState(feature === "Upgrade Successful!" ? "success" : "plan"); // plan | billing | success
     const [billing, setBilling] = useState("yearly"); // monthly | yearly
     const [selectedPlan, setSelectedPlan] = useState("pro"); // starter | pro
-    const [payMethod, setPayMethod] = useState("card"); // card | upi
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-
-    // Form inputs
-    const [name, setName] = useState("");
-    const [number, setNumber] = useState("");
-    const [expiry, setExpiry] = useState("");
-    const [cvv, setCvv] = useState("");
-    const [upiId, setUpiId] = useState("");
 
     const freeFeatures = [
         "10 Note Pages",
@@ -49,16 +41,13 @@ export function UpgradeModal({ t, feature, onClose }) {
         { text: "“The custom themes are gorgeous. Easily the most premium PM tool I've used.”", author: "Rohit J., Designer" }
     ];
 
-    const handleSelectPlan = (planKey) => {
+    const handleSelectPlan = async (planKey) => {
         setSelectedPlan(planKey);
         setStep("billing");
-    };
-
-    const handleCheckoutRedirect = async () => {
         setLoading(true);
         setError("");
         try {
-            const res = await billingApi.createCheckoutSession(billing, selectedPlan);
+            const res = await billingApi.createCheckoutSession(billing, planKey);
             if (res.url) {
                 window.location.href = res.url;
             } else {
@@ -69,44 +58,6 @@ export function UpgradeModal({ t, feature, onClose }) {
         } finally {
             setLoading(false);
         }
-    };
-
-    const handlePaymentSubmit = (e) => {
-        e.preventDefault();
-        setError("");
-
-        if (!name.trim()) {
-            setError("Please enter cardholder/account name.");
-            return;
-        }
-
-        if (payMethod === "card") {
-            const cleanNum = number.replace(/\s+/g, "");
-            if (cleanNum.length < 16) {
-                setError("Please enter a valid 16-digit card number.");
-                return;
-            }
-            if (!expiry.match(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/)) {
-                setError("Please enter expiry in MM/YY format.");
-                return;
-            }
-            if (cvv.length < 3) {
-                setError("Please enter a valid 3-digit CVV.");
-                return;
-            }
-        } else {
-            if (!upiId.includes("@") || upiId.length < 3) {
-                setError("Please enter a valid UPI ID (e.g. name@okhdfc).");
-                return;
-            }
-        }
-
-        setLoading(true);
-        // Simulate payment processing
-        setTimeout(() => {
-            setLoading(false);
-            setStep("success");
-        }, 1500);
     };
 
     const handleFinalize = () => {
@@ -170,9 +121,9 @@ export function UpgradeModal({ t, feature, onClose }) {
     // Price calculation
     const getPlanPrice = (plan) => {
         if (plan === "starter") {
-            return billing === "yearly" ? "₹499/yr" : "₹49/mo";
+            return billing === "yearly" ? "₹499/year" : "₹49/month";
         }
-        return billing === "yearly" ? "₹999/yr" : "₹99/mo";
+        return billing === "yearly" ? "₹1000/year" : "₹99/month";
     };
 
     return (
@@ -289,8 +240,8 @@ export function UpgradeModal({ t, feature, onClose }) {
                             }}>
                                 <div style={{ fontSize: 11, color: t.t2, fontFamily: t.mono, marginBottom: 6, letterSpacing: "0.5px", fontWeight: 700 }}>STARTER</div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, marginBottom: 16 }}>
-                                    {billing === "yearly" ? "₹41" : "₹49"}
-                                    <span style={{ fontSize: 12, fontWeight: 400, color: t.t3 }}>/mo</span>
+                                    {billing === "yearly" ? "₹499" : "₹49"}
+                                    <span style={{ fontSize: 12, fontWeight: 400, color: t.t3 }}>{billing === "yearly" ? "/year" : "/mo"}</span>
                                 </div>
                                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
                                     {starterFeatures.map(f => (
@@ -308,6 +259,7 @@ export function UpgradeModal({ t, feature, onClose }) {
                                     }}
                                     onMouseEnter={e => { e.currentTarget.style.background = t.accentDim; }}
                                     onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                                    disabled={loading}
                                 >
                                     Get Starter
                                 </button>
@@ -327,8 +279,8 @@ export function UpgradeModal({ t, feature, onClose }) {
                                 }} />
                                 <div style={{ fontSize: 11, color: t.accent, fontFamily: t.mono, marginBottom: 6, letterSpacing: "0.5px", fontWeight: 700 }}>PRO ✦</div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, marginBottom: 16 }}>
-                                    {billing === "yearly" ? "₹83" : "₹99"}
-                                    <span style={{ fontSize: 12, fontWeight: 400, color: t.t3 }}>/mo</span>
+                                    {billing === "yearly" ? "₹1000" : "₹99"}
+                                    <span style={{ fontSize: 12, fontWeight: 400, color: t.t3 }}>{billing === "yearly" ? "/year" : "/mo"}</span>
                                 </div>
                                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
                                     {proFeatures.map(f => (
@@ -364,172 +316,33 @@ export function UpgradeModal({ t, feature, onClose }) {
                     </div>
                 )}
 
-                {/* STEP 2: BILLING FORM */}
+                {/* STEP 2: BILLING REDIRECT STATE */}
                 {step === "billing" && (
-                    <form onSubmit={handlePaymentSubmit}>
-                        <button onClick={() => setStep("plan")} type="button"
-                            style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 18, fontFamily: t.disp }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "40px 0" }}>
+                        <button onClick={() => setStep("plan")} type="button" disabled={loading}
+                            style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 24, fontFamily: t.disp, alignSelf: "flex-start" }}>
                             ← Back to plans
                         </button>
 
-                        <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 800, color: t.t1 }}>Checkout & Payment</h3>
-                        <p style={{ margin: "0 0 20px", fontSize: 13.5, color: t.t2, fontFamily: t.disp }}>
-                            Selected Plan: <strong style={{ color: t.accent, textTransform: "capitalize" }}>{selectedPlan}</strong> ({getPlanPrice(selectedPlan)})
+                        <div style={{ width: 44, height: 44, border: `3px solid ${t.border}`, borderTopColor: t.accent, borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 24 }} />
+                        <style dangerouslySetInnerHTML={{ __html: `
+                            @keyframes spin {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                        `}} />
+
+                        <h3 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 800, color: t.t1 }}>Redirecting to LemonSqueezy...</h3>
+                        <p style={{ margin: "0 0 24px", fontSize: 13, color: t.t2, maxWidth: 360, lineHeight: 1.6, fontFamily: t.disp }}>
+                            Please wait while we secure your checkout session for <strong>{selectedPlan.toUpperCase()}</strong> ({getPlanPrice(selectedPlan)}).
                         </p>
-
-                        {/* LemonSqueezy Checkout Button */}
-                        <button type="button" onClick={handleCheckoutRedirect} disabled={loading}
-                            style={{
-                                width: "100%", padding: "13px 0", borderRadius: 12, border: "none", cursor: "pointer",
-                                background: `linear-gradient(135deg, #FFC233, #FFAA00)`,
-                                color: "#000", fontSize: 14, fontWeight: 800, fontFamily: t.disp,
-                                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                                marginBottom: 16, boxShadow: "0 4px 12px rgba(255, 170, 0, 0.25)",
-                                opacity: loading ? 0.8 : 1, transition: "all 0.2s"
-                            }}>
-                            {loading ? "Redirecting..." : "🍋 Pay via LemonSqueezy Checkout"}
-                        </button>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 20px", color: t.t3, fontSize: 10, fontFamily: t.mono }}>
-                            <div style={{ flex: 1, height: 1, background: t.border }}></div>
-                            <span>OR DEMO PLAYGROUND MANUAL CHECKOUT</span>
-                            <div style={{ flex: 1, height: 1, background: t.border }}></div>
-                        </div>
 
                         {error && (
                             <div style={{ padding: "10px 14px", borderRadius: 8, background: `${t.red}15`, border: `1px solid ${t.red}33`, color: t.red, fontSize: 12, marginBottom: 16 }}>
                                 ⚠️ {error}
                             </div>
                         )}
-
-                        {/* Payment Mode Tabs */}
-                        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-                            <button type="button" onClick={() => { setPayMethod("card"); setError(""); }}
-                                style={{
-                                    flex: 1, padding: "10px 0", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 12.5, fontFamily: t.disp,
-                                    background: payMethod === "card" ? `${t.accent}24` : "transparent",
-                                    border: `1px solid ${payMethod === "card" ? t.accent : t.border}`,
-                                    color: payMethod === "card" ? t.accent : t.t2,
-                                    transition: "all .15s"
-                                }}>
-                                Credit / Debit Card
-                            </button>
-                            <button type="button" onClick={() => { setPayMethod("upi"); setError(""); }}
-                                style={{
-                                    flex: 1, padding: "10px 0", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 12.5, fontFamily: t.disp,
-                                    background: payMethod === "upi" ? `${t.accent}24` : "transparent",
-                                    border: `1px solid ${payMethod === "upi" ? t.accent : t.border}`,
-                                    color: payMethod === "upi" ? t.accent : t.t2,
-                                    transition: "all .15s"
-                                }}>
-                                UPI / QR Code
-                            </button>
-                        </div>
-
-                        {/* Card Form */}
-                        {payMethod === "card" && (
-                            <div>
-                                <label style={labelStyle}>Cardholder Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Siddhant Pal"
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    style={inputStyle}
-                                />
-
-                                <label style={labelStyle}>Card Number</label>
-                                <input
-                                    type="text"
-                                    placeholder="4111 2222 3333 4444"
-                                    maxLength={19}
-                                    value={number}
-                                    onChange={e => {
-                                        const val = e.target.value.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim();
-                                        setNumber(val);
-                                    }}
-                                    style={inputStyle}
-                                />
-
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                                    <div>
-                                        <label style={labelStyle}>Expiry Date</label>
-                                        <input
-                                            type="text"
-                                            placeholder="MM/YY"
-                                            maxLength={5}
-                                            value={expiry}
-                                            onChange={e => {
-                                                let val = e.target.value.replace(/\D/g, "");
-                                                if (val.length > 2) val = val.slice(0,2) + "/" + val.slice(2,4);
-                                                setExpiry(val);
-                                            }}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>CVV Code</label>
-                                        <input
-                                            type="password"
-                                            placeholder="•••"
-                                            maxLength={3}
-                                            value={cvv}
-                                            onChange={e => setCvv(e.target.value.replace(/\D/g, ""))}
-                                            style={inputStyle}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* UPI Form */}
-                        {payMethod === "upi" && (
-                            <div>
-                                <label style={labelStyle}>Account Holder Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Siddhant Pal"
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    style={inputStyle}
-                                />
-
-                                <label style={labelStyle}>UPI ID</label>
-                                <input
-                                    type="text"
-                                    placeholder="siddhant@upi"
-                                    value={upiId}
-                                    onChange={e => setUpiId(e.target.value)}
-                                    style={inputStyle}
-                                />
-                            </div>
-                        )}
-
-                        {/* Submit Payment button */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            style={{
-                                ...ctaButtonStyle,
-                                opacity: loading ? 0.75 : 1,
-                                cursor: loading ? "not-allowed" : "pointer",
-                                marginTop: 10
-                            }}
-                        >
-                            {loading ? (
-                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                    <div style={{ width: 16, height: 16, border: "2px solid #000", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
-                                    Processing Payment...
-                                </div>
-                            ) : (
-                                `Pay Now — ${getPlanPrice(selectedPlan)}`
-                            )}
-                        </button>
-
-                        <p style={{ textAlign: "center", fontSize: 10.5, color: t.t3, marginTop: 14, fontFamily: t.mono }}>
-                            🛡️ Encrypted secure sandbox checkout
-                        </p>
-                    </form>
+                    </div>
                 )}
 
                 {/* STEP 3: SUCCESS ANIMATION */}
