@@ -18,6 +18,14 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const register = asyncWrapper(async (req, res, next) => {
     const { name, email, password } = req.body;
 
+    // Silently purge unverified ghost accounts older than 24 hours
+    // This keeps the DB clean from bots and abandoned registrations
+    try {
+        await require('../utils/db').query(
+            `DELETE FROM users WHERE is_email_verified = 0 AND created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)`
+        );
+    } catch (_) { /* non-fatal */ }
+
     // Check duplicate email — 409 per spec
     const existingUser = await userModel.getUserByEmail(email);
     if (existingUser) {

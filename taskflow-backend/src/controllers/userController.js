@@ -92,4 +92,25 @@ const updateMe = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: updated });
 });
 
-module.exports = { getDashboard, getMe, updateMe };
+/** DELETE /api/v1/users/me — self-account deletion (GDPR) */
+const deleteMe = asyncWrapper(async (req, res, next) => {
+    const { password } = req.body;
+    if (!password) return next(new AppError('Password confirmation is required to delete your account.', 400));
+
+    const user = await userModel.getUserByEmail(
+        (await userModel.getUserById(req.user.id))?.email
+    );
+    if (!user) return next(new AppError('User not found.', 404));
+
+    const bcrypt = require('bcrypt');
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return next(new AppError('Incorrect password. Account deletion cancelled.', 401));
+
+    // Hard-delete — cascade is handled by FK constraints in DB
+    await userModel.deleteUserById(req.user.id);
+
+    res.clearCookie('refresh_token', { httpOnly: true, secure: true, sameSite: 'None' });
+    res.status(200).json({ success: true, message: 'Your account and all associated data have been permanently deleted.' });
+});
+
+module.exports = { getDashboard, getMe, updateMe, deleteMe };

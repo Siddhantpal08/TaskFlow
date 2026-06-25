@@ -24,10 +24,10 @@ const getStats = asyncWrapper(async (req, res) => {
     // Tasks
     const [[{ totalTasks }]] = await db.query('SELECT COUNT(*) AS totalTasks FROM tasks');
 
-    // Recent signups (last 10)
+    // Recent signups (last 10, only verified users)
     const [recentUsers] = await db.query(
         `SELECT id, name, email, plan, role, is_email_verified, created_at
-         FROM users ORDER BY created_at DESC LIMIT 10`
+         FROM users WHERE is_email_verified = 1 ORDER BY created_at DESC LIMIT 10`
     );
 
     // Plan expires breakdown
@@ -60,6 +60,9 @@ const getUsers = asyncWrapper(async (req, res) => {
     const params = [];
     if (search) { where += ' AND (name LIKE ? OR email LIKE ?)'; params.push(search, search); }
     if (plan)   { where += ' AND plan = ?'; params.push(plan); }
+    // By default only show verified users, unless admin explicitly filters for unverified
+    const showUnverified = req.query.unverified === 'true';
+    if (!showUnverified) { where += ' AND is_email_verified = 1'; }
 
     const [[{ total }]] = await db.query(`SELECT COUNT(*) AS total FROM users ${where}`, params);
     const [users] = await db.query(

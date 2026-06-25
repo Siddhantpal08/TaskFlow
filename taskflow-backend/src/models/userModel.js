@@ -98,6 +98,10 @@ const updateUserProfile = async (userId, { name, avatar_initials, bio, avatar_ur
     );
 };
 
+const deleteUserById = async (id) => {
+    await db.query('DELETE FROM users WHERE id = ?', [id]);
+};
+
 const verifyUserEmail = async (userId) => {
     await db.query('UPDATE users SET is_email_verified = 1 WHERE id = ?', [userId]);
 };
@@ -110,6 +114,7 @@ module.exports = {
     createUser,
     getUserByEmail,
     getUserById,
+    deleteUserById,
     updatePassword,
     updateUserProfile,
     setOnlineStatus,

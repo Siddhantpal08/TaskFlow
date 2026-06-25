@@ -198,7 +198,7 @@ export default function AdminPanel({ t: themeProp, user }) {
 
                                 {/* Recent signups */}
                                 <div style={{ background: thm.card, border: `1px solid ${thm.border}`, borderRadius: 14, padding: 20 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: thm.t1, marginBottom: 16 }}>🆕 Recent Signups</div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: thm.t1, marginBottom: 16 }}>🆕 Recent Signups <span style={{ fontSize: 10, color: thm.green, fontFamily: thm.mono, fontWeight: 400 }}>(verified only)</span></div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                         {(stats.recentUsers || []).slice(0, 6).map(u => (
                                             <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

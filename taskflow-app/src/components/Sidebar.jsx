@@ -212,7 +212,11 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
             <div style={{ padding: isOpen ? "4px 10px 6px" : "4px 0 6px", borderTop: `1px solid ${t.border}`, display: "flex", flexDirection: "column", gap: 2 }}>
                 {isOpen && (
                     <div style={{ padding: "6px 10px 4px" }}>
-                        <PlanBadge t={t} onClick={onUpgrade} />
+                        <PlanBadge
+                            t={t}
+                            userPlan={user?.plan}
+                            onClick={user?.plan && user.plan !== 'free' ? undefined : onUpgrade}
+                        />
                     </div>
                 )}
 

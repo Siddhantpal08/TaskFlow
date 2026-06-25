@@ -3,7 +3,13 @@ import { PLANS, getPlan, isPro } from "../../utils/planLimits.js";
 import { I, IC } from "./Icon.jsx";
 import { billingApi } from "../../api/billing.js";
 
+import { useAuth } from "../../context/AuthContext.jsx";
+
 export function UpgradeModal({ t, feature, onClose }) {
+    const { user } = useAuth();
+    const currentPlan = user?.plan || localStorage.getItem('tf_plan') || 'free';
+    const isAlreadyPaid = currentPlan === 'pro' || currentPlan === 'starter';
+
     const [step, setStep] = useState(feature === "Upgrade Successful!" ? "success" : "plan"); // plan | billing | success
     const [billing, setBilling] = useState("yearly"); // monthly | yearly
     const [selectedPlan, setSelectedPlan] = useState("pro"); // starter | pro
@@ -125,6 +131,40 @@ export function UpgradeModal({ t, feature, onClose }) {
         }
         return billing === "yearly" ? "₹1000/year" : "₹99/month";
     };
+
+    // ── Already-subscribed guard screen ─────────────────────────────────────
+    if (isAlreadyPaid && feature !== "Upgrade Successful!") {
+        return (
+            <div onClick={onClose} style={modalOverlayStyle}>
+                <div onClick={e => e.stopPropagation()} style={{ ...modalBodyStyle, maxWidth: 480, textAlign: "center" }}>
+                    <button onClick={onClose} style={closeButtonStyle}
+                        onMouseEnter={e => e.currentTarget.style.color = t.t1}
+                        onMouseLeave={e => e.currentTarget.style.color = t.t3}>
+                        ×
+                    </button>
+                    <div style={{ fontSize: 52, marginBottom: 16 }}>🎉</div>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 14px", borderRadius: 999, background: `linear-gradient(135deg, ${t.accent}22, #0072FF22)`, border: `1px solid ${t.accent}55`, fontSize: 11, color: t.accent, fontFamily: t.mono, fontWeight: 700, letterSpacing: "0.5px", marginBottom: 18 }}>
+                        ✦ TASKFLOW {currentPlan.toUpperCase()} — ACTIVE
+                    </div>
+                    <h3 style={{ margin: "0 0 10px", fontSize: 22, fontWeight: 800, color: t.t1 }}>You're already subscribed!</h3>
+                    <p style={{ margin: "0 0 24px", fontSize: 13, color: t.t2, lineHeight: 1.7, fontFamily: t.disp }}>
+                        Your <strong style={{ color: t.accent }}>{currentPlan.toUpperCase()}</strong> plan is active and fully unlocked.
+                        All premium features are available to you.
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+                        {["Unlimited Notes", "All Writing Modes", "PDF Export", "Priority Support"].map(f => (
+                            <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 9, background: `${t.accent}08`, border: `1px solid ${t.accent}22`, fontSize: 12, color: t.accent, fontFamily: t.disp }}>
+                                <span>✓</span> {f}
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={onClose} style={{ padding: "11px 32px", borderRadius: 12, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${t.accent}, #0072FF)`, color: "#000", fontSize: 14, fontWeight: 800, fontFamily: t.disp }}>
+                        Continue to TaskFlow
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div onClick={onClose} style={modalOverlayStyle}>
@@ -381,37 +421,68 @@ export function UpgradeModal({ t, feature, onClose }) {
     );
 }
 
-export function PlanBadge({ t, onClick }) {
-    const plan = getPlan();
+export function PlanBadge({ t, onClick, userPlan }) {
+    const plan = userPlan || getPlan();
+    const isPaid = plan === 'pro' || plan === 'starter';
+
+    if (isPaid) {
+        return (
+            <>
+                <style dangerouslySetInnerHTML={{ __html: `
+                    @keyframes planShimmer {
+                        0% { background-position: -200% center; }
+                        100% { background-position: 200% center; }
+                    }
+                ` }} />
+                <div
+                    title={`TaskFlow ${plan.toUpperCase()} — Active`}
+                    style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "5px 13px", borderRadius: 999,
+                        border: `1px solid ${t.accent}55`,
+                        background: "linear-gradient(135deg, rgba(0,229,204,0.12), rgba(0,114,255,0.12))",
+                        fontFamily: t.mono, fontSize: 10.5,
+                        fontWeight: 700, letterSpacing: "0.5px",
+                        backgroundSize: "200% auto",
+                        animation: "planShimmer 3s linear infinite",
+                        backgroundImage: `linear-gradient(90deg, ${t.accent}cc 0%, #0072FFcc 40%, ${t.accent}cc 60%, #0072FFcc 100%)`,
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        cursor: "default",
+                        userSelect: "none",
+                    }}
+                >
+                    ✦ {plan.toUpperCase()}
+                </div>
+            </>
+        );
+    }
+
     return (
         <button
             onClick={onClick}
-            title={plan !== "free" ? `TaskFlow ${plan.toUpperCase()} — Active` : "Upgrade plan"}
+            title="Upgrade to Pro"
             style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "4px 12px", borderRadius: 999, border: "none", cursor: "pointer",
-                background: plan !== "free"
-                    ? "linear-gradient(135deg, rgba(0,229,204,0.15), rgba(0,114,255,0.15))"
-                    : "rgba(255,255,255,0.05)",
+                padding: "4px 12px", borderRadius: 999, border: `1px solid ${t.border}`, cursor: "pointer",
+                background: "rgba(255,255,255,0.04)",
                 fontFamily: t.mono, fontSize: 10.5,
                 fontWeight: 700, letterSpacing: "0.4px",
-                color: plan !== "free" ? t.accent : t.t2,
+                color: t.t2,
                 transition: "all .15s",
             }}
             onMouseEnter={e => {
-                if (plan === "free") {
-                    e.currentTarget.style.background = `${t.accent}14`;
-                    e.currentTarget.style.color = t.accent;
-                }
+                e.currentTarget.style.background = `${t.accent}14`;
+                e.currentTarget.style.color = t.accent;
+                e.currentTarget.style.borderColor = `${t.accent}44`;
             }}
             onMouseLeave={e => {
-                if (plan === "free") {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                    e.currentTarget.style.color = t.t2;
-                }
+                e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                e.currentTarget.style.color = t.t2;
+                e.currentTarget.style.borderColor = t.border;
             }}
         >
-            {plan !== "free" ? `✦ ${plan.toUpperCase()}` : "FREE · Upgrade ↗"}
+            FREE · Upgrade ↗
         </button>
     );
 }
