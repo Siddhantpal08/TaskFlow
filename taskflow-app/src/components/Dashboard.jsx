@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { Av } from "./ui/Av.jsx";
 import { PriTag, StTag } from "./ui/Tag.jsx";
@@ -28,11 +28,11 @@ function timeAgo(iso) {
 }
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
-function Stat({ val, label, note, color, onClick, trend }) {
+function Stat({ val, label, note, color, onClick, trend, trendUp }) {
     return (
         <div onClick={onClick} className="hvrC" style={{
-            background: "var(--card)",
-            border: `1px solid var(--border)`,
+            background: "var(--card, #0D1824)",
+            border: `1px solid var(--border, #1A2D42)`,
             borderRadius: 14, padding: "18px 20px",
             cursor: onClick ? "pointer" : "default",
             boxShadow: `0 4px 16px rgba(0,0,0,0.12)`,
@@ -44,8 +44,10 @@ function Stat({ val, label, note, color, onClick, trend }) {
                 <div style={{ fontSize: 36, fontWeight: 900, color, letterSpacing: "-2px", lineHeight: 1 }}>{val}</div>
                 {trend && (
                     <div style={{
-                        fontSize: 10, fontWeight: 700, color,
-                        background: `${color}14`, padding: "2px 8px", borderRadius: 999,
+                        fontSize: 10, fontWeight: 700,
+                        color: trendUp === false ? "#ef4444" : color,
+                        background: `${trendUp === false ? "#ef4444" : color}14`,
+                        padding: "2px 8px", borderRadius: 999,
                         fontFamily: "var(--mono, 'IBM Plex Mono', monospace)",
                         whiteSpace: "nowrap"
                     }}>
@@ -101,6 +103,18 @@ export default function Dashboard({ t, setPage, setTask }) {
     const { tasks = [], events = [], teamMembers = [], onlineUsers = new Set(), notifications = [], loading } = useData();
     const [taskFilter, setTaskFilter] = useState("all"); // all | pending | active | done
 
+    // ── Real-computed Trends (last 7 days) ──────────────────────────────────
+    const trends = useMemo(() => {
+        const now = new Date();
+        const weekAgo = new Date(now - 7 * 86400000);
+        const tasksThisWeek = tasks.filter(x => new Date(x.created_at) >= weekAgo).length;
+        const doneThisWeek = tasks.filter(x => x.status === "done" && x.updated_at && new Date(x.updated_at) >= weekAgo).length;
+        const activeCount = tasks.filter(x => x.status === "active").length;
+        const overdueCount = tasks.filter(x => x.due_date && x.status !== "done" && new Date(x.due_date) < now).length;
+
+        return { tasksThisWeek, doneThisWeek, activeCount, overdueCount };
+    }, [tasks]);
+
     if (loading) return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: t.t2, fontSize: 13 }}>
             Loading…
@@ -130,7 +144,21 @@ export default function Dashboard({ t, setPage, setTask }) {
     const greeting = hr < 5 ? "Good night" : hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
 
     return (
-        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}>
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
+            className="dash-root">
+            <style>{`
+                @media (max-width: 900px) {
+                    .dash-grid { grid-template-columns: 1fr !important; overflow-y: auto !important; }
+                    .dash-right-col { overflow-y: visible !important; }
+                    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+                    .dash-root { overflow: auto !important; height: auto !important; }
+                    .welcome-strip { flex-direction: column; align-items: flex-start !important; gap: 12px; }
+                }
+                @media (max-width: 520px) {
+                    .stats-grid { grid-template-columns: 1fr !important; }
+                    .dash-root { padding: 14px 12px !important; }
+                }
+            `}</style>
 
             {/* ── Welcome strip ── */}
             <div className="welcome-strip" style={{
@@ -142,14 +170,14 @@ export default function Dashboard({ t, setPage, setTask }) {
                     <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, letterSpacing: "-0.5px" }}>
                         {greeting}, {firstName} 👋
                     </div>
-                    <div style={{ fontSize: 13, color: t.t2, marginTop: 5, display: "flex", gap: 14 }}>
+                    <div style={{ fontSize: 13, color: t.t2, marginTop: 5, display: "flex", gap: 14, flexWrap: "wrap" }}>
                         {overdue > 0 && <span style={{ color: t.red, fontWeight: 600 }}>⚠ {overdue} overdue</span>}
                         {active > 0 && <span style={{ color: t.accent }}>⚡ {active} active</span>}
                         {pending > 0 && <span style={{ color: t.t2 }}>🕐 {pending} pending</span>}
                         {total === 0 && <span style={{ color: t.t3 }}>No tasks yet — create your first one!</span>}
                     </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
                     {/* Completion ring */}
                     <div style={{ position: "relative", width: 56, height: 56 }}>
                         <svg width={56} height={56} viewBox="0 0 56 56" style={{ transform: "rotate(-90deg)" }}>
@@ -172,21 +200,37 @@ export default function Dashboard({ t, setPage, setTask }) {
 
             {/* ── Stats grid ── */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }} className="stats-grid">
-                <Stat val={total} label="Total Tasks" note="all time" color={t.accent} onClick={() => setPage("tasks")} trend="↑ 3 this week" />
-                <Stat val={done}  label="Completed"   note={`${rate}% success rate`} color={t.green} trend="65% rate" />
-                <Stat val={active} label="In Progress" note="active now" color={t.amber} onClick={() => setPage("tasks")} trend="active now" />
-                <Stat val={overdue} label="Overdue" note="needs attention" color={t.red} onClick={() => setPage("tasks")} trend="needs action" />
+                <Stat val={total} label="Total Tasks" note="all time"
+                    color={t.accent} onClick={() => setPage("tasks")}
+                    trend={trends.tasksThisWeek > 0 ? `↑ ${trends.tasksThisWeek} this week` : "no new this week"}
+                    trendUp={trends.tasksThisWeek > 0}
+                />
+                <Stat val={done} label="Completed" note={`${rate}% success rate`}
+                    color={t.green}
+                    trend={trends.doneThisWeek > 0 ? `↑ ${trends.doneThisWeek} this week` : rate > 0 ? `${rate}% overall` : "none done yet"}
+                    trendUp={trends.doneThisWeek > 0}
+                />
+                <Stat val={active} label="In Progress" note="active now"
+                    color={t.amber} onClick={() => setPage("tasks")}
+                    trend={active > 0 ? `${active} running` : "all clear"}
+                    trendUp={null}
+                />
+                <Stat val={overdue} label="Overdue" note="needs attention"
+                    color={t.red} onClick={() => setPage("tasks")}
+                    trend={overdue > 0 ? `${overdue} past due` : "✓ on track"}
+                    trendUp={overdue === 0}
+                />
             </div>
 
             {/* ── Main two-column grid ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, flex: 1, minHeight: 0, overflow: "hidden" }} className="dash-grid">
 
                 {/* ─ Tasks Panel ─ */}
-                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, display: "flex", flexDirection: "column" }}>
+                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, display: "flex", flexDirection: "column", minHeight: 0 }}>
                     {/* Header */}
-                    <div style={{ padding: "14px 18px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+                    <div style={{ padding: "14px 18px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, flexWrap: "wrap", gap: 8 }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: t.t1 }}>Tasks</span>
-                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                             {["all", "pending", "active", "done"].map(f => (
                                 <button key={f} onClick={() => setTaskFilter(f)}
                                     style={{
@@ -207,7 +251,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                     </div>
 
                     {/* Rows */}
-                    <div style={{ flex: 1, overflowY: "auto" }}>
+                    <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                         {filteredTasks.length === 0 ? (
                             <div style={{ padding: "12px 18px 24px" }}>
                                 <EmptyState
@@ -220,23 +264,23 @@ export default function Dashboard({ t, setPage, setTask }) {
                                 />
                             </div>
                         ) : (
-                            filteredTasks.slice(0, 5).map(tk => (
+                            filteredTasks.slice(0, 8).map(tk => (
                                 <TaskRow key={tk.id} tk={tk} t={t} onClick={() => setTask(tk)} />
                             ))
                         )}
-                        {filteredTasks.length > 5 && (
+                        {filteredTasks.length > 8 && (
                             <div onClick={() => setPage("tasks")} style={{ padding: "11px 18px", textAlign: "center", fontSize: 12, color: t.accent, cursor: "pointer", fontWeight: 600, borderTop: `1px solid ${t.border}` }}>
-                                View {filteredTasks.length - 5} more →
+                                View {filteredTasks.length - 8} more →
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* ─ Right column ─ */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", paddingRight: 2, minHeight: 0 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", paddingRight: 2, minHeight: 0 }} className="dash-right-col">
 
                     {/* Upcoming Events */}
-                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow }}>
+                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, flexShrink: 0 }}>
                         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <span style={{ fontSize: 13, fontWeight: 700, color: t.t1 }}>Upcoming</span>
                             <button onClick={() => setPage("calendar")} style={{ background: "none", border: "none", cursor: "pointer", color: t.accent, fontSize: 11, fontWeight: 600, fontFamily: t.disp }}>Calendar →</button>
@@ -247,7 +291,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                                     t={t}
                                     icon="cal"
                                     title="No upcoming events"
-                                    description="Your schedule is completely clear for the upcoming days."
+                                    description="Your schedule is clear."
                                     ctaText="Open Calendar"
                                     onCta={() => setPage("calendar")}
                                 />
@@ -273,7 +317,7 @@ export default function Dashboard({ t, setPage, setTask }) {
 
                     {/* Team Members */}
                     {teamMembers.length > 0 && (
-                        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 16px", boxShadow: t.shadow }}>
+                        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 16px", boxShadow: t.shadow, flexShrink: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
                                 Team
                                 <button onClick={() => setPage("team")} style={{ background: "none", border: "none", cursor: "pointer", color: t.accent, fontSize: 11, fontWeight: 600, fontFamily: t.disp }}>View →</button>
@@ -289,7 +333,8 @@ export default function Dashboard({ t, setPage, setTask }) {
                                             <div style={{ position: "absolute", bottom: 0, right: 0, width: 7, height: 7, borderRadius: "50%", background: isOnline ? t.green : t.border, border: `1.5px solid ${t.card}` }} />
                                         </div>
                                         <div style={{ flex: 1, fontSize: 12.5, fontWeight: 500, color: t.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name.split(" ")[0]}</div>
-                                        <div style={{ fontSize: 9.5, color: isOnline ? t.green : t.t3, fontFamily: t.mono }}>{isOnline ? "online" : "away"}</div>
+                                        {/* Fixed: was "away", now correct status */}
+                                        <div style={{ fontSize: 9.5, color: isOnline ? t.green : t.t3, fontFamily: t.mono }}>{isOnline ? "online" : "offline"}</div>
                                     </div>
                                 );
                             })}
@@ -298,7 +343,7 @@ export default function Dashboard({ t, setPage, setTask }) {
 
                     {/* Recent Activity */}
                     {recentNotifs.length > 0 && (
-                        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow }}>
+                        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, flexShrink: 0 }}>
                             <div style={{ padding: "12px 16px", borderBottom: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700, color: t.t1 }}>Activity</div>
                             {recentNotifs.map(n => (
                                 <div key={n.id} style={{ padding: "10px 16px", borderBottom: `1px solid ${t.border}`, display: "flex", gap: 10, alignItems: "flex-start" }}>

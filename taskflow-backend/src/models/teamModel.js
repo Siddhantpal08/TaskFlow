@@ -70,6 +70,15 @@ const deleteTeam = async (userId, teamId) => {
     await db.query(`DELETE FROM teams WHERE team_id = ?`, [teamId]);
 };
 
+const updateTeam = async (userId, teamId, name) => {
+    const [member] = await db.query(`SELECT role FROM team_members WHERE user_id = ? AND team_id = ?`, [userId, teamId]);
+    if (!member.length || member[0].role !== 'admin') throw new Error('Only an admin can rename the team');
+    if (!name || !name.trim()) throw new Error('Team name cannot be empty');
+    await db.query(`UPDATE teams SET name = ? WHERE team_id = ?`, [name.trim(), teamId]);
+    return { id: teamId, name: name.trim() };
+};
+
+
 const getLeaveRequests = async (teamId) => {
     const [rows] = await db.query(
         `SELECT r.id, r.user_id, r.status, r.created_at, u.name, u.email, u.avatar_initials
@@ -119,10 +128,11 @@ const getMembersOfTeam = async (teamId) => {
 };
 
 const getTeamMembers = async (userId) => {
-    // Return all users who share ANY team with the current user, or just return members grouped by team.
-    // Simplifying: return all distinct users in all teams the current user belongs to.
+    // Return all users who share ANY team with the current user.
+    // NOTE: is_online is intentionally excluded — online presence is tracked via socket
+    // events in DataContext (onlineUsers Set), NOT from the DB, to avoid tinyint truncation errors.
     const [rows] = await db.query(
-        `SELECT DISTINCT u.id, u.name, u.email, u.avatar_initials, u.avatar_url, u.is_online, u.created_at
+        `SELECT DISTINCT u.id, u.name, u.email, u.avatar_initials, u.avatar_url, u.created_at
          FROM users u
          JOIN team_members tm1 ON u.id = tm1.user_id
          JOIN team_members tm2 ON tm1.team_id = tm2.team_id
@@ -133,7 +143,7 @@ const getTeamMembers = async (userId) => {
     // If a user has no teams, they should at least see themselves (for personal tasks)
     if (rows.length === 0) {
         const [self] = await db.query(
-            `SELECT id, name, email, avatar_initials, avatar_url, is_online, created_at FROM users WHERE id = ?`, [userId]
+            `SELECT id, name, email, avatar_initials, avatar_url, created_at FROM users WHERE id = ?`, [userId]
         );
         return self;
     }
@@ -187,4 +197,5 @@ const removeMember = async (teamId, memberId) => {
     await db.query(`DELETE FROM team_members WHERE team_id = ? AND user_id = ?`, [teamId, memberId]);
 };
 
-module.exports = { createTeam, joinTeam, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getUserTeams, getTeamMembers, getMembersOfTeam, getUserActivity, removeMember };
+module.exports = { createTeam, joinTeam, leaveTeam, deleteTeam, updateTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getUserTeams, getTeamMembers, getMembersOfTeam, getUserActivity, removeMember };
+

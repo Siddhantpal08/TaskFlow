@@ -165,8 +165,9 @@ export default function NoteBlock({
 
     const openSlashMenu = useCallback(() => {
         const rect = ref.current?.getBoundingClientRect();
-        if (rect) onSlash(rect, "");
+        if (rect) onSlash({ x: rect.left, y: rect.bottom + 4, rect }, "");
     }, [onSlash]);
+
 
     const handleKey = e => {
         // Ctrl+A — select all within this block
@@ -219,25 +220,62 @@ export default function NoteBlock({
             return;
         }
 
-        // Enter
+        // Enter: in ALL editable blocks (except code), always create new block
+        // For p blocks: split content at cursor (text after cursor → new block)
         if (e.key === "Enter" && blk.type !== "code") {
             const curText = ref.current?.innerText || "";
-            if (blk.type === "p") {
-                if (curText.trim() === "") { e.preventDefault(); onAddAfter("p"); }
-                return; // otherwise let browser wrap naturally
-            }
-            e.preventDefault();
+
+            // For list/todo: empty block at list level 0 → convert to p
             if ((blk.type === "ul" || blk.type === "ol" || blk.type === "todo") && curText.trim() === "") {
+                e.preventDefault();
                 const ind = blk.indent || 0;
                 if (ind > 0) onUpdate({ indent: ind - 1 });
                 else onUpdate({ type: "p", content: "", indent: 0 });
                 return;
             }
+
+            // For p blocks: split at cursor
+            if (blk.type === "p") {
+                e.preventDefault();
+                const sel = window.getSelection();
+                let afterText = "";
+                let beforeHTML = ref.current?.innerHTML || "";
+                if (sel && sel.rangeCount > 0 && ref.current) {
+                    const range = sel.getRangeAt(0);
+                    // Get text before cursor
+                    const beforeRange = document.createRange();
+                    beforeRange.setStart(ref.current, 0);
+                    beforeRange.setEnd(range.startContainer, range.startOffset);
+                    const beforeFrag = beforeRange.cloneContents();
+                    const tmpBefore = document.createElement('div');
+                    tmpBefore.appendChild(beforeFrag);
+                    beforeHTML = tmpBefore.innerHTML;
+                    // Get text after cursor
+                    const afterRange = document.createRange();
+                    afterRange.setStart(range.endContainer, range.endOffset);
+                    afterRange.setEndAfter(ref.current.lastChild || ref.current);
+                    try {
+                        const afterFrag = afterRange.cloneContents();
+                        const tmpAfter = document.createElement('div');
+                        tmpAfter.appendChild(afterFrag);
+                        afterText = tmpAfter.innerHTML;
+                    } catch { afterText = ""; }
+                }
+                // Update current block with before content
+                if (ref.current) ref.current.innerHTML = beforeHTML;
+                onUpdate({ content: beforeHTML });
+                // Add new block with after content
+                onAddAfter("p", afterText);
+                return;
+            }
+
+            e.preventDefault();
             if (blk.type === "ul") { onAddAfter("ul"); return; }
             if (blk.type === "ol") { onAddAfter("ol"); return; }
             if (blk.type === "todo") { onAddAfter("todo"); return; }
             onAddAfter("p");
         }
+
 
         // Backspace on empty block = delete block
         if (e.key === "Backspace" && (ref.current?.innerText || "").trim() === "") {
@@ -478,14 +516,14 @@ export default function NoteBlock({
         p: { fontSize: 14.5, fontWeight: 400, lineHeight: 1.8, fontFamily: `var(--doc-font, ${t.disp})`, color: t.noteSubText, paddingTop: 1, paddingBottom: 1 },
     };
     const st = textStyles[blk.type] || textStyles.p;
-    const placeholder = blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "";
+    const placeholder = blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "Start writing, or type '/' for commands…";
 
     return (
         <div className="blkr" style={{ ...wrapperStyle }} {...dragProps} {...hoverProps}>
             {contextMenuEl}
             <BlockHandle hov={hov} t={t} dragHandleProps={dragHandleProps} />
             <div id={`blk-${idx}`} ref={ref} contentEditable suppressContentEditableWarning
-                data-ph={blk.type === "p" && !focused ? "" : placeholder}
+                data-ph={!focused && (!blk.content || blk.content === "" || blk.content === "<br>") ? placeholder : ""}
                 onInput={handleInput} onKeyDown={handleKey} onPaste={handlePaste}
                 onFocus={handleFocus} onBlur={handleBlur}
                 style={{ ...st, color: writingMode ? "var(--doc-color, inherit)" : st.color, wordBreak: "break-word", cursor: "text", outline: "none", minHeight: st.fontSize + 10 }} />

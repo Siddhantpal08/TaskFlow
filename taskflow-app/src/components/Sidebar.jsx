@@ -116,7 +116,13 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
             onMouseLeave={() => collapsed && setHovered(false)}
         >
             {/* ── Header ── */}
-            <div style={{ padding: isOpen ? "16px 14px 12px" : "16px 0 12px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: isOpen ? "space-between" : "center" }}>
+            <div style={{
+                padding: isOpen ? "16px 14px 12px" : "12px 0",
+                borderBottom: `1px solid ${t.border}`,
+                display: "flex", alignItems: "center",
+                justifyContent: isOpen ? "space-between" : "center",
+                minHeight: 58,
+            }}>
                 {isOpen ? (
                     <div onClick={() => setPage("dashboard")} style={{ cursor: "pointer", opacity: 1, transition: "opacity .15s" }}
                         onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
@@ -124,11 +130,10 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                         <TFLogo size={28} showText={true} textColor={t.t1} />
                     </div>
                 ) : (
-                    <Tip label="TaskFlow">
-                        <div onClick={() => setPage("dashboard")} style={{ cursor: "pointer" }}>
-                            <TFLogo size={28} showText={false} />
-                        </div>
-                    </Tip>
+                    <div onClick={() => setPage("dashboard")} title="TaskFlow"
+                        style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40 }}>
+                        <TFLogo size={26} showText={false} />
+                    </div>
                 )}
                 {/* Pin/collapse toggle */}
                 {isOpen && (
@@ -140,6 +145,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                     </button>
                 )}
             </div>
+
 
             {/* ── Primary Nav ── */}
             <div style={{ padding: isOpen ? "10px 10px 4px" : "10px 0 4px", display: "flex", flexDirection: "column", gap: 2 }}>

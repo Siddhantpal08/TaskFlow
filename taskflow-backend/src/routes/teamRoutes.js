@@ -1,6 +1,11 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
-const { createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, deleteTeam, getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getMembers, getMemberActivity, getDummyHierarchy, removeMember } = require('../controllers/teamController');
+const {
+    createTeam, joinTeam, getMyTeams, getTeamDetails,
+    leaveTeam, deleteTeam, updateTeam,
+    getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
+    getMembers, getMemberActivity, getDummyHierarchy, removeMember
+} = require('../controllers/teamController');
 
 const router = express.Router();
 
@@ -15,6 +20,9 @@ router.get('/', getMyTeams);
 
 // Get specific team members
 router.get('/:id/members', getTeamDetails);
+
+// Update (rename) a team — admin only
+router.patch('/:id', updateTeam);
 
 // Leave a team
 router.delete('/:id/leave', leaveTeam);

@@ -81,7 +81,7 @@ const verifyEmail = asyncWrapper(async (req, res, next) => {
 
     res.status(200).json({
         success: true,
-        data: { id: user.id, name: user.name, email: user.email, avatar_initials: user.avatar_initials, accessToken, refreshToken },
+        data: { id: user.id, name: user.name, email: user.email, avatar_initials: user.avatar_initials, role: user.role, plan: user.plan || 'free', accessToken, refreshToken },
     });
 });
 
@@ -212,6 +212,7 @@ const login = asyncWrapper(async (req, res, next) => {
             email: user.email,
             avatar_initials: user.avatar_initials,
             role: user.role,
+            plan: user.plan || 'free',
             bio: user.bio,
             avatar_url: user.avatar_url,
             accessToken,

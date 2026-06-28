@@ -267,7 +267,7 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
     );
 }
 
-export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage }) {
+export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage, duplicateNotePage }) {
     const pg = pages[notePageId];
     if (!pg) return null;
 
@@ -1152,6 +1152,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                             <I d={IC.plus} sz={12} c="currentColor" />Sub-page
                         </button>
+                        <button type="button" onClick={() => duplicateNotePage?.(notePageId)}
+                            title="Duplicate this note"
+                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                            📋 Duplicate
+                        </button>
                         {/* Separator */}
                         <div style={{ width: 1, height: 18, background: t.border, margin: "0 2px", flexShrink: 0 }} />
                         {/* Delete note */}
@@ -1462,6 +1469,22 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Drag-to-select visual box overlay */}
+            {dragBox && (
+                <div style={{
+                    position: 'fixed',
+                    left: Math.min(dragBox.x1, dragBox.x2),
+                    top: Math.min(dragBox.y1, dragBox.y2),
+                    width: Math.abs(dragBox.x2 - dragBox.x1),
+                    height: Math.abs(dragBox.y2 - dragBox.y1),
+                    background: 'rgba(0, 229, 204, 0.15)',
+                    border: '1px solid #00E5CC',
+                    borderRadius: 4,
+                    pointerEvents: 'none',
+                    zIndex: 9999,
+                }} />
             )}
 
             {/* Slash menu */}

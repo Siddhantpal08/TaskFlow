@@ -162,6 +162,24 @@ const deleteTeam = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, message: 'Team deleted successfully' });
 });
 
+const updateTeam = asyncWrapper(async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    const { name } = req.body;
+    if (!name || !name.trim()) throw new AppError('Team name is required.', 400);
+    const { emitToUser } = require('../utils/socket');
+
+    const updated = await teamModel.updateTeam(req.user.id, teamId, name.trim());
+
+    // Notify all members of the rename
+    const members = await teamModel.getMembersOfTeam(teamId);
+    for (const member of members) {
+        emitToUser(String(member.id), 'team:refresh', { teamId, teamName: updated.name });
+    }
+
+    res.status(200).json({ success: true, data: updated });
+});
+
+
 const getLeaveRequests = asyncWrapper(async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
     const requests = await teamModel.getLeaveRequests(teamId);
@@ -339,7 +357,8 @@ const removeMember = asyncWrapper(async (req, res) => {
 });
 
 module.exports = {
-    createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, deleteTeam,
+    createTeam, joinTeam, getMyTeams, getTeamDetails, leaveTeam, deleteTeam, updateTeam,
     getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
     getMembers, getMemberActivity, getDummyHierarchy, removeMember
 };
+

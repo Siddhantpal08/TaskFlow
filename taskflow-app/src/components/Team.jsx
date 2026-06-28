@@ -16,19 +16,24 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
     const [assignToUser, setAssignToUser] = useState(null);
     const [leaveRequests, setLeaveRequests] = useState([]);
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showRenameModal, setShowRenameModal] = useState(false);
+    const [newTeamName, setNewTeamName] = useState(team?.name || '');
+    const [renaming, setRenaming] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         if (!team) return;
         setLoading(true);
+        setNewTeamName(team.name || '');
         teamApi.getTeamMembers(team.id).then(res => {
             setMembers(res.data || []);
-        }).catch(err => {
+        }).catch(() => {
             toastError("Failed to fetch team members.");
         }).finally(() => setLoading(false));
 
         if (team.role === 'admin') {
             teamApi.getLeaveRequests(team.id).then(res => {
-                // Backend returns flat array in res.data
                 setLeaveRequests(Array.isArray(res.data) ? res.data : []);
             }).catch(() => { });
         } else {
@@ -41,17 +46,48 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
             const res = await teamApi.leaveTeam(team.id);
             const msg = res?.message || res?.data?.message || 'Done.';
             if (team.role === 'admin') {
-                // Admin left — navigate back to team list
                 toastSuccess(msg);
                 refreshTeamsList?.();
                 refreshTeams?.();
                 onLeave();
             } else {
-                // Non-admin submitted a leave request — stay on the page
                 toastSuccess('Your leave request has been sent to the admin.');
             }
         } catch (e) {
             toastError(e.response?.data?.message || e.message || 'Failed to leave team.');
+        }
+    };
+
+    const handleDeleteTeam = async () => {
+        setDeleting(true);
+        try {
+            await teamApi.deleteTeam(team.id);
+            toastSuccess(`Team "${team.name}" deleted.`);
+            refreshTeamsList?.();
+            refreshTeams?.();
+            onLeave();
+        } catch (e) {
+            toastError(e.response?.data?.message || e.message || 'Failed to delete team.');
+        } finally {
+            setDeleting(false);
+            setShowDeleteConfirm(false);
+        }
+    };
+
+    const handleRenameTeam = async (e) => {
+        e.preventDefault();
+        if (!newTeamName.trim()) return toastError('Team name cannot be empty.');
+        setRenaming(true);
+        try {
+            await teamApi.updateTeam(team.id, newTeamName.trim());
+            toastSuccess('Team renamed successfully!');
+            refreshTeamsList?.();
+            refreshTeams?.();
+            setShowRenameModal(false);
+        } catch (e) {
+            toastError(e.response?.data?.message || e.message || 'Failed to rename team.');
+        } finally {
+            setRenaming(false);
         }
     };
 
@@ -74,30 +110,54 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
         } catch (e) { toastError("Failed to reject"); }
     };
 
-    // Find delegation chains from real tasks involving the current user and team members
-    const delegatedTasks = tasks.filter(tk => tk.parent_task_id);
+    const handleRemoveMember = async (memberId, memberName) => {
+        if (!window.confirm(`Remove ${memberName} from the team?`)) return;
+        try {
+            await teamApi.removeMember(team.id, memberId);
+            toastSuccess(`${memberName} removed.`);
+            setMembers(m => m.filter(x => x.id !== memberId));
+            refreshTeams?.();
+        } catch (e) {
+            toastError(e.response?.data?.message || 'Failed to remove member.');
+        }
+    };
 
     return (
         <div style={{ padding: "0 26px 26px 26px", display: "flex", flexDirection: "column", gap: 18 }}>
 
             {/* Team Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 10 }}>
                 <h3 style={{ fontSize: 16, color: t.t1, margin: 0, fontFamily: t.disp }}>Members</h3>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => window.dispatchEvent(new CustomEvent('open-team-chat', { detail: { team } }))} style={{ background: t.accent, border: 'none', color: '#000', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => window.dispatchEvent(new CustomEvent('open-team-chat', { detail: { team } }))}
+                        style={{ background: t.accent, border: 'none', color: '#000', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <I d={IC.msg} sz={14} /> Team Chat
                     </button>
-                    <button onClick={() => setShowLeaveConfirm(true)} style={{ background: `${t.red}12`, border: `1px solid ${t.red}44`, color: t.red, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
+                    {/* Admin-only: Rename + Delete */}
+                    {team?.role === 'admin' && (
+                        <>
+                            <button onClick={() => setShowRenameModal(true)}
+                                style={{ background: t.inset, border: `1px solid ${t.border}`, color: t.t1, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
+                                ✏️ Rename
+                            </button>
+                            <button onClick={() => setShowDeleteConfirm(true)}
+                                style={{ background: `${t.red}12`, border: `1px solid ${t.red}44`, color: t.red, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
+                                🗑️ Delete Team
+                            </button>
+                        </>
+                    )}
+                    <button onClick={() => setShowLeaveConfirm(true)}
+                        style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.t3, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
                         Leave Team
                     </button>
                 </div>
             </div>
 
             {/* Leave Requests (Admin Only) */}
-            {team.role === 'admin' && leaveRequests.length > 0 && (
-                <div style={{ background: `${t.orange}10`, border: `1px solid ${t.orange}30`, borderRadius: 12, padding: 20 }}>
-                    <h4 style={{ color: t.orange, marginTop: 0, marginBottom: 12, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <I d={IC.cal} sz={14} c={t.orange} /> Pending Leave Requests
+            {team?.role === 'admin' && leaveRequests.length > 0 && (
+                <div style={{ background: `${t.orange || t.amber}10`, border: `1px solid ${t.orange || t.amber}30`, borderRadius: 12, padding: 20 }}>
+                    <h4 style={{ color: t.orange || t.amber, marginTop: 0, marginBottom: 12, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <I d={IC.cal} sz={14} c={t.orange || t.amber} /> Pending Leave Requests
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {leaveRequests.map(req => (
@@ -121,7 +181,6 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                 </div>
             )}
 
-
             {/* Team member cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }} className="team-grid">
                 {loading && <div style={{ color: t.t3, fontSize: 13 }}>Loading members…</div>}
@@ -131,50 +190,76 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                     const pct = myTasks.length ? Math.round(done / myTasks.length * 100) : 0;
                     const isOnline = onlineUsers.has(String(u.id));
                     const isMe = u.id === user?.id;
+                    const pendingTasks = myTasks.filter(tk => tk.status !== 'done');
+                    const hasOverdue = pendingTasks.some(tk => tk.due_date && new Date(tk.due_date) < new Date());
                     return (
-                        <div key={u.id} className="hvrC" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 18, textAlign: "center", boxShadow: t.shadow, transition: "all .2s" }}>
-                            <div style={{ display: "flex", justifyContent: "center", marginBottom: 11 }}>
+                        <div key={u.id} className="hvrC" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 18, textAlign: "center", boxShadow: t.shadow, transition: "all .2s", position: 'relative' }}>
+                            {/* Online indicator badge */}
+                            <div style={{ position: 'absolute', top: 10, right: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <div className={isOnline ? 'glw' : ''} style={{ width: 6, height: 6, borderRadius: "50%", background: isOnline ? t.green : t.border }} />
+                                <span style={{ fontSize: 9, color: isOnline ? t.green : t.t3, fontFamily: t.mono }}>{isOnline ? 'online' : 'offline'}</span>
+                            </div>
+                            {/* Workload warning */}
+                            {hasOverdue && (
+                                <div style={{ position: 'absolute', top: 10, left: 12, fontSize: 10, color: t.red, fontWeight: 700 }}>⚠ Overdue</div>
+                            )}
+                            <div style={{ display: "flex", justifyContent: "center", marginBottom: 11, marginTop: 4 }}>
                                 <div style={{ padding: isMe ? 2 : 0, borderRadius: '50%', border: isMe ? `2px solid ${t.accent}` : '2px solid transparent', display: 'inline-flex' }}>
                                     <Av u={{ ...u, av: u.avatar_initials || u.initials || u.name?.slice(0, 2), color: t.accent, avatar_url: u.avatar_url }} sz={46} />
                                 </div>
                             </div>
                             <div style={{ fontSize: 13.5, fontWeight: 700, color: t.t1 }}>{u.name}</div>
-                            <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 2, marginBottom: 14 }}>{u.role === 'admin' ? "Admin" : "Member"} {isMe && "(You)"}</div>
+                            <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 2, marginBottom: 10 }}>
+                                {u.role === 'admin' ? "Admin" : "Member"} {isMe && "(You)"}
+                            </div>
+                            {/* Progress bar */}
                             <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>
                                     <span>Progress</span><span style={{ color: t.accent }}>{done}/{myTasks.length}</span>
                                 </div>
                                 <div style={{ height: 3, background: t.border, borderRadius: 2 }}>
-                                    <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, background: `linear-gradient(to right,#009688,${t.accent})`, transition: "width .6s" }} />
+                                    <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, background: hasOverdue ? `linear-gradient(to right, ${t.red}, ${t.amber})` : `linear-gradient(to right,#009688,${t.accent})`, transition: "width .6s" }} />
                                 </div>
-                                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'left' }}>
-                                    {myTasks.filter(tk => tk.status !== 'done').slice(0, 2).map(tk => (
-                                        <div key={tk.id} style={{ fontSize: 10, color: t.t2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: `${t.border}88`, padding: '4px 6px', borderRadius: 4, fontFamily: t.mono }}>
+                                {/* Pending tasks preview */}
+                                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'left' }}>
+                                    {pendingTasks.slice(0, 2).map(tk => (
+                                        <div key={tk.id} style={{ fontSize: 10, color: t.t2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: `${t.border}88`, padding: '3px 6px', borderRadius: 4, fontFamily: t.mono }}>
                                             • {tk.title}
                                         </div>
                                     ))}
-                                    {myTasks.filter(tk => tk.status !== 'done').length > 2 && (
-                                        <div style={{ fontSize: 9, color: t.t3, paddingLeft: 6, fontFamily: t.mono }}>+{myTasks.filter(tk => tk.status !== 'done').length - 2} more pending...</div>
+                                    {pendingTasks.length > 2 && (
+                                        <div style={{ fontSize: 9, color: t.t3, paddingLeft: 6, fontFamily: t.mono }}>+{pendingTasks.length - 2} more pending...</div>
                                     )}
-                                    {myTasks.filter(tk => tk.status !== 'done').length === 0 && myTasks.length > 0 && (
-                                        <div style={{ fontSize: 9, color: t.green, paddingLeft: 6, fontFamily: t.mono }}>All tasks cleared!</div>
+                                    {pendingTasks.length === 0 && myTasks.length > 0 && (
+                                        <div style={{ fontSize: 9, color: t.green, paddingLeft: 6, fontFamily: t.mono }}>✓ All tasks cleared!</div>
                                     )}
                                 </div>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 12 }}>
-                                <div className={isOnline ? 'glw' : ''} style={{ width: 6, height: 6, borderRadius: "50%", background: isOnline ? t.green : t.border }} />
-                                <span style={{ fontSize: 10, color: isOnline ? t.green : t.t3, fontFamily: t.mono }}>{isOnline ? 'online' : 'offline'}</span>
-                            </div>
-                            <div style={{ marginTop: 14 }}>
-                                <button onClick={() => setAssignToUser(u.id)} style={{ padding: '6px 14px', borderRadius: 6, border: `1px solid ${t.border}`, background: 'transparent', color: t.accent, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 700, width: '100%', transition: 'all .2s' }} onMouseEnter={e => e.currentTarget.style.background = `${t.accent}14`} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                    Assign Task ↗
+                            {/* Action buttons */}
+                            <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+                                <button onClick={() => setAssignToUser(u.id)}
+                                    style={{ flex: 1, padding: '6px 10px', borderRadius: 6, border: `1px solid ${t.border}`, background: 'transparent', color: t.accent, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 700, transition: 'all .2s' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = `${t.accent}14`}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    Assign ↗
                                 </button>
+                                {/* Admin can remove members (except themselves) */}
+                                {team?.role === 'admin' && !isMe && (
+                                    <button onClick={() => handleRemoveMember(u.id, u.name)}
+                                        style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${t.red}33`, background: 'transparent', color: t.red, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 600, transition: 'all .2s' }}
+                                        title="Remove member"
+                                        onMouseEnter={e => e.currentTarget.style.background = `${t.red}14`}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                        ✕
+                                    </button>
+                                )}
                             </div>
                         </div>
                     );
                 })}
             </div>
 
+            {/* Assign Task Modal */}
             {assignToUser && (
                 <CreateTaskModal
                     t={t}
@@ -184,6 +269,8 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                     onCreate={createTask}
                 />
             )}
+
+            {/* Leave Confirm */}
             {showLeaveConfirm && (
                 <ConfirmModal
                     t={t}
@@ -195,6 +282,51 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                     onConfirm={handleLeave}
                     onCancel={() => setShowLeaveConfirm(false)}
                 />
+            )}
+
+            {/* Delete Team Confirm */}
+            {showDeleteConfirm && (
+                <ConfirmModal
+                    t={t}
+                    title="Delete Team?"
+                    description={<>This will permanently delete <strong>{team.name}</strong> and remove all members. <span style={{ color: t.red }}>This cannot be undone.</span></>}
+                    confirmText={deleting ? "Deleting…" : "Delete Team"}
+                    danger={true}
+                    icon="🗑️"
+                    onConfirm={handleDeleteTeam}
+                    onCancel={() => setShowDeleteConfirm(false)}
+                />
+            )}
+
+            {/* Rename Team Modal */}
+            {showRenameModal && (
+                <div onClick={e => e.target === e.currentTarget && setShowRenameModal(false)}
+                    style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="popIn" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: '28px 32px', width: 360, boxShadow: t.shadow }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: t.t1, marginBottom: 16 }}>✏️ Rename Team</div>
+                        <form onSubmit={handleRenameTeam} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <input
+                                value={newTeamName}
+                                onChange={e => setNewTeamName(e.target.value)}
+                                placeholder="Team name…"
+                                autoFocus
+                                style={{ padding: '9px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 14, fontFamily: t.disp, outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                                onFocus={e => e.target.style.borderColor = t.accent}
+                                onBlur={e => e.target.style.borderColor = t.border}
+                            />
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                <button type="button" onClick={() => setShowRenameModal(false)}
+                                    style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${t.border}`, background: 'none', color: t.t2, fontFamily: t.disp, cursor: 'pointer' }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={renaming}
+                                    style={{ padding: '8px 20px', borderRadius: 8, background: t.accent, border: 'none', color: '#000', fontWeight: 700, fontFamily: t.disp, cursor: 'pointer' }}>
+                                    {renaming ? 'Saving…' : 'Save Name'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

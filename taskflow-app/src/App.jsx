@@ -435,7 +435,7 @@ function MainApp() {
                             {page === "tasks" && <Tasks t={t} setTask={setTask} />}
                             {page === "notes" && notePageId && <NotesPage t={t} dark={themeKey.includes("dark") || themeKey === "midnight"} pages={pages} notePageId={notePageId}
                                 navigateNote={navigateNote} updateNotePage={updateNotePage}
-                                addNotePage={addNotePage} deleteNotePage={deleteNotePage} />}
+                                addNotePage={addNotePage} deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage} />}
                             {page === "notes" && !notePageId && <NotesHome t={t} pages={pages} addNotePage={addNotePage} navigateNote={navigateNote} />}
                             {page === "calendar" && <Calendar t={t} />}
                             {page === "team" && <TeamPage t={t} />}

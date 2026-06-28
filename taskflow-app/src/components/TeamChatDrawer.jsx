@@ -1,22 +1,56 @@
 import { useState, useRef, useEffect } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { Av } from "./ui/Av.jsx";
+import { chatApi } from "../api/chat.js";
+import { socket } from "../context/SocketContext.jsx";
 
-export default function TeamChatDrawer({ t, team, members, user, onClose }) {
-    const [msgs, setMsgs] = useState([
-        { id: 1, text: "Welcome to the team chat! This feature is currently in beta.", sender: "system", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-    ]);
+export default function TeamChatDrawer({ t, team, members = [], user, onClose }) {
+    const [msgs, setMsgs] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [txt, setTxt] = useState("");
     const endRef = useRef();
+
+    useEffect(() => {
+        if (!team?.id) return;
+        setLoading(true);
+        chatApi.getMessages(team.id).then(res => {
+            setMsgs(res.data || res || []);
+        }).catch(() => {}).finally(() => setLoading(false));
+
+        const handleMsg = (newMsg) => {
+            if (newMsg.team_id === team.id || newMsg.teamId === team.id) {
+                setMsgs(prev => [...prev, newMsg]);
+            }
+        };
+
+        const handleMsgDeleted = ({ id }) => {
+            setMsgs(prev => prev.filter(m => m.id !== id));
+        };
+
+        socket.on('chat:message', handleMsg);
+        socket.on('chat:message_deleted', handleMsgDeleted);
+
+        return () => {
+            socket.off('chat:message', handleMsg);
+            socket.off('chat:message_deleted', handleMsgDeleted);
+        };
+    }, [team?.id]);
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [msgs]);
 
-    const send = () => {
-        if (!txt.trim()) return;
-        setMsgs(m => [...m, { id: Date.now(), text: txt, sender: user.id, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    const send = async () => {
+        if (!txt.trim() || !team?.id) return;
+        const msgText = txt.trim();
         setTxt("");
+        try {
+            const res = await chatApi.sendMessage(team.id, msgText);
+            const saved = res.data || res;
+            setMsgs(m => [...m, saved]);
+        } catch (err) {
+            console.error('Failed to send message', err);
+        }
     };
 
     return (
@@ -33,32 +67,39 @@ export default function TeamChatDrawer({ t, team, members, user, onClose }) {
                         <h3 style={{ margin: 0, fontSize: 16, color: t.t1, fontFamily: t.disp, display: "flex", alignItems: "center", gap: 8 }}>
                             <I d={IC.msg} sz={16} c={t.accent} /> Team Chat
                         </h3>
-                        <div style={{ fontSize: 11, color: t.t3, marginTop: 4 }}>{team?.name}</div>
+                        <div style={{ fontSize: 11, color: t.t3, marginTop: 4 }}>{team?.name || "Workspace"}</div>
                     </div>
                     <button onClick={onClose} style={{ background: "none", border: "none", color: t.t3, fontSize: 24, cursor: "pointer", lineHeight: 1 }}>&times;</button>
                 </div>
 
                 {/* Messages */}
                 <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-                    {msgs.map(m => {
-                        if (m.sender === "system") {
+                    {loading ? (
+                        <div style={{ textAlign: "center", fontSize: 12, color: t.t3, fontFamily: t.mono, padding: "20px 0" }}>Loading team messages...</div>
+                    ) : msgs.length === 0 ? (
+                        <div style={{ textAlign: "center", fontSize: 12, color: t.t3, fontFamily: t.mono, padding: "20px 0" }}>No messages yet. Start the conversation!</div>
+                    ) : msgs.map(m => {
+                        const senderId = m.user_id || m.sender;
+                        if (senderId === "system") {
                             return (
                                 <div key={m.id} style={{ textAlign: "center", fontSize: 11, color: t.t3, margin: "10px 0", fontFamily: t.mono }}>
-                                    — {m.text} —
+                                    — {m.message || m.text} —
                                 </div>
                             );
                         }
-                        const isMe = m.sender === user.id;
-                        const mem = members.find(x => x.id === m.sender);
+                        const isMe = String(senderId) === String(user?.id);
+                        const mem = members.find(x => String(x.id) === String(senderId)) || { name: m.sender_name || m.user_name || "Member" };
+                        const formattedTime = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : m.time || "";
+                        
                         return (
                             <div key={m.id} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-end" }}>
-                                {!isMe && mem && (
+                                {!isMe && (
                                     <div style={{ paddingBottom: 20 }}>
                                         <Av u={{ ...mem, av: mem.avatar_initials || mem.name?.slice(0, 2), color: t.accent, avatar_url: mem.avatar_url }} sz={28} />
                                     </div>
                                 )}
                                 <div style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start", maxWidth: "75%" }}>
-                                    {!isMe && mem && <span style={{ fontSize: 10, color: t.t3, marginBottom: 4, marginLeft: 2 }}>{mem.name.split(" ")[0]}</span>}
+                                    {!isMe && <span style={{ fontSize: 10, color: t.t3, marginBottom: 4, marginLeft: 2 }}>{mem.name.split(" ")[0]}</span>}
                                     <div style={{
                                         background: isMe ? t.accent : t.inset,
                                         color: isMe ? "#000" : t.t1,
@@ -66,9 +107,9 @@ export default function TeamChatDrawer({ t, team, members, user, onClose }) {
                                         borderRadius: isMe ? "14px 14px 2px 14px" : "14px 14px 14px 2px",
                                         fontSize: 13, fontFamily: t.disp, lineHeight: 1.4, wordBreak: "break-word"
                                     }}>
-                                        {m.text}
+                                        {m.message || m.text}
                                     </div>
-                                    <span style={{ fontSize: 9, color: t.t3, marginTop: 4, fontFamily: t.mono }}>{m.time}</span>
+                                    <span style={{ fontSize: 9, color: t.t3, marginTop: 4, fontFamily: t.mono }}>{formattedTime}</span>
                                 </div>
                             </div>
                         );

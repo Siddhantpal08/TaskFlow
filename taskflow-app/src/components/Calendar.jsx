@@ -209,10 +209,18 @@ export default function Calendar({ t }) {
             setEventToDelete(null);
         }
     };    return (
-        <div style={{ padding: "22px 28px", display: "flex", gap: 18, maxWidth: 1100, margin: "0 auto", width: "100%" }} className="cal-wrap">
+        <div style={{ padding: "0", display: "flex", gap: 0, width: "100%", height: "100%", overflow: "hidden" }} className="cal-wrap">
+            <style>{`
+                .cal-wrap { display: flex !important; }
+                @media (max-width: 900px) {
+                    .cal-wrap { flex-direction: column !important; height: auto !important; overflow-y: auto !important; padding: 16px !important; gap: 16px !important; }
+                    .cal-sidebar { width: 100% !important; max-height: 340px !important; }
+                }
+            `}</style>
             {/* Calendar grid */}
-            <div style={{ flex: 1 }}>
-                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow }}>
+            <div style={{ flex: 1, padding: "22px 18px 22px 28px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow, display: "flex", flexDirection: "column", height: "100%" }}>
+
                     {/* Month nav */}
                     <div style={{ padding: "14px 20px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -268,8 +276,9 @@ export default function Calendar({ t }) {
             </div>
 
             {/* Sidebar */}
-            <div style={{ width: 240, flexShrink: 0 }} className="cal-sidebar">
-                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 15, boxShadow: t.shadow }}>
+            <div style={{ width: 260, flexShrink: 0, padding: "22px 28px 22px 0", overflow: "hidden", display: "flex", flexDirection: "column" }} className="cal-sidebar">
+                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 15, boxShadow: t.shadow, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+
                     <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>{MONTHS[viewMonth].slice(0, 3)} Events</div>
                     {monthEventsList.length === 0 && (
                         <div style={{ padding: "10px 0" }}>
