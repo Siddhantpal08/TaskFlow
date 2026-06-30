@@ -41,9 +41,9 @@ export function AuthProvider({ children }) {
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        if (user && user.plan) {
+        if (user?.plan && user.plan !== 'null') {
             localStorage.setItem('tf_plan', user.plan);
-        } else if (!user && !loading) {
+        } else if (!loading) {
             localStorage.removeItem('tf_plan');
         }
     }, [user, loading]);

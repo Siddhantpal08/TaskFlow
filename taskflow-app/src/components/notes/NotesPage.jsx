@@ -281,6 +281,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [saveStatus, setSaveStatus] = useState("saved"); // 'saving' | 'saved'
     const [docTheme, setDocTheme] = useState(() => localStorage.getItem("tf_docTheme") || 'light');
     const [useTypewriter, setUseTypewriter] = useState(() => localStorage.getItem("tf_docFont") === 'true');
+    const [docFontFamily, setDocFontFamily] = useState(() => localStorage.getItem(`tf_docFontFamily_${notePageId}`) || '');
     const [zoom, setZoom] = useState(100);
 
     const toggleDocTheme = () => { const nv = docTheme === 'light' ? 'dark' : 'light'; setDocTheme(nv); localStorage.setItem("tf_docTheme", nv); };
@@ -301,6 +302,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const speechRef = useRef(null);
     const activeBlkIdxRef = useRef(0);
     const listeningRef = useRef(false);
+    const historyDebounce = useRef(null);
     const initializedMode = useRef(false); // kept for compatibility, not used for logic
     // drag-and-drop
     const dragFromIdx = useRef(null);
@@ -518,7 +520,18 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         pushHistory();
         const b = mkBlock(type, content);
         const nb = [...blocks]; nb.splice(afterIdx + 1, 0, b); setBlocks(nb);
-        setTimeout(() => document.getElementById("blk-" + (afterIdx + 1))?.focus(), 30);
+        requestAnimationFrame(() => {
+            const el = document.getElementById("blk-" + (afterIdx + 1));
+            if (el) {
+                el.focus();
+                // Place cursor at the start of the new block
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                range.collapse(true);
+                window.getSelection()?.removeAllRanges();
+                window.getSelection()?.addRange(range);
+            }
+        });
         socketRef.current?.emit('note:block:add', { pageId: notePageId, block: b, afterIdx });
         try {
             const res = await notesApi.createBlock(notePageId, { type, content, position: afterIdx + 1, indent: 0 });
@@ -539,6 +552,17 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     };
 
     const updBlk = (idx, ch) => {
+        // Push debounced history snapshot BEFORE applying change
+        if (!historyDebounce.current) {
+            const snap = latestBlocksRef.current.map(b => ({ ...b }));
+            historyRef.current = [...historyRef.current.slice(-49), snap];
+            futureRef.current = [];
+            setCanUndo(true);
+            setCanRedo(false);
+        }
+        clearTimeout(historyDebounce.current);
+        historyDebounce.current = setTimeout(() => { historyDebounce.current = null; }, 800);
+
         const nb = [...blocks];
         const newBlk = { ...nb[idx], ...ch };
         nb[idx] = newBlk;
@@ -1039,7 +1063,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const isNowLocked = !!localStorage.getItem(storageKey) && !unlocked;
 
     return (
-        <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
+        <div style={{ padding: "0", display: "flex", gap: 0, width: "100%", height: "100%", overflow: "hidden", "--doc-font": docFontFamily || "inherit" }} className="notes-wrap" onClick={e => e.stopPropagation()}>
             <style>
                 {`
                 @media print {
@@ -1099,6 +1123,27 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                     { value: "", label: "📄 Normal Note" },
                                     { value: "script", label: "📽️ Script Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
                                     { value: "lyrics", label: "🎵 Lyrics Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
+                                ]}
+                            />
+                        </div>
+
+                        {/* Font Family Selector */}
+                        <div style={{ width: 140 }}>
+                            <CustomSelect
+                                t={t}
+                                value={docFontFamily}
+                                onChange={val => {
+                                    setDocFontFamily(val);
+                                    if (val) localStorage.setItem(`tf_docFontFamily_${notePageId}`, val);
+                                    else localStorage.removeItem(`tf_docFontFamily_${notePageId}`);
+                                    // Update css variable on root doc
+                                }}
+                                options={[
+                                    { value: "", label: "Aa System Default" },
+                                    { value: "'Lora', serif", label: "Aa Serif (Lora)" },
+                                    { value: "'IBM Plex Mono', monospace", label: "Aa Monospace" },
+                                    { value: "'Inter', sans-serif", label: "Aa Sans-serif (Inter)" },
+                                    { value: "'Outfit', sans-serif", label: "Aa Outfit" },
                                 ]}
                             />
                         </div>

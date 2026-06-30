@@ -134,7 +134,6 @@ function MainApp() {
     const [page, setPage] = useState(() => sessionStorage.getItem("tf_page") || "dashboard");
     const [notif, setNotif] = useState(false);
     const [task, setTask] = useState(null);
-    const [modal, setModal] = useState(false);
     const [pageLoading, setPageLoading] = useState(false);
 
     const setPageWithPersist = (p) => {
@@ -429,7 +428,7 @@ function MainApp() {
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                         <Topbar t={t} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
-                            notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} setModal={setModal} />
+                            notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} />
                         <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
                             {page === "dashboard" && <Dashboard t={t} setPage={setPageWithPersist} setTask={setTask} />}
                             {page === "tasks" && <Tasks t={t} setTask={setTask} />}
@@ -455,7 +454,6 @@ function MainApp() {
 
                     {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
                     {task && <TaskDrawer t={t} task={task} onClose={() => setTask(null)} />}
-                    {modal && <AssignModal t={t} onClose={() => setModal(false)} />}
                     {showCredits && <CreditsModal onClose={() => setShowCredits(false)} />}
                     {showFeedbackModal && <FeedbackModal t={t} onClose={() => setShowFeedbackModal(false)} />}
                     {showThemePicker && (

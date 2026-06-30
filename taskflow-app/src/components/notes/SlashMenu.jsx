@@ -13,10 +13,10 @@ export default function SlashMenu({ t, filter, pos, onSelect, onClose, blockType
         b.type.toLowerCase().includes(filter.toLowerCase())
     );
 
-    // Always anchor to the RIGHT of the viewport so it never overlaps the text
-    const right = 8;
+    // Clamp X and Y to viewport
+    const left = Math.min(pos.x, window.innerWidth - MENU_W - 16);
     const flipUp = pos.y + MENU_H > window.innerHeight - 16;
-    const top = flipUp ? pos.y - MENU_H - 8 : pos.y;
+    const top = flipUp ? Math.max(16, pos.y - MENU_H - 24) : pos.y;
 
     useEffect(() => setSel(0), [filter]);
 
@@ -40,7 +40,7 @@ export default function SlashMenu({ t, filter, pos, onSelect, onClose, blockType
         <>
             <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
             <div ref={menuRef} className="slideDown" style={{
-                position: "fixed", right, top, zIndex: 999,
+                position: "fixed", left, top, zIndex: 999,
                 background: t.card, border: `1px solid ${t.border}`,
                 borderRadius: 10, boxShadow: t.shadow, width: MENU_W,
                 overflow: "hidden", maxHeight: MENU_H, overflowY: "auto"

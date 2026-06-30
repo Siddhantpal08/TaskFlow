@@ -510,10 +510,10 @@ export default function NoteBlock({
 
     // ── TEXT BLOCKS (h1, h2, h3, p) ──
     const textStyles = {
-        h1: { fontSize: 28, fontWeight: 700, lineHeight: 1.25, fontFamily: `var(--doc-font, 'Lora', serif)`, color: t.noteText, paddingTop: 18, paddingBottom: 3 },
-        h2: { fontSize: 20, fontWeight: 700, lineHeight: 1.3, fontFamily: `var(--doc-font, ${t.disp})`, color: t.noteText, paddingTop: 12, paddingBottom: 2 },
-        h3: { fontSize: 16, fontWeight: 600, lineHeight: 1.4, fontFamily: `var(--doc-font, ${t.disp})`, color: t.noteText, paddingTop: 8, paddingBottom: 1 },
-        p: { fontSize: 14.5, fontWeight: 400, lineHeight: 1.8, fontFamily: `var(--doc-font, ${t.disp})`, color: t.noteSubText, paddingTop: 1, paddingBottom: 1 },
+        h1: { fontSize: 28, fontWeight: 700, lineHeight: 1.25, fontFamily: `var(--doc-font, 'Lora', serif)`, fontStyle: 'normal', color: t.noteText, paddingTop: 18, paddingBottom: 3 },
+        h2: { fontSize: 20, fontWeight: 700, lineHeight: 1.3, fontFamily: `var(--doc-font, ${t.disp})`, fontStyle: 'normal', color: t.noteText, paddingTop: 12, paddingBottom: 2 },
+        h3: { fontSize: 16, fontWeight: 600, lineHeight: 1.4, fontFamily: `var(--doc-font, ${t.disp})`, fontStyle: 'normal', color: t.noteText, paddingTop: 8, paddingBottom: 1 },
+        p: { fontSize: 14.5, fontWeight: 400, lineHeight: 1.8, fontFamily: `var(--doc-font, ${t.disp})`, fontStyle: 'normal', color: t.noteSubText, paddingTop: 1, paddingBottom: 1 },
     };
     const st = textStyles[blk.type] || textStyles.p;
     const placeholder = blk.type === "h1" ? "Heading 1" : blk.type === "h2" ? "Heading 2" : blk.type === "h3" ? "Heading 3" : "Start writing, or type '/' for commands…";

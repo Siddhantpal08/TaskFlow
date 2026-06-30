@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { I, IC } from "./ui/Icon.jsx";
 import { Av } from "./ui/Av.jsx";
 import { chatApi } from "../api/chat.js";
-import { socket } from "../context/SocketContext.jsx";
+import { io } from "socket.io-client";
 
 export default function TeamChatDrawer({ t, team, members = [], user, onClose }) {
     const [msgs, setMsgs] = useState([]);
@@ -27,14 +27,22 @@ export default function TeamChatDrawer({ t, team, members = [], user, onClose })
             setMsgs(prev => prev.filter(m => m.id !== id));
         };
 
+        const socketBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000')
+            .replace('/api/college/v1', '').replace('/api/v1', '');
+        const socket = io(socketBase, {
+            transports: ['websocket'],
+            auth: { userId: user?.id }
+        });
+
         socket.on('chat:message', handleMsg);
         socket.on('chat:message_deleted', handleMsgDeleted);
 
         return () => {
             socket.off('chat:message', handleMsg);
             socket.off('chat:message_deleted', handleMsgDeleted);
+            socket.disconnect();
         };
-    }, [team?.id]);
+    }, [team?.id, user?.id]);
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: "smooth" });

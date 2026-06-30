@@ -151,6 +151,9 @@ export function DataProvider({ children }) {
         });
 
         // ── Online presence ────────────────────────────────────────────────────
+        socket.on('users:online_list', ({ onlineUsers }) => {
+            setOnlineUsers(new Set(onlineUsers));
+        });
         socket.on('user:online', ({ userId }) => {
             setOnlineUsers(prev => new Set([...prev, String(userId)]));
         });

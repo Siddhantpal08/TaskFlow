@@ -2,7 +2,7 @@ import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
 
-export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, setNotif, page, setPage, setModal }) {
+export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, setNotif, page, setPage }) {
     const { user, logout } = useAuth();
     const { unreadCount } = useData();
     const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team", friends: "Friends" };
@@ -20,16 +20,6 @@ export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, 
             </div>
 
             <div style={{ flex: 1 }} />
-
-            <button onClick={() => setModal(true)} className="hvrB"
-                style={{
-                    display: "flex", alignItems: "center", gap: 7, padding: "8px 16px", borderRadius: 9,
-                    border: "none", cursor: "pointer", fontFamily: t.disp, fontSize: 12.5, fontWeight: 700,
-                    background: `linear-gradient(135deg,${t.accent},#0072FF)`, color: "#000",
-                    boxShadow: t.accentGlow, transition: "all .18s"
-                }}>
-                <I d={IC.plus} sz={14} c="#000" sw={2.5} />Assign Task
-            </button>
 
             <button onClick={() => setNotif(p => !p)} className="hvrI"
                 style={{

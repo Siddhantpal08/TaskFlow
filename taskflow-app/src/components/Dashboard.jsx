@@ -144,19 +144,19 @@ export default function Dashboard({ t, setPage, setTask }) {
     const greeting = hr < 5 ? "Good night" : hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
 
     return (
-        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "auto" }}
             className="dash-root">
             <style>{`
                 @media (max-width: 900px) {
-                    .dash-grid { grid-template-columns: 1fr !important; overflow-y: auto !important; }
-                    .dash-right-col { overflow-y: visible !important; }
+                    .dash-grid { grid-template-columns: 1fr !important; overflow: visible !important; }
+                    .dash-right-col { overflow-y: visible !important; min-height: auto !important; }
                     .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-                    .dash-root { overflow: auto !important; height: auto !important; }
+                    .dash-root { overflow-y: auto !important; height: auto !important; padding-bottom: 80px !important; }
                     .welcome-strip { flex-direction: column; align-items: flex-start !important; gap: 12px; }
                 }
                 @media (max-width: 520px) {
                     .stats-grid { grid-template-columns: 1fr !important; }
-                    .dash-root { padding: 14px 12px !important; }
+                    .dash-root { padding: 14px 12px 80px !important; }
                 }
             `}</style>
 

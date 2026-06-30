@@ -253,6 +253,7 @@ textarea:focus {
   content: attr(data-ph);
   color: var(--t3);
   pointer-events: none;
+  font-style: normal;
 }
 
 /* Paragraph blocks: only show placeholder text when focused */
@@ -262,6 +263,7 @@ textarea:focus {
   pointer-events: none;
   opacity: 0;
   transition: opacity .2s;
+  font-style: normal;
 }
 
 [contenteditable][data-ph=""]:focus:empty::before {

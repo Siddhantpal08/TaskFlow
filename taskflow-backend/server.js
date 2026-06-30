@@ -50,11 +50,20 @@ const io = new Server(server, {
 // Store io globally so notificationService + socket utils can access it
 global._io = io;
 
+const onlineSet = new Set();
+global._onlineUsers = onlineSet;
+
 io.on('connection', (socket) => {
     // Accept userId from auth (primary) or query (fallback for reconnects)
     const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId;
     if (userId) {
         socket.join(`user_${userId}`);
+        onlineSet.add(String(userId));
+        io.emit('user:online', { userId });
+        
+        // Send current online users to the newly connected user
+        socket.emit('users:online_list', { onlineUsers: Array.from(onlineSet) });
+        
         console.log(`[Socket] User ${userId} connected — socket ${socket.id}`);
     }
 
@@ -62,12 +71,26 @@ io.on('connection', (socket) => {
     socket.on('join', ({ userId: uid }) => {
         if (uid) {
             socket.join(`user_${uid}`);
+            onlineSet.add(String(uid));
+            io.emit('user:online', { userId: uid });
+            socket.emit('users:online_list', { onlineUsers: Array.from(onlineSet) });
             console.log(`[Socket] User ${uid} re-joined room — socket ${socket.id}`);
         }
     });
 
     socket.on('disconnect', () => {
         console.log(`[Socket] Socket ${socket.id} disconnected`);
+        if (userId) {
+            // Only mark offline if this was their last socket
+            const allSockets = [...io.sockets.sockets.values()];
+            const stillOnline = allSockets.some(s => 
+                s.id !== socket.id && (s.handshake.auth?.userId == userId || s.handshake.query?.userId == userId)
+            );
+            if (!stillOnline) {
+                onlineSet.delete(String(userId));
+                io.emit('user:offline', { userId });
+            }
+        }
     });
 });
 

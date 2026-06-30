@@ -131,7 +131,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                     </div>
                 ) : (
                     <div onClick={() => setPage("dashboard")} title="TaskFlow"
-                        style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40 }}>
+                        style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
                         <TFLogo size={26} showText={false} />
                     </div>
                 )}
