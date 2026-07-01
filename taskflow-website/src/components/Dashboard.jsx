@@ -144,7 +144,7 @@ export default function Dashboard({ t, setPage, setTask }) {
     const greeting = hr < 5 ? "Good night" : hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
 
     return (
-        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflowY: "auto", overflowX: "hidden" }}
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
             className="dash-root">
             <style>{`
                 @media (max-width: 900px) {
@@ -223,10 +223,10 @@ export default function Dashboard({ t, setPage, setTask }) {
             </div>
 
             {/* ── Main two-column grid ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, flex: 1, minHeight: "min-content" }} className="dash-grid">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, flex: 1, minHeight: 0 }} className="dash-grid">
 
                 {/* ─ Tasks Panel ─ */}
-                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: t.shadow, display: "flex", flexDirection: "column", minHeight: "min-content" }}>
+                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: t.shadow, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
                     {/* Header */}
                     <div style={{ padding: "10px 14px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, flexWrap: "wrap", gap: 6 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: t.t1 }}>Tasks</span>
@@ -251,7 +251,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                     </div>
 
                     {/* Rows */}
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                         {filteredTasks.length === 0 ? (
                             <div style={{ padding: "12px 18px 24px" }}>
                                 <EmptyState
@@ -277,7 +277,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                 </div>
 
                 {/* ─ Right column ─ */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingRight: 2, minHeight: "min-content" }} className="dash-right-col">
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingRight: 2, minHeight: 0, overflow: "hidden" }} className="dash-right-col">
 
                     {/* Upcoming Events */}
                     <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, flexShrink: 0 }}>

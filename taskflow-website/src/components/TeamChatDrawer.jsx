@@ -140,7 +140,6 @@ export default function TeamChatDrawer({ t, team, members = [], user, onClose })
                                     setTxt(txt.slice(0, lastAt) + '@' + m.name + ' ');
                                     setMentionSearch(null);
                                 }} style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", borderBottom: `1px solid ${t.border}44` }}>
-                                    <Av u={{ ...m, av: m.avatar_initials || m.name?.slice(0, 2), color: t.accent, avatar_url: m.avatar_url }} sz={24} />
                                     <span style={{ fontSize: 13, color: t.t1, fontFamily: t.disp }}>{m.name}</span>
                                 </div>
                             ))}
