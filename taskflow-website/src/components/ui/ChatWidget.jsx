@@ -17,6 +17,7 @@ export default function ChatWidget({ t }) {
     const [loading, setLoading] = useState(false);
     const [mentionQuery, setMentionQuery] = useState(null);
     const [mentionMembers, setMentionMembers] = useState([]);
+    const [mentionIndex, setMentionIndex] = useState(0);
     const endRef = useRef();
     const inputRef = useRef();
 
@@ -106,6 +107,7 @@ export default function ChatWidget({ t }) {
         const lastWordMatch = val.match(/@(\w*)$/);
         if (lastWordMatch) {
             setMentionQuery(lastWordMatch[1].toLowerCase());
+            setMentionIndex(0);
         } else {
             setMentionQuery(null);
         }
@@ -116,6 +118,29 @@ export default function ChatWidget({ t }) {
         setTxt(newTxt);
         setMentionQuery(null);
         inputRef.current?.focus();
+    };
+
+    const filteredMentionMembers = mentionQuery !== null ? mentionMembers.filter(m => m.name.toLowerCase().replace(/\s+/g, '').includes(mentionQuery)) : [];
+
+    const handleKeyDown = (e) => {
+        if (mentionQuery !== null && filteredMentionMembers.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setMentionIndex(prev => (prev + 1) % filteredMentionMembers.length);
+                return;
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setMentionIndex(prev => (prev - 1 + filteredMentionMembers.length) % filteredMentionMembers.length);
+                return;
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                insertMention(filteredMentionMembers[mentionIndex].name);
+                return;
+            }
+        }
+        if (e.key === "Enter") {
+            send();
+        }
     };
 
     const handleDeleteMsg = async (messageId) => {
@@ -248,17 +273,18 @@ export default function ChatWidget({ t }) {
                         </div>
                         {/* Input Area */}
                         <div style={{ position: "relative" }}>
-                            {mentionQuery !== null && (
+                            {mentionQuery !== null && filteredMentionMembers.length > 0 && (
                                 <div style={{
                                     position: "absolute", bottom: "100%", left: 12, right: 12, marginBottom: 8,
                                     background: t.card, border: `1px solid ${t.border}`, borderRadius: 12,
                                     boxShadow: t.shadow, maxHeight: 150, overflowY: "auto", zIndex: 10
                                 }}>
-                                    {mentionMembers.filter(m => m.name.toLowerCase().replace(/\s+/g, '').includes(mentionQuery)).map(m => (
+                                    {filteredMentionMembers.map((m, idx) => (
                                         <div key={m.id} onClick={() => insertMention(m.name)} style={{
                                             padding: "8px 12px", fontSize: 12, color: t.t1, cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
-                                            borderBottom: `1px solid ${t.border}`
-                                        }} onMouseEnter={e => e.currentTarget.style.background = t.accentDim} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                            borderBottom: `1px solid ${t.border}`,
+                                            background: mentionIndex === idx ? t.accentDim : "transparent"
+                                        }} onMouseEnter={() => setMentionIndex(idx)}>
                                             <Av u={{ name: m.name, avatar_initials: m.avatar_initials, color: t.accent }} sz={20} />
                                             {m.name.replace(/\s+/g, '')}
                                         </div>
@@ -267,7 +293,7 @@ export default function ChatWidget({ t }) {
                             )}
                             <div style={{ padding: 12, borderTop: `1px solid ${t.border}`, background: t.card }}>
                                 <div style={{ display: "flex", gap: 8 }}>
-                                    <input ref={inputRef} value={txt} onChange={handleTextChange} onKeyDown={e => e.key === "Enter" && send()}
+                                    <input ref={inputRef} value={txt} onChange={handleTextChange} onKeyDown={handleKeyDown}
                                         placeholder="Type your message..."
                                         style={{ flex: 1, padding: "10px 14px", borderRadius: 20, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, outline: "none", fontSize: 12.5, fontFamily: t.disp }} />
                                     <button onClick={send} disabled={!txt.trim()}

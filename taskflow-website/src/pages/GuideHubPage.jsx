@@ -134,7 +134,7 @@ const GUIDE_DATA = {
     },
     "calendar": {
         label: "Calendar",
-        icon: "📅",
+        icon: IC.cal,
         items: [
             {
                 title: "Add Events",

@@ -1106,9 +1106,13 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             <style>
                 {`
                 @media print {
+                    body { background: #fff !important; }
                     body * { visibility: hidden !important; }
                     .tf-print-area, .tf-print-area * { visibility: visible !important; color: #000 !important; }
-                    .tf-print-area { position: absolute; left: 0; top: 0; width: 100%; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #fff !important; color: #000 !important; }
+                    .tf-print-area { position: static !important; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #fff !important; color: #000 !important; }
+                    /* Fix pagination */
+                    body, html, #root, .notes-wrap, .tf-scroll-wrapper { height: auto !important; overflow: visible !important; position: static !important; }
+                    .tf-print-area, .tf-print-area *, .tf-scroll-wrapper * { transform: none !important; }
                     /* hide UI elements */
                     .tf-print-area button { display: none !important; }
                     @page { margin: 20mm; }
