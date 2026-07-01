@@ -15,7 +15,10 @@ export default function ChatWidget({ t }) {
     const [msgs, setMsgs] = useState([]);
     const [txt, setTxt] = useState("");
     const [loading, setLoading] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState(null);
+    const [mentionMembers, setMentionMembers] = useState([]);
     const endRef = useRef();
+    const inputRef = useRef();
 
     useEffect(() => {
         teamApi.getMyTeams().then(res => setTeams(res.data || [])).catch(() => {});
@@ -37,6 +40,10 @@ export default function ChatWidget({ t }) {
                 setMsgs(res.data || []);
                 endRef.current?.scrollIntoView({ behavior: "smooth" });
             }).finally(() => setLoading(false));
+
+            teamApi.getTeamMembers(selectedTeam.id).then(res => {
+                setMentionMembers(res.data || []);
+            }).catch(() => {});
         }
     }, [selectedTeam]);
 
@@ -65,6 +72,7 @@ export default function ChatWidget({ t }) {
         if (!txt.trim() || !selectedTeam) return;
         const msgText = txt.trim();
         setTxt(""); // optimistic clear
+        setMentionQuery(null);
         
         // Optimistic UI append
         const tempMsg = {
@@ -90,6 +98,24 @@ export default function ChatWidget({ t }) {
             setMsgs(prev => prev.filter(m => m.id !== tempMsg.id));
             setTxt(msgText);
         }
+    };
+
+    const handleTextChange = (e) => {
+        const val = e.target.value;
+        setTxt(val);
+        const lastWordMatch = val.match(/@(\w*)$/);
+        if (lastWordMatch) {
+            setMentionQuery(lastWordMatch[1].toLowerCase());
+        } else {
+            setMentionQuery(null);
+        }
+    };
+
+    const insertMention = (name) => {
+        const newTxt = txt.replace(/@\w*$/, `@${name.replace(/\s+/g, '')} `);
+        setTxt(newTxt);
+        setMentionQuery(null);
+        inputRef.current?.focus();
     };
 
     const handleDeleteMsg = async (messageId) => {
@@ -186,7 +212,9 @@ export default function ChatWidget({ t }) {
                                                         borderRadius: isMe ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
                                                         fontSize: 12.5, fontFamily: t.disp, lineHeight: 1.4, wordBreak: "break-word"
                                                     }}>
-                                                        {m.message}
+                                                        {m.message.split(/(@[a-zA-Z0-9_]+)/g).map((part, i) => 
+                                                            part.startsWith('@') ? <span key={i} style={{ color: isMe ? '#000' : t.accent, fontWeight: 800 }}>{part}</span> : part
+                                                        )}
                                                     </div>
                                                     {isMe && !String(m.id).startsWith("temp_") && (
                                                         <button 
@@ -219,15 +247,34 @@ export default function ChatWidget({ t }) {
                             <div ref={endRef} />
                         </div>
                         {/* Input Area */}
-                        <div style={{ padding: 12, borderTop: `1px solid ${t.border}`, background: t.card }}>
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <input value={txt} onChange={e => setTxt(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
-                                    placeholder="Type your message..."
-                                    style={{ flex: 1, padding: "10px 14px", borderRadius: 20, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, outline: "none", fontSize: 12.5, fontFamily: t.disp }} />
-                                <button onClick={send} disabled={!txt.trim()}
-                                    style={{ background: txt.trim() ? t.accent : t.inset, color: txt.trim() ? "#000" : t.t3, border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: txt.trim() ? "pointer" : "default", transition: "all .2s" }}>
-                                    <I d={IC.snd} sz={14} />
-                                </button>
+                        <div style={{ position: "relative" }}>
+                            {mentionQuery !== null && (
+                                <div style={{
+                                    position: "absolute", bottom: "100%", left: 12, right: 12, marginBottom: 8,
+                                    background: t.card, border: `1px solid ${t.border}`, borderRadius: 12,
+                                    boxShadow: t.shadow, maxHeight: 150, overflowY: "auto", zIndex: 10
+                                }}>
+                                    {mentionMembers.filter(m => m.name.toLowerCase().replace(/\s+/g, '').includes(mentionQuery)).map(m => (
+                                        <div key={m.id} onClick={() => insertMention(m.name)} style={{
+                                            padding: "8px 12px", fontSize: 12, color: t.t1, cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
+                                            borderBottom: `1px solid ${t.border}`
+                                        }} onMouseEnter={e => e.currentTarget.style.background = t.accentDim} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                            <Av u={{ name: m.name, avatar_initials: m.avatar_initials, color: t.accent }} sz={20} />
+                                            {m.name.replace(/\s+/g, '')}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <div style={{ padding: 12, borderTop: `1px solid ${t.border}`, background: t.card }}>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                    <input ref={inputRef} value={txt} onChange={handleTextChange} onKeyDown={e => e.key === "Enter" && send()}
+                                        placeholder="Type your message..."
+                                        style={{ flex: 1, padding: "10px 14px", borderRadius: 20, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, outline: "none", fontSize: 12.5, fontFamily: t.disp }} />
+                                    <button onClick={send} disabled={!txt.trim()}
+                                        style={{ background: txt.trim() ? t.accent : t.inset, color: txt.trim() ? "#000" : t.t3, border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: txt.trim() ? "pointer" : "default", transition: "all .2s" }}>
+                                        <I d={IC.send || IC.mail} sz={14} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </>

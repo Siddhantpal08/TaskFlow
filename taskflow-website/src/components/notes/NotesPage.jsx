@@ -251,10 +251,18 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
                     </span>
                 </div>
                 
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: t.t1, fontFamily: t.disp, userSelect: 'none' }}>
-                    <input type="checkbox" checked={isCollab} onChange={e => { setIsCollab(e.target.checked); setCopied(false); }} style={{ accentColor: t.accent }} />
-                    Allow Real-time Collaboration (View & Edit)
-                </label>
+                <div style={{ zIndex: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: t.t1, marginBottom: 8, fontFamily: t.disp }}>Access Level</div>
+                    <CustomSelect 
+                        t={t}
+                        value={isCollab ? "edit" : "view"}
+                        onChange={val => { setIsCollab(val === "edit"); setCopied(false); }}
+                        options={[
+                            { value: "view", label: "View Only (Creates a copy)" },
+                            { value: "edit", label: "View & Edit (Real-time Collaboration)" }
+                        ]}
+                    />
+                </div>
 
                 {/* Link area */}
                 {loading && (
@@ -1099,7 +1107,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 {`
                 @media print {
                     body * { visibility: hidden !important; }
-                    .tf-print-area, .tf-print-area * { visibility: visible !important; }
+                    .tf-print-area, .tf-print-area * { visibility: visible !important; color: #000 !important; }
                     .tf-print-area { position: absolute; left: 0; top: 0; width: 100%; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #fff !important; color: #000 !important; }
                     /* hide UI elements */
                     .tf-print-area button { display: none !important; }
@@ -1183,7 +1191,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${saveStatus === "saving" ? t.accent : t.border}`, background: saveStatus === "saving" ? t.accentDim : "transparent", cursor: "pointer", color: saveStatus === "saving" ? t.accent : t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
                             onMouseEnter={e => { if (saveStatus !== "saving") e.currentTarget.style.background = t.noteHover; }}
                             onMouseLeave={e => { if (saveStatus !== "saving") e.currentTarget.style.background = "transparent"; }}>
-                            {saveStatus === "saving" ? "Saving..." : "✓ Saved"}
+                            {saveStatus === "saving" ? "Saving..." : "💾 Save"}
                         </button>
 
                         {/* Zoom controls */}

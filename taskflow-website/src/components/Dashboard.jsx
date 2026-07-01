@@ -264,20 +264,20 @@ export default function Dashboard({ t, setPage, setTask }) {
                                 />
                             </div>
                         ) : (
-                            filteredTasks.slice(0, 8).map(tk => (
+                            filteredTasks.slice(0, 6).map(tk => (
                                 <TaskRow key={tk.id} tk={tk} t={t} onClick={() => setTask(tk)} />
                             ))
                         )}
-                        {filteredTasks.length > 8 && (
+                        {filteredTasks.length > 6 && (
                             <div onClick={() => setPage("tasks")} style={{ padding: "11px 18px", textAlign: "center", fontSize: 12, color: t.accent, cursor: "pointer", fontWeight: 600, borderTop: `1px solid ${t.border}` }}>
-                                View {filteredTasks.length - 8} more →
+                                View {filteredTasks.length - 6} more →
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* ─ Right column ─ */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", paddingRight: 2, minHeight: 0 }} className="dash-right-col">
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, overflow: "hidden", paddingRight: 2, minHeight: 0 }} className="dash-right-col">
 
                     {/* Upcoming Events */}
                     <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, flexShrink: 0 }}>
@@ -296,7 +296,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                                     onCta={() => setPage("calendar")}
                                 />
                             </div>
-                        ) : events.slice(0, 4).map(ev => {
+                        ) : events.slice(0, 3).map(ev => {
                             const d = new Date(ev.event_date);
                             const colors = [t.red, t.accent, t.green, t.amber];
                             const c = colors[ev.id % colors.length];
@@ -342,8 +342,8 @@ export default function Dashboard({ t, setPage, setTask }) {
                     })()}
 
                     {/* ─ Productivity Score ─ */}
-                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 16px", boxShadow: t.shadow, flexShrink: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 14 }}>Productivity Score</div>
+                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "12px 14px", boxShadow: t.shadow, flexShrink: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 10 }}>Productivity Score</div>
                         {[
                             { label: "Completion Rate", val: rate, color: t.accent },
                             { label: "Active Tasks",    val: total ? Math.round(active / total * 100) : 0, color: t.amber },
@@ -362,20 +362,20 @@ export default function Dashboard({ t, setPage, setTask }) {
                     </div>
 
                     {/* ─ Quick Actions ─ */}
-                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 16px", boxShadow: t.shadow, flexShrink: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>Quick Actions</div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "12px 14px", boxShadow: t.shadow, flexShrink: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 8 }}>Quick Actions</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                             {[
                                 { icon: "✅", label: "New Task", action: () => setPage("tasks") },
                                 { icon: "📝", label: "New Note", action: () => setPage("notes") },
                                 { icon: "📅", label: "Add Event", action: () => setPage("calendar") },
-                                { icon: "👥", label: "Invite Member", action: () => setPage("team") },
+                                { icon: "👥", label: "Invite", action: () => setPage("team") },
                             ].map(({ icon, label, action }) => (
                                 <button key={label} onClick={action}
-                                    style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 8, border: `1px solid ${t.border}`, background: "transparent", color: t.t1, fontSize: 12.5, fontFamily: t.disp, cursor: "pointer", textAlign: "left", transition: "all .15s" }}
+                                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 8, border: `1px solid ${t.border}`, background: "transparent", color: t.t1, fontSize: 11, fontFamily: t.disp, cursor: "pointer", textAlign: "left", transition: "all .15s" }}
                                     onMouseEnter={e => { e.currentTarget.style.background = t.accentDim; e.currentTarget.style.borderColor = t.accent + "44"; e.currentTarget.style.color = t.accent; }}
                                     onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.t1; }}>
-                                    <span style={{ fontSize: 16 }}>{icon}</span>
+                                    <span style={{ fontSize: 14 }}>{icon}</span>
                                     {label}
                                 </button>
                             ))}

@@ -506,7 +506,7 @@ function MainApp() {
                     )}
 
                     {showQuickCapture && (
-                        <CreateTaskModal t={t} teamMembers={teamMembers} onClose={() => setShowQuickCapture(false)} onCreate={async (tk) => {
+                        <CreateTaskModal t={t} onClose={() => setShowQuickCapture(false)} onCreate={async (tk) => {
                             await createTask(tk);
                             toastSuccess("Task captured!");
                             setShowQuickCapture(false);

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { feedbackApi } from "../api/feedback";
+import { I, IC } from "../components/ui/Icon";
 
 const GUIDE_DATA = {
     "getting-started": {
         label: "Getting Started",
-        icon: "🚀",
+        icon: IC.sun,
         items: [
             {
                 title: "Set Up Your Profile",
@@ -40,7 +41,7 @@ const GUIDE_DATA = {
     },
     "notes": {
         label: "Notes & Docs",
-        icon: "📝",
+        icon: IC.note,
         items: [
             {
                 title: "Block Editor — All Block Types",
@@ -91,7 +92,7 @@ const GUIDE_DATA = {
     },
     "tasks": {
         label: "Tasks",
-        icon: "✅",
+        icon: IC.task,
         items: [
             {
                 title: "Create & Manage Tasks",
@@ -155,9 +156,9 @@ const GUIDE_DATA = {
             },
         ],
     },
-    "team": {
-        label: "Team & Collaboration",
-        icon: "👥",
+    "collaboration": {
+        label: "Collaboration",
+        icon: IC.team,
         items: [
             {
                 title: "Team Roles",
@@ -185,9 +186,9 @@ const GUIDE_DATA = {
             },
         ],
     },
-    "pro": {
-        label: "Pro Features",
-        icon: "✦",
+    "account": {
+        label: "Account & Billing",
+        icon: IC.user,
         items: [
             {
                 title: "Unlimited Everything",
@@ -291,7 +292,7 @@ export default function GuideHubPage({ t, setPage }) {
                     item.desc.toLowerCase().includes(search.toLowerCase()) ||
                     (item.tags || []).some(tag => tag.includes(search.toLowerCase()))
                 )
-                .map(item => ({ ...item, sectionKey: key, sectionLabel: sec.label, sectionIcon: sec.icon }))
+                .map(item => ({ ...item, sectionKey: key, sectionLabel: sec.label }))
         )
         : null;
 
@@ -359,7 +360,7 @@ export default function GuideHubPage({ t, setPage }) {
                                 borderLeft: `3px solid ${activeTab === key ? t.accent : "transparent"}`,
                                 transition: "all .15s",
                             }}>
-                            <span style={{ fontSize: 16 }}>{sec.icon}</span>
+                            <I d={sec.icon} sz={16} c={activeTab === key ? t.accent : t.t2} />
                             {sec.label}
                         </button>
                     ))}
@@ -368,21 +369,12 @@ export default function GuideHubPage({ t, setPage }) {
 
                     <button className="guide-tab" onClick={() => { setActiveTab("support"); setSearch(""); setMsg(""); }}
                         style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 8, border: "none", background: activeTab === "support" ? t.accentDim : "transparent", color: activeTab === "support" ? t.accent : t.t2, fontFamily: t.disp, fontSize: 13, fontWeight: activeTab === "support" ? 700 : 400, cursor: "pointer", textAlign: "left", width: "100%", borderLeft: `3px solid ${activeTab === "support" ? t.accent : "transparent"}`, transition: "all .15s" }}>
-                        <span style={{ fontSize: 16 }}>🎫</span> Support Ticket
+                        <I d={IC.note} sz={16} c={activeTab === "support" ? t.accent : t.t2} /> Support Ticket
                     </button>
                     <button className="guide-tab" onClick={() => { setActiveTab("feedback"); setSearch(""); setMsg(""); }}
                         style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 8, border: "none", background: activeTab === "feedback" ? t.accentDim : "transparent", color: activeTab === "feedback" ? t.accent : t.t2, fontFamily: t.disp, fontSize: 13, fontWeight: activeTab === "feedback" ? 700 : 400, cursor: "pointer", textAlign: "left", width: "100%", borderLeft: `3px solid ${activeTab === "feedback" ? t.accent : "transparent"}`, transition: "all .15s" }}>
-                        <span style={{ fontSize: 16 }}>⭐</span> Share Feedback
-                    </button>                    <div style={{ marginTop: "auto", padding: "10px 4px" }}>
-                        <div style={{ background: t.accentDim, border: `1px solid ${t.accent}30`, borderRadius: 10, padding: "10px 12px" }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 4 }}>✦ TaskFlow Pro</div>
-                            <div style={{ fontSize: 10.5, color: t.t2, lineHeight: 1.5 }}>Unlock unlimited notes, tasks, team members & more.</div>
-                            <button onClick={() => setPage("dashboard")}
-                                style={{ marginTop: 8, width: "100%", padding: "5px 0", borderRadius: 6, border: "none", background: t.accent, color: "#000", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: t.disp }}>
-                                Upgrade ↗
-                            </button>
-                        </div>
-                    </div>
+                        <I d={IC.star} sz={16} c={activeTab === "feedback" ? t.accent : t.t2} /> Share Feedback
+                    </button>
                 </div>
 
                 {/* ── Content ── */}
@@ -409,7 +401,9 @@ export default function GuideHubPage({ t, setPage }) {
                             {activeTab === "support" ? (
                                 <div style={{ maxWidth: 600 }}>
                                     <div style={{ marginBottom: 24 }}>
-                                        <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 28 }}>🎫</span> Submit Support Ticket</div>
+                                        <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
+                                            <I d={IC.note} sz={28} c={t.t1} /> Submit Support Ticket
+                                        </div>
                                         <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>Experiencing an issue? Open a ticket and we'll help you out.</div>
                                     </div>
                                     <form onSubmit={handleSupportSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -428,7 +422,9 @@ export default function GuideHubPage({ t, setPage }) {
                             ) : activeTab === "feedback" ? (
                                 <div style={{ maxWidth: 600 }}>
                                     <div style={{ marginBottom: 24 }}>
-                                        <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 28 }}>⭐</span> Share Feedback</div>
+                                        <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
+                                            <I d={IC.star} sz={28} c={t.t1} /> Share Feedback
+                                        </div>
                                         <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>Help us shape the future of TaskFlow. What should we build next?</div>
                                     </div>
                                     <form onSubmit={handleFeedbackSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -446,7 +442,7 @@ export default function GuideHubPage({ t, setPage }) {
                                 <div>
                                     <div style={{ marginBottom: 20 }}>
                                         <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
-                                            <span style={{ fontSize: 28 }}>{section.icon}</span>
+                                            <I d={section.icon} sz={24} c={t.t1} />
                                             {section.label}
                                         </div>
                                         <div style={{ fontSize: 13, color: t.t2, marginTop: 4 }}>
@@ -495,7 +491,7 @@ function GuideCard({ item, t, showSection = false, expanded, onToggle }) {
                             <span style={{ fontSize: 9, fontWeight: 700, color: t.amber, background: t.amber + "14", padding: "2px 7px", borderRadius: 999, fontFamily: t.mono, border: `1px solid ${t.amber}30` }}>STARTER+</span>
                         )}
                         {showSection && (
-                            <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono }}>· {item.sectionIcon} {item.sectionLabel}</span>
+                            <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono }}>· {item.sectionLabel}</span>
                         )}
                     </div>
                     <div style={{ fontSize: 12.5, color: t.t2, marginTop: 5, lineHeight: 1.6 }}>{item.desc}</div>

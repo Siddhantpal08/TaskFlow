@@ -5,7 +5,7 @@ import { teamApi } from "../api/team.js";
 import CustomSelect from "./ui/CustomSelect.jsx";
 import CustomDateTimePicker from "./ui/CustomDateTimePicker.jsx";
 
-export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, initialAssignee }) {
+export default function CreateTaskModal({ t, onClose, onCreate, initialAssignee }) {
     const { user } = useAuth();
     const { teams } = useData();
     const [title, setTitle] = useState('');
@@ -102,10 +102,7 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
                                 options={[
                                     { value: "", label: "Select member..." },
                                     ...localTeamMembers
-                                    .filter(m => {
-                                        const amIAdmin = localTeamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
-                                        return m.id !== user?.id && (amIAdmin ? true : (m.role !== 'admin'));
-                                    })
+                                    .filter(m => m.id !== user?.id)
                                     .map(m => ({ value: String(m.id), label: m.name }))
                                 ]}
                             />
