@@ -1,6 +1,6 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const db = require('../models/db');
+const db = require('../utils/db');
 
 // ── Razorpay client ──────────────────────────────────────────────────────────
 const razorpay = new Razorpay({
