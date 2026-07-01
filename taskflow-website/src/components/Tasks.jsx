@@ -8,6 +8,8 @@ import { toastError, toastSuccess } from "./ui/Toast.jsx";
 import CreateTaskModal from "./CreateTaskModal.jsx";
 import EmptyState from "./ui/EmptyState.jsx";
 import ConfirmModal from "./ui/ConfirmModal.jsx";
+import KanbanBoard from "./KanbanBoard.jsx";
+import DatabaseGrid from "./DatabaseGrid.jsx";
 
 function fmtDate(d) {
     if (!d) return "—";
@@ -18,6 +20,7 @@ export default function Tasks({ t, setTask, searchQuery }) {
     const { tasks = [], createTask, updateTaskStatus, deleteTask, teamMembers = [], loading } = useData();
     const { user } = useAuth();
     const [fil, setFil] = useState("all");
+    const [viewMode, setViewMode] = useState("list"); // "list" | "board"
     const [showCreate, setShowCreate] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState(null);
 
@@ -54,6 +57,13 @@ export default function Tasks({ t, setTask, searchQuery }) {
                     })}
                 </div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    {/* View Toggle */}
+                    <div style={{ display: 'flex', background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: 2 }}>
+                        <button onClick={() => setViewMode("list")} style={{ background: viewMode === "list" ? t.accentDim : "transparent", color: viewMode === "list" ? t.accent : t.t2, border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: viewMode === "list" ? 700 : 500, fontFamily: t.disp, transition: "all .15s" }}>List</button>
+                        <button onClick={() => setViewMode("board")} style={{ background: viewMode === "board" ? t.accentDim : "transparent", color: viewMode === "board" ? t.accent : t.t2, border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: viewMode === "board" ? 700 : 500, fontFamily: t.disp, transition: "all .15s" }}>Board</button>
+                        <button onClick={() => setViewMode("grid")} style={{ background: viewMode === "grid" ? t.accentDim : "transparent", color: viewMode === "grid" ? t.accent : t.t2, border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: viewMode === "grid" ? 700 : 500, fontFamily: t.disp, transition: "all .15s" }}>Grid</button>
+                    </div>
+
                     <button onClick={() => setShowCreate(true)} style={{
                         background: t.accent, border: 'none', borderRadius: 8, padding: '8px 16px',
                         color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13,
@@ -62,8 +72,13 @@ export default function Tasks({ t, setTask, searchQuery }) {
                 </div>
             </div>
 
-            {/* Tasks table */}
-            <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow }}>
+            {viewMode === "board" ? (
+                <KanbanBoard t={t} tasks={list} setTask={setTask} updateTaskStatus={updateTaskStatus} user={user} />
+            ) : viewMode === "grid" ? (
+                <DatabaseGrid t={t} tasks={list} setTask={setTask} updateTaskStatus={updateTaskStatus} />
+            ) : (
+                /* Tasks table (List View) */
+                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "10px 18px", borderBottom: `1px solid ${t.border}`, fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", fontFamily: t.mono }}>
                     <span>Task</span><span>Assigned By</span><span>Due</span><span>Priority</span><span>Status</span><span></span>
                 </div>
@@ -131,6 +146,7 @@ export default function Tasks({ t, setTask, searchQuery }) {
                     </div>
                 ))}
             </div>
+            )}
 
             {showCreate && <CreateTaskModal t={t} teamMembers={teamMembers} onClose={() => setShowCreate(false)} onCreate={createTask} />}
             {taskToDelete && (

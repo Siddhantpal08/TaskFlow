@@ -43,6 +43,7 @@ import NotesHome from "./components/notes/NotesHome.jsx";
 import NotifPanel from "./components/NotifPanel.jsx";
 import TaskDrawer from "./components/TaskDrawer.jsx";
 import AssignModal from "./components/AssignModal.jsx";
+import CreateTaskModal from "./components/CreateTaskModal.jsx";
 import { ToastProvider } from "./components/ui/Toast.jsx";
 import FeedbackModal from "./components/ui/FeedbackModal.jsx";
 
@@ -149,6 +150,7 @@ function MainApp() {
     const [pages, setPages] = useState({});
     const [notePageId, setNotePageId] = useState(() => sessionStorage.getItem("tf_notePageId") || null);
     const [expanded, setExpanded] = useState({ root: true });
+    const [showQuickCapture, setShowQuickCapture] = useState(false);
 
     // Persist notePageId
     const setNotePageIdWithPersist = (id) => {
@@ -483,6 +485,20 @@ function MainApp() {
                                 </div>
                             )}
                         </main>
+
+                        {/* Global Quick Capture FAB */}
+                        <button onClick={() => setShowQuickCapture(true)} title="Quick Capture Task (Alt+T)"
+                            style={{
+                                position: 'absolute', bottom: 30, right: 30, width: 56, height: 56, borderRadius: 28,
+                                background: `linear-gradient(135deg, ${t.accent}, #00D2FF)`, color: '#000', border: 'none',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: `0 8px 24px ${t.accent}66`, zIndex: 30, transition: 'transform .2s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                            <I d={IC.plus} sz={24} c="#000" sw={2.5} />
+                        </button>
+
                     </div>
 
                     {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}
@@ -497,6 +513,14 @@ function MainApp() {
                     {/* Freemium upgrade modal */}
                     {upgradeModal && (
                         <UpgradeModal t={t} feature={upgradeModal.feature} onClose={() => setUpgradeModal(null)} />
+                    )}
+
+                    {showQuickCapture && (
+                        <CreateTaskModal t={t} teamMembers={teamMembers} onClose={() => setShowQuickCapture(false)} onCreate={async (tk) => {
+                            await createTask(tk);
+                            toastSuccess("Task captured!");
+                            setShowQuickCapture(false);
+                        }} />
                     )}
 
                     {/* Global Chat Widget */}
