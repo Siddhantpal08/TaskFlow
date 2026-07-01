@@ -144,12 +144,16 @@ export default function Dashboard({ t, setPage, setTask }) {
     const greeting = hr < 5 ? "Good night" : hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
 
     return (
-        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
             className="dash-root">
             <style>{`
+                @media (max-width: 1200px) {
+                    .dash-right-wrapper { flex-direction: column !important; width: 280px !important; }
+                }
                 @media (max-width: 900px) {
                     .dash-grid { grid-template-columns: 1fr !important; overflow: visible !important; }
-                    .dash-right-col { overflow-y: visible !important; min-height: auto !important; }
+                    .dash-right-wrapper { width: 100% !important; }
+                    .dash-right-col { width: 100% !important; overflow-y: visible !important; min-height: auto !important; }
                     .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
                     .dash-root { overflow-y: auto !important; height: auto !important; padding-bottom: 60px !important; }
                     .welcome-strip { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
@@ -222,8 +226,8 @@ export default function Dashboard({ t, setPage, setTask }) {
                 />
             </div>
 
-            {/* ── Main two-column grid ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, flex: 1, minHeight: 0 }} className="dash-grid">
+            {/* ── Main grid ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, flex: 1, minHeight: 0 }} className="dash-grid">
 
                 {/* ─ Tasks Panel ─ */}
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: t.shadow, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
@@ -276,8 +280,10 @@ export default function Dashboard({ t, setPage, setTask }) {
                     </div>
                 </div>
 
-                {/* ─ Right column ─ */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingRight: 2, minHeight: 0, overflow: "hidden" }} className="dash-right-col">
+                {/* ─ Right Section Wrapper ─ */}
+                <div style={{ display: "flex", gap: 16, minHeight: 0, overflow: "hidden" }} className="dash-right-wrapper">
+                    {/* First column: Events & Focus */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: 280, flexShrink: 0, minHeight: 0, overflow: "hidden" }} className="dash-right-col">
 
                     {/* Upcoming Events */}
                     <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, flexShrink: 0 }}>
@@ -340,6 +346,10 @@ export default function Dashboard({ t, setPage, setTask }) {
                             </div>
                         );
                     })()}
+                    </div>
+
+                    {/* Second column: Productivity & Actions */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: 280, flexShrink: 0, minHeight: 0, overflow: "hidden" }} className="dash-right-col">
 
                     {/* ─ Productivity Score ─ */}
                     <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "12px 14px", boxShadow: t.shadow, flexShrink: 0 }}>
@@ -380,6 +390,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                                 </button>
                             ))}
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
