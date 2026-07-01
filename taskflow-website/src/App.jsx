@@ -194,11 +194,12 @@ function MainApp() {
 
                 const sharedNoteId = urlParams.get('note');
                 const token = urlParams.get('token');
+                const shareMode = urlParams.get('mode');
                 let acceptedId = null;
 
                 if (token) {
                     try {
-                        const acceptRes = await notesApi.acceptShare(token);
+                        const acceptRes = await notesApi.acceptShare(token, shareMode);
                         if (acceptRes.data?.status === 'success' || acceptRes.data?.data) {
                             acceptedId = acceptRes.data.data.id;
                         }
@@ -463,7 +464,7 @@ function MainApp() {
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                         <Topbar t={t} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
-                            notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} />
+                            notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} setShowQuickCapture={setShowQuickCapture} />
                         <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
                             {page === "dashboard" && <Dashboard t={t} setPage={setPageWithPersist} setTask={setTask} />}
                             {page === "tasks" && <Tasks t={t} setTask={setTask} />}
@@ -485,20 +486,6 @@ function MainApp() {
                                 </div>
                             )}
                         </main>
-
-                        {/* Global Quick Capture FAB */}
-                        <button onClick={() => setShowQuickCapture(true)} title="Quick Capture Task (Alt+T)"
-                            style={{
-                                position: 'absolute', bottom: 90, right: 30, width: 56, height: 56, borderRadius: 28,
-                                background: `linear-gradient(135deg, ${t.accent}, #00D2FF)`, color: '#000', border: 'none',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: `0 8px 24px ${t.accent}66`, zIndex: 30, transition: 'transform .2s'
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                            <I d={IC.plus} sz={24} c="#000" sw={2.5} />
-                        </button>
-
                     </div>
 
                     {notif && <NotifPanel t={t} onClose={() => setNotif(false)} />}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { feedbackApi } from "../api/feedback";
 
 const GUIDE_DATA = {
     "getting-started": {
@@ -248,24 +249,35 @@ export default function GuideHubPage({ t, setPage }) {
     // Feedback Form
     const [feedback, setFeedback] = useState({ type: "feature", desc: "", rating: 5 });
 
-    const handleSupportSubmit = (e) => {
+    const handleSupportSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setTimeout(() => {
-            setMsg("Ticket submitted successfully. Our team will review it shortly.");
-            setLoading(false);
+        setMsg("");
+        try {
+            await feedbackApi.submitTicket(ticket.title, ticket.category, ticket.desc);
+            setMsg("Ticket submitted successfully. A confirmation email has been sent to you.");
             setTicket({ title: "", category: "bug", desc: "" });
-        }, 1000);
+        } catch (err) {
+            setMsg("Failed to submit ticket.");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleFeedbackSubmit = (e) => {
+    const handleFeedbackSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setTimeout(() => {
+        setMsg("");
+        try {
+            const message = `[${feedback.type.toUpperCase()}] ${feedback.desc}`;
+            await feedbackApi.submit(feedback.rating, message);
             setMsg("Feedback sent! Thank you for helping improve TaskFlow.");
-            setLoading(false);
             setFeedback({ type: "feature", desc: "", rating: 5 });
-        }, 1000);
+        } catch (err) {
+            setMsg("Failed to send feedback.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const section = GUIDE_DATA[activeTab];

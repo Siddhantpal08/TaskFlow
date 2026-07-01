@@ -2,7 +2,7 @@ import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
 
-export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, setNotif, page, setPage }) {
+export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, setNotif, page, setPage, setShowQuickCapture }) {
     const { user, logout } = useAuth();
     const { unreadCount } = useData();
     const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team", friends: "Friends" };
@@ -20,6 +20,22 @@ export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, 
             </div>
 
             <div style={{ flex: 1 }} />
+
+            {setShowQuickCapture && (
+                <button onClick={() => setShowQuickCapture(true)} className="hvrI"
+                    title="Quick Capture Task (Alt+T)"
+                    style={{
+                        background: `linear-gradient(135deg, ${t.accent}, #00D2FF)`,
+                        border: `1px solid ${t.accent}44`,
+                        color: '#000',
+                        borderRadius: 9, padding: "7px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                        transition: "all .2s", fontWeight: 700, fontFamily: t.disp, fontSize: 13,
+                        boxShadow: `0 4px 12px ${t.accent}40`
+                    }}>
+                    <I d={IC.plus} sz={15} c="#000" sw={2.5} />
+                    <span className="hide-mobile">Capture</span>
+                </button>
+            )}
 
             <button onClick={() => setNotif(p => !p)} className="hvrI"
                 style={{

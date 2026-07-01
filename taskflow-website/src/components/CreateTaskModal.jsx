@@ -1,18 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useData } from "../context/DataContext.jsx";
+import { teamApi } from "../api/team.js";
 import CustomSelect from "./ui/CustomSelect.jsx";
 import CustomDateTimePicker from "./ui/CustomDateTimePicker.jsx";
 
 export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, initialAssignee }) {
     const { user } = useAuth();
+    const { teams } = useData();
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
     const [priority, setPriority] = useState('medium');
     const [assignType, setAssignType] = useState(initialAssignee && initialAssignee !== String(user?.id) ? 'team' : 'self');
+    const [selectedTeamId, setSelectedTeamId] = useState('');
+    const [localTeamMembers, setLocalTeamMembers] = useState([]);
     const [assigned_to, setAssignedTo] = useState(initialAssignee || String(user?.id || ''));
     const [due_date, setDueDate] = useState('');
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
+
+    useEffect(() => {
+        if (!selectedTeamId) { setLocalTeamMembers([]); return; }
+        let active = true;
+        teamApi.getTeamMembers(selectedTeamId).then(res => {
+            if (active) setLocalTeamMembers(Array.isArray(res.data) ? res.data : []);
+        }).catch(console.error);
+        return () => { active = false; };
+    }, [selectedTeamId]);
 
     const inp = { background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '9px 12px', color: t.t1, fontSize: 13, fontFamily: t.disp, width: '100%', outline: 'none' };
 
@@ -70,16 +84,26 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
                         />
                     </div>
                     {assignType === 'team' && (
-                        <div style={{ animation: "popIn 0.2s" }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, animation: "popIn 0.2s" }}>
+                            <CustomSelect
+                                t={t}
+                                value={selectedTeamId}
+                                onChange={(val) => { setSelectedTeamId(val); setAssignedTo(""); }}
+                                options={[
+                                    { value: "", label: "Select team..." },
+                                    ...teams.map(tm => ({ value: String(tm.id), label: tm.name }))
+                                ]}
+                            />
                             <CustomSelect
                                 t={t}
                                 value={assigned_to}
                                 onChange={setAssignedTo}
+                                disabled={!selectedTeamId}
                                 options={[
-                                    { value: "", label: "Select team member..." },
-                                    ...teamMembers
+                                    { value: "", label: "Select member..." },
+                                    ...localTeamMembers
                                     .filter(m => {
-                                        const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
+                                        const amIAdmin = localTeamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
                                         return m.id !== user?.id && (amIAdmin ? true : (m.role !== 'admin'));
                                     })
                                     .map(m => ({ value: String(m.id), label: m.name }))

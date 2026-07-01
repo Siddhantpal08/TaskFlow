@@ -32,8 +32,8 @@ export const notesApi = {
     /** POST /notes/pages/:id/share — generate a shareable link */
     shareNote: (id)                    => api.post(`/notes/pages/${id}/share`),
 
-    /** POST /notes/accept-share/:token — copy shared note into user workspace */
-    acceptShare: (token)               => api.post(`/notes/accept-share/${token}`),
+    /** POST /notes/accept-share/:token — copy or collab shared note */
+    acceptShare: (token, mode)         => api.post(`/notes/accept-share/${token}`, { mode }),
 
     // ── Blocks ────────────────────────────────────────────────────────────────
     /** POST /notes/pages/:pageId/blocks */

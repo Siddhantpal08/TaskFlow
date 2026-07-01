@@ -168,6 +168,20 @@ const sendEventReminderEmail = async (toEmail, eventTitle, eventDate, eventTime)
     } catch (e) { console.error(e); }
 };
 
+const sendSupportTicketEmail = async (toEmail, ticketTitle, ticketId) => {
+    if (!process.env.BREVO_API_KEY) return;
+    try {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST', headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+            body: JSON.stringify({
+                sender: { name: 'TaskFlow Support', email: 'taskflowappbysidd@gmail.com' }, to: [{ email: toEmail }],
+                subject: `Support Ticket Received: #${ticketId}`,
+                htmlContent: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 20px;"><h2 style="color: #00E5CC;">Ticket Received</h2><p>We've received your support ticket <strong>#${ticketId}</strong> for "<strong>${ticketTitle}</strong>". Our team will review it shortly.</p></div>`
+            })
+        });
+    } catch (e) { console.error(e); }
+};
+
 module.exports = {
     sendOtpEmail,
     sendTaskAssignedEmail,
@@ -175,5 +189,6 @@ module.exports = {
     sendTaskApprovedEmail,
     sendTaskRejectedEmail,
     sendTaskPendingApprovalEmail,
-    sendEventReminderEmail
+    sendEventReminderEmail,
+    sendSupportTicketEmail
 };

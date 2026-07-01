@@ -56,6 +56,7 @@ export default function AdminPanel({ t: themeProp, user }) {
     const [activeTab, setActiveTab] = useState('overview');
     const [userToDelete, setUserToDelete] = useState(null);
     const [feedback, setFeedback] = useState([]);
+    const [tickets, setTickets] = useState([]);
     const [feedbackLoading, setFeedbackLoading] = useState(false);
 
     const thm = themeProp || t;
@@ -85,7 +86,13 @@ export default function AdminPanel({ t: themeProp, user }) {
         try {
             setFeedbackLoading(true);
             const res = await feedbackApi.list();
-            setFeedback(res.data || []);
+            if (res.data && res.data.feedback !== undefined) {
+                setFeedback(res.data.feedback || []);
+                setTickets(res.data.tickets || []);
+            } else {
+                setFeedback(res.data || []);
+                setTickets([]);
+            }
         } catch { } finally { setFeedbackLoading(false); }
     }, []);
 
@@ -381,10 +388,59 @@ export default function AdminPanel({ t: themeProp, user }) {
                 </>
             )}
 
-            {/* ── FEEDBACK TAB ── */}
+            {/* ── FEEDBACK & SUPPORT TAB ── */}
             {activeTab === 'feedback' && (
-                <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    {/* Support Tickets */}
                     <div style={{ background: thm.card, border: `1px solid ${thm.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${thm.border}`, fontSize: 13, fontWeight: 700, color: thm.t1 }}>
+                            🎫 Support Tickets
+                        </div>
+                        <div style={{
+                            display: 'grid', gridTemplateColumns: '180px 100px 1fr 180px',
+                            padding: '10px 18px', borderBottom: `1px solid ${thm.border}`,
+                            fontSize: 10, fontWeight: 600, color: thm.t3, textTransform: 'uppercase',
+                            letterSpacing: '0.6px', fontFamily: thm.mono,
+                        }}>
+                            <span>User</span><span>Category</span><span>Ticket</span><span>Status / Date</span>
+                        </div>
+                        {feedbackLoading ? (
+                            <div style={{ padding: 20, color: thm.t3, fontSize: 13 }}>Loading tickets…</div>
+                        ) : tickets.length === 0 ? (
+                            <div style={{ padding: 20, color: thm.t3, fontSize: 13, textAlign: 'center' }}>No tickets found.</div>
+                        ) : tickets.map(tkt => (
+                            <div key={`tkt-${tkt.id}`} style={{
+                                display: 'grid', gridTemplateColumns: '180px 100px 1fr 180px',
+                                padding: '11px 18px', borderBottom: `1px solid ${thm.border}`,
+                                alignItems: 'center', transition: 'background .12s',
+                            }}
+                                onMouseEnter={e => e.currentTarget.style.background = thm.surf}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: thm.t1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tkt.name || 'Anonymous'}</div>
+                                    <div style={{ fontSize: 10, color: thm.t3, fontFamily: thm.mono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tkt.email || 'N/A'}</div>
+                                </div>
+                                <span style={{ fontSize: 11, color: thm.t2, fontFamily: thm.mono, textTransform: 'uppercase' }}>
+                                    {tkt.category}
+                                </span>
+                                <div style={{ paddingRight: 10 }}>
+                                    <div style={{ fontSize: 12.5, fontWeight: 700, color: thm.t1, marginBottom: 4 }}>{tkt.title}</div>
+                                    <div style={{ fontSize: 12, color: thm.t2, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>{tkt.description}</div>
+                                </div>
+                                <div style={{ fontSize: 11, color: thm.t3, fontFamily: thm.mono }}>
+                                    <span style={{ display: 'inline-block', padding: '2px 6px', background: tkt.status === 'open' ? `${thm.amber}22` : `${thm.green}22`, color: tkt.status === 'open' ? thm.amber : thm.green, borderRadius: 4, marginBottom: 4, fontWeight: 700 }}>{tkt.status}</span>
+                                    <br />{new Date(tkt.created_at).toLocaleString()}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Feedback */}
+                    <div style={{ background: thm.card, border: `1px solid ${thm.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${thm.border}`, fontSize: 13, fontWeight: 700, color: thm.t1 }}>
+                            ⭐ User Feedback
+                        </div>
                         <div style={{
                             display: 'grid', gridTemplateColumns: '180px 100px 1fr 180px',
                             padding: '10px 18px', borderBottom: `1px solid ${thm.border}`,
@@ -398,7 +454,7 @@ export default function AdminPanel({ t: themeProp, user }) {
                         ) : feedback.length === 0 ? (
                             <div style={{ padding: 20, color: thm.t3, fontSize: 13, textAlign: 'center' }}>No feedback entries found.</div>
                         ) : feedback.map(f => (
-                            <div key={f.id} style={{
+                            <div key={`fb-${f.id}`} style={{
                                 display: 'grid', gridTemplateColumns: '180px 100px 1fr 180px',
                                 padding: '11px 18px', borderBottom: `1px solid ${thm.border}`,
                                 alignItems: 'center', transition: 'background .12s',
@@ -420,7 +476,7 @@ export default function AdminPanel({ t: themeProp, user }) {
                             </div>
                         ))}
                     </div>
-                </>
+                </div>
             )}
 
             {userToDelete && (

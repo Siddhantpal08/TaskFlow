@@ -125,6 +125,19 @@ function LockGate({ notePageId, t, onUnlock }) {
     );
 }
 
+const PinInput = ({ value, onChange, show, setShow, placeholder, onEnter, t }) => (
+    <div style={{ position: "relative" }}>
+        <input type={show ? "text" : "password"} maxLength={12} placeholder={placeholder}
+            value={value} onChange={onChange}
+            onKeyDown={e => e.key === "Enter" && onEnter()}
+            style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", fontFamily: t.mono, width: "100%" }} />
+        <button onClick={() => setShow(p => !p)}
+            style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.t3 }}>
+            {show ? "🙈" : "👁"}
+        </button>
+    </div>
+);
+
 // ── Set Lock Modal ─────────────────────────────────────────────────────────────
 function SetLockModal({ notePageId, t, onClose }) {
     const storageKey = `tf_lock_${notePageId}`;
@@ -151,27 +164,14 @@ function SetLockModal({ notePageId, t, onClose }) {
         onClose();
     };
 
-    const PinInput = ({ value, onChange, show, setShow, placeholder }) => (
-        <div style={{ position: "relative" }}>
-            <input type={show ? "text" : "password"} maxLength={12} placeholder={placeholder}
-                value={value} onChange={onChange}
-                onKeyDown={e => e.key === "Enter" && handleSet()}
-                style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", fontFamily: t.mono, width: "100%" }} />
-            <button onClick={() => setShow(p => !p)}
-                style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.t3 }}>
-                {show ? "🙈" : "👁"}
-            </button>
-        </div>
-    );
-
     return (
         <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div onClick={e => e.stopPropagation()} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: "28px 32px", minWidth: 300, display: "flex", flexDirection: "column", gap: 12, boxShadow: t.shadow }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>
                     {existing ? (mode === "confirm" ? "🔐 Verify Current PIN" : "🔐 Set New PIN") : "🔐 Lock this Note"}
                 </div>
-                {mode === "confirm" && <PinInput value={current} onChange={e => setCurrent(e.target.value.replace(/\D/g, ""))} show={showCur} setShow={setShowCur} placeholder="Current PIN" />}
-                {mode === "set" && <PinInput value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ""))} show={showNew} setShow={setShowNew} placeholder="New PIN (min 4 digits)" />}
+                {mode === "confirm" && <PinInput value={current} onChange={e => setCurrent(e.target.value.replace(/\D/g, ""))} show={showCur} setShow={setShowCur} placeholder="Current PIN" onEnter={handleSet} t={t} />}
+                {mode === "set" && <PinInput value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ""))} show={showNew} setShow={setShowNew} placeholder="New PIN (min 4 digits)" onEnter={handleSet} t={t} />}
                 {error && <div style={{ color: t.red, fontSize: 12 }}>{error}</div>}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button onClick={handleSet} style={{ flex: 1, padding: "8px", borderRadius: 8, background: t.accent, border: "none", color: "#000", fontWeight: 700, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>
@@ -195,6 +195,7 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [error, setError] = useState('');
+    const [isCollab, setIsCollab] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -213,13 +214,15 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
 
     const handleCopy = () => {
         if (!shareUrl) return;
-        navigator.clipboard.writeText(shareUrl).then(() => {
+        const finalUrl = isCollab ? `${shareUrl}&mode=collab` : shareUrl;
+        navigator.clipboard.writeText(finalUrl).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
         });
     };
 
     const totalNotes = subNoteCount + 1;
+    const finalUrlToDisplay = shareUrl ? (isCollab ? `${shareUrl}&mode=collab` : shareUrl) : "";
 
     return (
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: '#00000077', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -238,9 +241,20 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
 
                 {/* Description */}
                 <div style={{ fontSize: 13, color: t.t2, fontFamily: t.disp, lineHeight: 1.6 }}>
-                    This note {totalNotes > 1 ? `and its ${totalNotes - 1} sub-note${totalNotes - 1 !== 1 ? 's' : ''} (${totalNotes} total)` : ''} will be <strong>copied</strong> into your friend's TaskFlow workspace when they accept the link.
-                    <span style={{ color: t.t3, fontSize: 11, display: 'block', marginTop: 5 }}>Your original note is never affected by what your friend does with their copy.</span>
+                    {isCollab ? (
+                        <>This note {totalNotes > 1 ? `and its ${totalNotes - 1} sub-note${totalNotes - 1 !== 1 ? 's' : ''}` : ''} will be <strong>shared</strong> with your friend for Real-time Collaboration (View & Edit).</>
+                    ) : (
+                        <>This note {totalNotes > 1 ? `and its ${totalNotes - 1} sub-note${totalNotes - 1 !== 1 ? 's' : ''}` : ''} will be <strong>copied</strong> into your friend's workspace.</>
+                    )}
+                    <span style={{ color: t.t3, fontSize: 11, display: 'block', marginTop: 5 }}>
+                        {isCollab ? 'Your friend will be able to edit this note directly.' : 'Your original note is never affected by what your friend does with their copy.'}
+                    </span>
                 </div>
+                
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: t.t1, fontFamily: t.disp, userSelect: 'none' }}>
+                    <input type="checkbox" checked={isCollab} onChange={e => { setIsCollab(e.target.checked); setCopied(false); }} style={{ accentColor: t.accent }} />
+                    Allow Real-time Collaboration (View & Edit)
+                </label>
 
                 {/* Link area */}
                 {loading && (
@@ -251,7 +265,7 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
                 )}
                 {shareUrl && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <input readOnly value={shareUrl}
+                        <input readOnly value={finalUrlToDisplay}
                             style={{ flex: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 12px', color: t.t2, fontSize: 11, fontFamily: t.mono, outline: 'none' }}
                             onFocus={e => e.target.select()} />
                         <button onClick={handleCopy}
@@ -364,12 +378,20 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     }, [notePageId]);
 
     // ── History helpers ───────────────────────────────────────────────────────
+    const persistHistory = () => {
+        try {
+            localStorage.setItem(`tf_hist_${notePageId}`, JSON.stringify(historyRef.current));
+            localStorage.setItem(`tf_fut_${notePageId}`, JSON.stringify(futureRef.current));
+        } catch (e) { }
+    };
+
     const pushHistory = () => {
         const snap = latestBlocksRef.current.map(b => ({ ...b }));
         historyRef.current = [...historyRef.current.slice(-49), snap];
         futureRef.current = [];
         setCanUndo(true);
         setCanRedo(false);
+        persistHistory();
     };
 
     const syncDiffToBackend = (sourceBlocks, targetBlocks) => {
@@ -408,6 +430,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         syncDiffToBackend(current, prev);
         setCanUndo(historyRef.current.length > 0);
         setCanRedo(true);
+        persistHistory();
     };
 
     const redo = () => {
@@ -419,6 +442,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         syncDiffToBackend(current, next);
         setCanUndo(true);
         setCanRedo(futureRef.current.length > 0);
+        persistHistory();
     };
 
 
@@ -447,11 +471,18 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        historyRef.current = [];
-        futureRef.current = [];
+        try {
+            const hist = JSON.parse(localStorage.getItem(`tf_hist_${notePageId}`));
+            const fut = JSON.parse(localStorage.getItem(`tf_fut_${notePageId}`));
+            historyRef.current = Array.isArray(hist) ? hist : [];
+            futureRef.current = Array.isArray(fut) ? fut : [];
+        } catch (e) {
+            historyRef.current = [];
+            futureRef.current = [];
+        }
         setBlocks([]);
-        setCanUndo(false);
-        setCanRedo(false);
+        setCanUndo(historyRef.current.length > 0);
+        setCanRedo(futureRef.current.length > 0);
         setSlash(null);
         setLoading(true);
         setUnlocked(false);

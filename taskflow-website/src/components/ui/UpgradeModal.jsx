@@ -512,8 +512,9 @@ export function PlanBadge({ t, onClick, userPlan }) {
                         100% { background-position: 200% center; }
                     }
                 ` }} />
-                <div
-                    title={`TaskFlow ${plan.toUpperCase()} — Active`}
+                <button
+                    onClick={onClick}
+                    title={`TaskFlow ${plan.toUpperCase()} — Active (Click to view features)`}
                     style={{
                         display: "inline-flex", alignItems: "center", gap: 6,
                         padding: "5px 13px", borderRadius: 999,
@@ -526,12 +527,19 @@ export function PlanBadge({ t, onClick, userPlan }) {
                         backgroundImage: `linear-gradient(90deg, ${t.accent}cc 0%, #0072FFcc 40%, ${t.accent}cc 60%, #0072FFcc 100%)`,
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",
-                        cursor: "default",
+                        cursor: onClick ? "pointer" : "default",
                         userSelect: "none",
+                        transition: "all .2s"
+                    }}
+                    onMouseEnter={e => {
+                        if (onClick) e.currentTarget.style.transform = "scale(1.02)";
+                    }}
+                    onMouseLeave={e => {
+                        if (onClick) e.currentTarget.style.transform = "scale(1)";
                     }}
                 >
                     ✦ {plan.toUpperCase()}
-                </div>
+                </button>
             </>
         );
     }

@@ -1,6 +1,7 @@
 const asyncWrapper = require('../utils/asyncWrapper');
 const db = require('../utils/db');
 const { AppError } = require('../middleware/errorHandler');
+const mailer = require('../utils/mailer');
 
 /**
  * POST /api/v1/feedback (and /api/college/v1/feedback)
@@ -45,7 +46,43 @@ const getFeedback = asyncWrapper(async (req, res) => {
          ORDER BY f.created_at DESC
          LIMIT 200`
     );
-    res.status(200).json({ success: true, data: rows });
+    // Also fetch support tickets
+    const [tickets] = await db.query(
+        `SELECT t.id, t.title, t.category, t.description, t.status, t.created_at, u.name, u.email
+         FROM support_tickets t
+         LEFT JOIN users u ON u.id = t.user_id
+         ORDER BY t.created_at DESC
+         LIMIT 200`
+    );
+
+    res.status(200).json({ success: true, data: { feedback: rows, tickets } });
 });
 
-module.exports = { submitFeedback, getFeedback };
+/**
+ * POST /api/v1/tickets
+ */
+const submitTicket = asyncWrapper(async (req, res) => {
+    const { title, category, description } = req.body;
+    const userId = req.user.id;
+
+    if (!title || !description) {
+        throw new AppError('Title and description are required.', 400);
+    }
+
+    const [result] = await db.query(
+        `INSERT INTO support_tickets (user_id, title, category, description) VALUES (?, ?, ?, ?)`,
+        [userId, title, category || 'other', description]
+    );
+
+    const ticketId = result.insertId;
+
+    // Trigger Brevo mailer
+    const [[user]] = await db.query(`SELECT email FROM users WHERE id = ?`, [userId]);
+    if (user && user.email) {
+        await mailer.sendSupportTicketEmail(user.email, title, ticketId);
+    }
+
+    res.status(201).json({ success: true, message: 'Ticket submitted successfully!' });
+});
+
+module.exports = { submitFeedback, getFeedback, submitTicket };

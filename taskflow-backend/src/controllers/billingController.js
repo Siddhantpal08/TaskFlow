@@ -3,10 +3,17 @@ const crypto = require('crypto');
 const db = require('../utils/db');
 
 // ── Razorpay client ──────────────────────────────────────────────────────────
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpay;
+try {
+    if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+        razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
+    }
+} catch (e) {
+    console.error("[Razorpay] Failed to initialize:", e.message);
+}
 
 // Plan pricing (in paise — INR * 100)
 const PLAN_PRICING = {
@@ -25,7 +32,7 @@ exports.createSubscription = async (req, res) => {
             : process.env.RAZORPAY_PRO_PLAN_ID;
 
         // If plan IDs are configured in env, create a proper subscription
-        if (planId) {
+        if (planId && razorpay) {
             const subscription = await razorpay.subscriptions.create({
                 plan_id: planId,
                 customer_notify: 1,
@@ -41,6 +48,10 @@ exports.createSubscription = async (req, res) => {
                 subscriptionId: subscription.id,
                 key: process.env.RAZORPAY_KEY_ID,
             });
+        }
+
+        if (!razorpay) {
+            return res.status(500).json({ error: "Billing is not configured on this server." });
         }
 
         // Fallback: create a one-time order for the plan amount

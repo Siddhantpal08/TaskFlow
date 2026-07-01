@@ -17,6 +17,7 @@ export function DataProvider({ children }) {
     const [tasks, setTasks] = useState([]);
     const [events, setEvents] = useState([]);
     const [taskDates, setTaskDates] = useState([]);
+    const [teams, setTeams] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
@@ -26,8 +27,12 @@ export function DataProvider({ children }) {
     // ─── Stable refresh helpers ────────────────────────────────────────────────
     const refreshTeams = useCallback(async () => {
         try {
-            const res = await teamApi.getMembers();
-            setTeamMembers(Array.isArray(res.data) ? res.data : []);
+            const [tRes, mRes] = await Promise.all([
+                teamApi.getMyTeams(),
+                teamApi.getMembers()
+            ]);
+            setTeams(Array.isArray(tRes.data) ? tRes.data : []);
+            setTeamMembers(Array.isArray(mRes.data) ? mRes.data : []);
         } catch (e) { console.error('refreshTeams failed:', e); }
     }, []);
 
@@ -58,13 +63,15 @@ export function DataProvider({ children }) {
         Promise.all([
             tasksApi.list(),
             eventsApi.list(now.getFullYear(), now.getMonth() + 1),
+            teamApi.getMyTeams(),
             teamApi.getMembers(),
             notificationsApi.list(),
-        ]).then(([t, e, tm, n]) => {
+        ]).then(([t, e, ts, tm, n]) => {
             setTasks(Array.isArray(t.data) ? t.data : []);
             const calData = e.data || {};
             setEvents(Array.isArray(calData) ? calData : (calData.events || []));
             setTaskDates(calData.taskDates || []);
+            setTeams(Array.isArray(ts.data) ? ts.data : []);
             setTeamMembers(Array.isArray(tm.data) ? tm.data : []);
             let notifs = Array.isArray(n.data) ? n.data : (n.data?.notifications || []);
             const clearedAt = parseInt(localStorage.getItem('tf_notifs_cleared_at') || '0', 10);
@@ -276,12 +283,14 @@ export function DataProvider({ children }) {
     const refreshAll = async () => {
         try {
             const now = new Date();
-            const [taskRes, memberRes, notifRes] = await Promise.all([
+            const [taskRes, tRes, memberRes, notifRes] = await Promise.all([
                 tasksApi.list(),
+                teamApi.getMyTeams(),
                 teamApi.getMembers(),
                 notificationsApi.list(),
             ]);
             setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
+            setTeams(Array.isArray(tRes.data) ? tRes.data : []);
             setTeamMembers(Array.isArray(memberRes.data) ? memberRes.data : []);
             let notifs = Array.isArray(notifRes.data) ? notifRes.data : (notifRes.data?.notifications || []);
             const clearedAt = parseInt(localStorage.getItem('tf_notifs_cleared_at') || '0', 10);
@@ -292,7 +301,7 @@ export function DataProvider({ children }) {
 
     return (
         <DataContext.Provider value={{
-            tasks: tasks || [], events: events || [], taskDates, teamMembers: teamMembers || [],
+            tasks: tasks || [], events: events || [], taskDates, teams: teams || [], teamMembers: teamMembers || [],
             notifications: notifications || [], onlineUsers,
             loading, unreadCount, refreshTeams, refreshAll,
             createTask, updateTaskStatus, updateTask, delegateTask, splitTask, deleteTask,

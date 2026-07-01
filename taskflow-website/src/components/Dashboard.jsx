@@ -151,20 +151,20 @@ export default function Dashboard({ t, setPage, setTask }) {
                     .dash-grid { grid-template-columns: 1fr !important; overflow: visible !important; }
                     .dash-right-col { overflow-y: visible !important; min-height: auto !important; }
                     .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-                    .dash-root { overflow-y: auto !important; height: auto !important; padding-bottom: 80px !important; }
-                    .welcome-strip { flex-direction: column; align-items: flex-start !important; gap: 12px; }
+                    .dash-root { overflow-y: auto !important; height: auto !important; padding-bottom: 60px !important; }
+                    .welcome-strip { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
                 }
                 @media (max-width: 520px) {
                     .stats-grid { grid-template-columns: 1fr !important; }
-                    .dash-root { padding: 14px 12px 80px !important; }
+                    .dash-root { padding: 10px 10px 60px !important; }
                 }
             `}</style>
 
             {/* ── Welcome strip ── */}
             <div className="welcome-strip" style={{
                 background: `linear-gradient(120deg, ${t.accent}24 0%, ${t.accent}0c 60%, transparent 100%)`,
-                border: `1px solid ${t.accent}30`, borderRadius: 16, padding: "20px 26px",
-                display: "flex", justifyContent: "space-between", alignItems: "center",
+                border: `1px solid ${t.accent}30`, borderRadius: 14, padding: "14px 20px",
+                display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0
             }}>
                 <div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, letterSpacing: "-0.5px" }}>
@@ -199,7 +199,7 @@ export default function Dashboard({ t, setPage, setTask }) {
             </div>
 
             {/* ── Stats grid ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }} className="stats-grid">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, flexShrink: 0 }} className="stats-grid">
                 <Stat val={total} label="Total Tasks" note="all time"
                     color={t.accent} onClick={() => setPage("tasks")}
                     trend={trends.tasksThisWeek > 0 ? `↑ ${trends.tasksThisWeek} this week` : "no new this week"}
@@ -228,8 +228,8 @@ export default function Dashboard({ t, setPage, setTask }) {
                 {/* ─ Tasks Panel ─ */}
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, display: "flex", flexDirection: "column", minHeight: 0 }}>
                     {/* Header */}
-                    <div style={{ padding: "14px 18px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, flexWrap: "wrap", gap: 8 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: t.t1 }}>Tasks</span>
+                    <div style={{ padding: "10px 14px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, flexWrap: "wrap", gap: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: t.t1 }}>Tasks</span>
                         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                             {["all", "pending", "active", "done"].map(f => (
                                 <button key={f} onClick={() => setTaskFilter(f)}

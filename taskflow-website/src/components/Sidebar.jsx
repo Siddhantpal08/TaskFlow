@@ -74,8 +74,8 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                 <button key={n.id} onClick={() => setPage(n.id)}
                     style={{
                         display: "flex", alignItems: "center",
-                        gap: 10, justifyContent: "flex-start",
-                        padding: "10px 12px",
+                        gap: isOpen ? 10 : 0, justifyContent: isOpen ? "flex-start" : "center",
+                        padding: isOpen ? "10px 12px" : "10px 0",
                         width: "100%",
                         borderRadius: 9, border: "none", cursor: "pointer", textAlign: "left",
                         fontFamily: t.disp, fontSize: 13.5, fontWeight: a ? 700 : 400,
@@ -218,7 +218,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                         <PlanBadge
                             t={t}
                             userPlan={user?.plan}
-                            onClick={user?.plan && user.plan !== 'free' ? undefined : onUpgrade}
+                            onClick={onUpgrade}
                         />
                     </div>
                 )}

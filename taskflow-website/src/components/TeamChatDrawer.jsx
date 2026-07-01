@@ -8,6 +8,7 @@ export default function TeamChatDrawer({ t, team, members = [], user, onClose })
     const [msgs, setMsgs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [txt, setTxt] = useState("");
+    const [mentionSearch, setMentionSearch] = useState(null);
     const endRef = useRef();
 
     useEffect(() => {
@@ -126,9 +127,39 @@ export default function TeamChatDrawer({ t, team, members = [], user, onClose })
                 </div>
 
                 {/* Input */}
-                <div style={{ padding: 16, borderTop: `1px solid ${t.border}`, background: t.card }}>
+                <div style={{ padding: 16, borderTop: `1px solid ${t.border}`, background: t.card, position: "relative" }}>
+                    {mentionSearch !== null && (
+                        <div style={{
+                            position: "absolute", bottom: "100%", left: 16, right: 16, marginBottom: 8,
+                            background: t.card, border: `1px solid ${t.border}`, borderRadius: 12,
+                            boxShadow: t.shadow, maxHeight: 160, overflowY: "auto", zIndex: 10
+                        }}>
+                            {members.filter(m => String(m.id) !== String(user?.id) && m.name.toLowerCase().includes(mentionSearch)).map(m => (
+                                <div key={m.id} className="hvr" onClick={() => {
+                                    const lastAt = txt.lastIndexOf('@');
+                                    setTxt(txt.slice(0, lastAt) + '@' + m.name + ' ');
+                                    setMentionSearch(null);
+                                }} style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", borderBottom: `1px solid ${t.border}44` }}>
+                                    <Av u={{ ...m, av: m.avatar_initials || m.name?.slice(0, 2), color: t.accent, avatar_url: m.avatar_url }} sz={24} />
+                                    <span style={{ fontSize: 13, color: t.t1, fontFamily: t.disp }}>{m.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     <div style={{ display: "flex", gap: 10 }}>
-                        <input value={txt} onChange={e => setTxt(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
+                        <input value={txt} onChange={e => {
+                            const val = e.target.value;
+                            setTxt(val);
+                            const lastAt = val.lastIndexOf('@');
+                            if (lastAt !== -1 && (lastAt === 0 || val[lastAt - 1] === ' ')) {
+                                const search = val.slice(lastAt + 1);
+                                if (!search.includes(' ')) {
+                                    setMentionSearch(search.toLowerCase());
+                                    return;
+                                }
+                            }
+                            setMentionSearch(null);
+                        }} onKeyDown={e => e.key === "Enter" && send()}
                             placeholder="Type a message..."
                             style={{ flex: 1, padding: "10px 14px", borderRadius: 20, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, outline: "none", fontSize: 13, fontFamily: t.disp }} />
                         <button onClick={send} disabled={!txt.trim()}
