@@ -1,4 +1,30 @@
 node_modules
 .env
-run_migration_aiven.js
-run_migration.js
+run_migration*.js
+
+# Build Outputs
+dist/
+build/
+.expo/
+out/
+
+# AI Context Files
+*CONTEXT.md
+
+# Logs & Temporary Files
+*.log
+frontend-log*.txt
+backend-log*.txt
+crash.log
+temp_migrate_output.txt
+
+# Test Results & Scratch Scripts
+test-results*.txt
+test_db.js
+scratch_*.js
+walkthrough.md*
+synopsis_extracted.txt
+
+# IDE
+.vscode/
+.idea/
