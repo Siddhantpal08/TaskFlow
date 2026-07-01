@@ -315,47 +315,72 @@ export default function Dashboard({ t, setPage, setTask }) {
                         })}
                     </div>
 
-                    {/* Team Members */}
-                    {teamMembers.length > 0 && (
-                        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 16px", boxShadow: t.shadow, flexShrink: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
-                                Team
-                                <button onClick={() => setPage("team")} style={{ background: "none", border: "none", cursor: "pointer", color: t.accent, fontSize: 11, fontWeight: 600, fontFamily: t.disp }}>View →</button>
-                            </div>
-                            {teamMembers.slice(0, 5).map(u => {
-                                const isOnline = onlineUsers.has(String(u.id));
-                                return (
-                                    <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 9 }}>
-                                        <div style={{ position: "relative" }}>
-                                            <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${t.accent}40, #0072FF40)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, color: t.accent }}>
-                                                {u.avatar_initials}
-                                            </div>
-                                            <div style={{ position: "absolute", bottom: 0, right: 0, width: 7, height: 7, borderRadius: "50%", background: isOnline ? t.green : t.border, border: `1.5px solid ${t.card}` }} />
-                                        </div>
-                                        <div style={{ flex: 1, fontSize: 12.5, fontWeight: 500, color: t.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name.split(" ")[0]}</div>
-                                        {/* Fixed: was "away", now correct status */}
-                                        <div style={{ fontSize: 9.5, color: isOnline ? t.green : t.t3, fontFamily: t.mono }}>{isOnline ? "online" : "offline"}</div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    {/* Recent Activity */}
-                    {recentNotifs.length > 0 && (
-                        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, flexShrink: 0 }}>
-                            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700, color: t.t1 }}>Activity</div>
-                            {recentNotifs.map(n => (
-                                <div key={n.id} style={{ padding: "10px 16px", borderBottom: `1px solid ${t.border}`, display: "flex", gap: 10, alignItems: "flex-start" }}>
-                                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: n.is_read ? t.border : t.accent, flexShrink: 0, marginTop: 5 }} />
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: 11.5, color: t.t1, lineHeight: 1.5 }}>{n.message}</div>
-                                        <div style={{ fontSize: 9.5, color: t.t3, fontFamily: t.mono, marginTop: 2 }}>{timeAgo(n.created_at)}</div>
-                                    </div>
+                    {/* ─ Focus Today: tasks due today ─ */}
+                    {(() => {
+                        const todayStr = new Date().toDateString();
+                        const todayTasks = tasks.filter(tk =>
+                            tk.due_date && new Date(tk.due_date).toDateString() === todayStr && tk.status !== "done"
+                        );
+                        if (todayTasks.length === 0) return null;
+                        return (
+                            <div style={{ background: t.card, border: `1px solid ${t.amber}33`, borderRadius: 14, overflow: "hidden", boxShadow: t.shadow, flexShrink: 0 }}>
+                                <div style={{ padding: "10px 16px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: t.amber + "0A" }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: t.amber }}>⚡ Focus Today</span>
+                                    <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono }}>{todayTasks.length} due</span>
                                 </div>
+                                {todayTasks.slice(0, 4).map(tk => (
+                                    <div key={tk.id} onClick={() => setTask(tk)} style={{ padding: "9px 14px", borderBottom: `1px solid ${t.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
+                                        onMouseEnter={e => e.currentTarget.style.background = t.accentDim}
+                                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: tk.priority === "high" || tk.priority === "critical" ? t.red : t.amber, flexShrink: 0 }} />
+                                        <div style={{ flex: 1, fontSize: 12.5, color: t.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tk.title}</div>
+                                        <div style={{ fontSize: 9.5, color: t.amber, fontFamily: t.mono, flexShrink: 0 }}>Today</div>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
+                    {/* ─ Productivity Score ─ */}
+                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 16px", boxShadow: t.shadow, flexShrink: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 14 }}>Productivity Score</div>
+                        {[
+                            { label: "Completion Rate", val: rate, color: t.accent },
+                            { label: "Active Tasks",    val: total ? Math.round(active / total * 100) : 0, color: t.amber },
+                            { label: "On-time Ratio",  val: total ? Math.max(0, Math.round((1 - overdue / total) * 100)) : 100, color: t.green },
+                        ].map(({ label, val, color }) => (
+                            <div key={label} style={{ marginBottom: 11 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                    <span style={{ fontSize: 11, color: t.t2, fontFamily: t.disp }}>{label}</span>
+                                    <span style={{ fontSize: 11, color, fontFamily: t.mono, fontWeight: 700 }}>{val}%</span>
+                                </div>
+                                <div style={{ height: 5, borderRadius: 3, background: t.border, overflow: "hidden" }}>
+                                    <div style={{ height: "100%", width: val + "%", background: `linear-gradient(90deg, ${color}, ${color}99)`, borderRadius: 3, transition: "width 1s ease" }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* ─ Quick Actions ─ */}
+                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 16px", boxShadow: t.shadow, flexShrink: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>Quick Actions</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                            {[
+                                { icon: "✅", label: "New Task", action: () => setPage("tasks") },
+                                { icon: "📝", label: "New Note", action: () => setPage("notes") },
+                                { icon: "📅", label: "Add Event", action: () => setPage("calendar") },
+                                { icon: "👥", label: "Invite Member", action: () => setPage("team") },
+                            ].map(({ icon, label, action }) => (
+                                <button key={label} onClick={action}
+                                    style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 8, border: `1px solid ${t.border}`, background: "transparent", color: t.t1, fontSize: 12.5, fontFamily: t.disp, cursor: "pointer", textAlign: "left", transition: "all .15s" }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = t.accentDim; e.currentTarget.style.borderColor = t.accent + "44"; e.currentTarget.style.color = t.accent; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.t1; }}>
+                                    <span style={{ fontSize: 16 }}>{icon}</span>
+                                    {label}
+                                </button>
                             ))}
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

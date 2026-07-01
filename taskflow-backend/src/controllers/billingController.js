@@ -1,167 +1,230 @@
-const asyncWrapper = require('../utils/asyncWrapper');
-const db = require('../utils/db');
-const { AppError } = require('../middleware/errorHandler');
+const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const db = require('../models/db');
 
-/**
- * POST /api/v1/billing/create-checkout-session
- * Returns LemonSqueezy checkout URL, or mock fallback.
- */
-const createCheckoutSession = asyncWrapper(async (req, res) => {
-    const { billing, plan = 'pro' } = req.body; // 'monthly' | 'yearly', 'starter' | 'pro'
-    const userId = req.user.id;
-
-    // Determine variant ID
-    let variantId = '';
-    if (plan === 'starter') {
-        variantId = process.env.LEMONSQUEEZY_STARTER_VARIANT_ID || '1172927';
-    } else {
-        variantId = process.env.LEMONSQUEEZY_PRO_VARIANT_ID || '1172932';
-    }
-
-    // Direct hosted LemonSqueezy URL bypasses API key issues and is 100% reliable
-    const storeSubdomain = process.env.LEMONSQUEEZY_SUBDOMAIN || 'creviostudios';
-    const checkoutUrl = `https://${storeSubdomain}.lemonsqueezy.com/buy/${variantId}?checkout[custom][user_id]=${userId}&checkout[email]=${encodeURIComponent(req.user.email)}&embed=0`;
-
-    res.json({ success: true, mock: false, url: checkoutUrl });
+// ── Razorpay client ──────────────────────────────────────────────────────────
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-/**
- * GET /api/v1/billing/verify-session
- * Verifies the session after user redirects back (useful for sandbox fallback).
- */
-const verifySession = asyncWrapper(async (req, res) => {
-    const { session_id } = req.query;
-    const userId = req.user.id;
+// Plan pricing (in paise — INR * 100)
+const PLAN_PRICING = {
+    starter: { monthly: 4900, yearly: 49900 },   // ₹49/mo, ₹499/yr
+    pro:     { monthly: 9900, yearly: 100000 },  // ₹99/mo, ₹1000/yr
+};
 
-    if (!session_id) {
-        throw new AppError('Session ID is required.', 400);
+// ── Create Subscription (for recurring billing) ──────────────────────────────
+exports.createSubscription = async (req, res) => {
+    try {
+        const { billing = 'monthly', plan = 'pro' } = req.body;
+        const userId = req.user.id;
+
+        const planId = plan === 'starter'
+            ? process.env.RAZORPAY_STARTER_PLAN_ID
+            : process.env.RAZORPAY_PRO_PLAN_ID;
+
+        // If plan IDs are configured in env, create a proper subscription
+        if (planId) {
+            const subscription = await razorpay.subscriptions.create({
+                plan_id: planId,
+                customer_notify: 1,
+                total_count: billing === 'yearly' ? 1 : 12,
+                notes: {
+                    userId: String(userId),
+                    plan,
+                    billing,
+                },
+            });
+            return res.json({
+                type: 'subscription',
+                subscriptionId: subscription.id,
+                key: process.env.RAZORPAY_KEY_ID,
+            });
+        }
+
+        // Fallback: create a one-time order for the plan amount
+        const amount = PLAN_PRICING[plan]?.[billing] || PLAN_PRICING.pro.monthly;
+        const order = await razorpay.orders.create({
+            amount,
+            currency: 'INR',
+            receipt: `tf_${plan}_${userId}_${Date.now()}`,
+            notes: {
+                userId: String(userId),
+                plan,
+                billing,
+                type: 'subscription_upgrade',
+            },
+        });
+
+        return res.json({
+            type: 'order',
+            orderId: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            key: process.env.RAZORPAY_KEY_ID,
+        });
+    } catch (err) {
+        console.error('[Billing] createSubscription error:', err);
+        res.status(500).json({ error: err.message || 'Failed to create checkout session' });
     }
+};
 
-    // If sandbox / mock
-    if (session_id.startsWith('mock_sub_')) {
-        const parts = session_id.split('_');
-        // mock_sub_timestamp_userId_plan_billing
-        const plan = parts[4] || 'pro';
-        const billing = parts[5] || 'monthly';
+// ── Verify Payment (called after Razorpay checkout success) ─────────────────
+exports.verifyPayment = async (req, res) => {
+    try {
+        const {
+            razorpay_payment_id,
+            razorpay_order_id,
+            razorpay_subscription_id,
+            razorpay_signature,
+            plan = 'pro',
+            billing = 'monthly',
+        } = req.body;
 
-        const expiresAt = new Date();
+        const userId = req.user.id;
+        let isValid = false;
+
+        if (razorpay_subscription_id) {
+            // Verify subscription payment
+            const body = razorpay_payment_id + '|' + razorpay_subscription_id;
+            const expectedSig = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                .update(body)
+                .digest('hex');
+            isValid = expectedSig === razorpay_signature;
+        } else if (razorpay_order_id) {
+            // Verify one-time order payment
+            const body = razorpay_order_id + '|' + razorpay_payment_id;
+            const expectedSig = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                .update(body)
+                .digest('hex');
+            isValid = expectedSig === razorpay_signature;
+        }
+
+        if (!isValid) {
+            return res.status(400).json({ error: 'Invalid payment signature' });
+        }
+
+        // Calculate subscription end date
+        const now = new Date();
+        const expiresAt = new Date(now);
         if (billing === 'yearly') {
             expiresAt.setFullYear(expiresAt.getFullYear() + 1);
         } else {
             expiresAt.setMonth(expiresAt.getMonth() + 1);
         }
 
-        // Upgrade user
+        // Update user plan in DB
         await db.query(
-            "UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?",
-            [plan, expiresAt, userId]
+            `UPDATE users SET plan = ?, plan_expires_at = ?, razorpay_payment_id = ?, updated_at = NOW() WHERE id = ?`,
+            [plan, expiresAt, razorpay_payment_id, userId]
         );
 
-        console.log(`[BILLING] User #${userId} successfully upgraded to ${plan.toUpperCase()} via Sandbox Mock (Expires: ${expiresAt.toISOString().split('T')[0]})`);
-
-        return res.json({
+        res.json({
             success: true,
             plan,
-            expiresAt: expiresAt.toISOString().split('T')[0],
-            message: `Your account has been successfully upgraded to ${plan.toUpperCase()}!`
+            expiresAt,
+            message: `Successfully upgraded to ${plan.toUpperCase()}!`,
         });
+    } catch (err) {
+        console.error('[Billing] verifyPayment error:', err);
+        res.status(500).json({ error: err.message || 'Payment verification failed' });
     }
-
-    // Otherwise, real payments are verified via LemonSqueezy webhook directly (asynchronous)
-    res.json({
-        success: true,
-        message: 'Real payments are processed asynchronously. Please check your account profile for plan status.'
-    });
-});
-
-/**
- * POST /api/v1/billing/lemonsqueezy-webhook
- * Receives Webhook events from LemonSqueezy, validates signature, and updates user plan.
- */
-const lemonsqueezyWebhook = asyncWrapper(async (req, res) => {
-    const signature = req.get('x-signature');
-    const webhookSecret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
-
-    if (!webhookSecret) {
-        console.error('[LEMONSQUEEZY] Webhook endpoint called but Webhook Secret is not configured in .env');
-        return res.status(500).json({ success: false, message: 'Server configuration error' });
-    }
-
-    if (!signature) {
-        throw new AppError('Webhook signature missing', 401);
-    }
-
-    // Verify HMAC-SHA256 signature
-    const hmac = crypto.createHmac('sha256', webhookSecret);
-    const rawBodyBuffer = req.rawBody || Buffer.from(JSON.stringify(req.body));
-    const digest = hmac.update(rawBodyBuffer).digest('hex');
-
-    let isValid = false;
-    try {
-        isValid = crypto.timingSafeEqual(Buffer.from(signature, 'utf-8'), Buffer.from(digest, 'utf-8'));
-    } catch (e) {
-        isValid = false;
-    }
-
-    if (!isValid) {
-        console.warn('[LEMONSQUEEZY] Webhook validation failed: Invalid signature');
-        throw new AppError('Invalid webhook signature', 401);
-    }
-
-    const payload = req.body;
-    const eventName = payload.meta?.event_name;
-
-    console.log(`[LEMONSQUEEZY] Webhook received: ${eventName}`);
-
-    if (eventName === 'order_created' || eventName === 'subscription_created') {
-        const customData = payload.meta?.custom_data;
-        const userId = customData?.user_id;
-        const variantId = String(payload.data?.attributes?.variant_id || '');
-
-        if (!userId) {
-            console.warn('[LEMONSQUEEZY] No user_id found in webhook custom_data metadata.');
-            return res.status(200).json({ success: true, message: 'No user_id found, ignoring.' });
-        }
-
-        // Determine plan based on variant ID (starter or pro)
-        let plan = 'pro';
-        if (
-            variantId === process.env.LEMONSQUEEZY_STARTER_VARIANT_ID ||
-            variantId === process.env.LEMONSQUEEZY_STARTER_MONTHLY_VARIANT ||
-            variantId === process.env.LEMONSQUEEZY_STARTER_YEARLY_VARIANT ||
-            variantId.toLowerCase().includes('starter')
-        ) {
-            plan = 'starter';
-        }
-
-        // Calculate expiresAt
-        const expiresAt = new Date();
-        const isYearly = variantId === process.env.LEMONSQUEEZY_STARTER_YEARLY_VARIANT_ID || 
-                         variantId === process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID ||
-                         JSON.stringify(payload).toLowerCase().includes('year') ||
-                         JSON.stringify(payload).toLowerCase().includes('annual');
-
-        if (isYearly) {
-            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-        } else {
-            expiresAt.setMonth(expiresAt.getMonth() + 1);
-        }
-
-        // Upgrade user
-        await db.query(
-            "UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?",
-            [plan, expiresAt, userId]
-        );
-
-        console.log(`[LEMONSQUEEZY] User #${userId} successfully upgraded to ${plan.toUpperCase()} via Webhook (Expires: ${expiresAt.toISOString().split('T')[0]})`);
-    }
-
-    res.status(200).json({ success: true });
-});
-
-module.exports = {
-    createCheckoutSession,
-    verifySession,
-    lemonsqueezyWebhook
 };
+
+// ── Razorpay Webhook (server-side event handler) ─────────────────────────────
+exports.razorpayWebhook = async (req, res) => {
+    try {
+        const signature = req.headers['x-razorpay-signature'];
+        const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+        // Verify webhook signature
+        const expectedSig = crypto
+            .createHmac('sha256', secret)
+            .update(JSON.stringify(req.body))
+            .digest('hex');
+
+        if (expectedSig !== signature) {
+            return res.status(400).json({ error: 'Invalid webhook signature' });
+        }
+
+        const event = req.body.event;
+        const payload = req.body.payload;
+
+        console.log('[Billing Webhook]', event);
+
+        if (event === 'subscription.activated' || event === 'subscription.charged') {
+            const sub = payload?.subscription?.entity;
+            const userId = sub?.notes?.userId;
+            const plan = sub?.notes?.plan || 'pro';
+            const billing = sub?.notes?.billing || 'monthly';
+
+            if (userId) {
+                const expiresAt = new Date();
+                if (billing === 'yearly') {
+                    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+                } else {
+                    expiresAt.setMonth(expiresAt.getMonth() + 1);
+                }
+                await db.query(
+                    `UPDATE users SET plan = ?, plan_expires_at = ?, updated_at = NOW() WHERE id = ?`,
+                    [plan, expiresAt, userId]
+                );
+                console.log(`[Billing] User ${userId} upgraded to ${plan}`);
+            }
+        }
+
+        if (event === 'subscription.cancelled' || event === 'subscription.expired') {
+            const sub = payload?.subscription?.entity;
+            const userId = sub?.notes?.userId;
+            if (userId) {
+                await db.query(
+                    `UPDATE users SET plan = 'free', plan_expires_at = NULL, updated_at = NOW() WHERE id = ?`,
+                    [userId]
+                );
+                console.log(`[Billing] User ${userId} downgraded to free`);
+            }
+        }
+
+        if (event === 'payment.failed') {
+            console.warn('[Billing] Payment failed for payload:', payload?.payment?.entity?.id);
+        }
+
+        res.json({ status: 'ok' });
+    } catch (err) {
+        console.error('[Billing Webhook] Error:', err);
+        res.status(500).json({ error: 'Webhook processing failed' });
+    }
+};
+
+// ── Get current plan status ──────────────────────────────────────────────────
+exports.getPlanStatus = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            'SELECT plan, plan_expires_at FROM users WHERE id = ?',
+            [userId]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'User not found' });
+
+        const { plan, plan_expires_at } = rows[0];
+        const isExpired = plan_expires_at && new Date(plan_expires_at) < new Date();
+
+        res.json({
+            plan: isExpired ? 'free' : (plan || 'free'),
+            expiresAt: plan_expires_at,
+            isExpired,
+        });
+    } catch (err) {
+        console.error('[Billing] getPlanStatus error:', err);
+        res.status(500).json({ error: 'Failed to fetch plan status' });
+    }
+};
+
+// ── Legacy: createCheckoutSession (kept for backward compat, redirects to createSubscription) ──
+exports.createCheckoutSession = exports.createSubscription;
+
+// ── Legacy: verifySession ────────────────────────────────────────────────────
+exports.verifySession = exports.getPlanStatus;

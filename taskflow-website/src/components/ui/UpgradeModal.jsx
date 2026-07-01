@@ -10,7 +10,7 @@ export function UpgradeModal({ t, feature, onClose }) {
     const currentPlan = user?.plan || localStorage.getItem('tf_plan') || 'free';
     const isAlreadyPaid = currentPlan === 'pro' || currentPlan === 'starter';
 
-    const [step, setStep] = useState(feature === "Upgrade Successful!" ? "success" : "plan"); // plan | billing | success
+    const [step, setStep] = useState(feature === "Upgrade Successful!" ? "success" : "plan"); // plan | billing | verifying | success
     const [billing, setBilling] = useState("yearly"); // monthly | yearly
     const [selectedPlan, setSelectedPlan] = useState("pro"); // starter | pro
     const [loading, setLoading] = useState(false);
@@ -53,16 +53,85 @@ export function UpgradeModal({ t, feature, onClose }) {
         setLoading(true);
         setError("");
         try {
-            const res = await billingApi.createCheckoutSession(billing, planKey);
-            if (res.url) {
-                window.location.href = res.url;
-            } else {
-                setError("Failed to create LemonSqueezy checkout session.");
+            // Load Razorpay script
+            const scriptLoaded = await new Promise((resolve) => {
+                if (window.Razorpay) { resolve(true); return; }
+                const s = document.createElement('script');
+                s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                s.onload = () => resolve(true);
+                s.onerror = () => resolve(false);
+                document.body.appendChild(s);
+            });
+
+            if (!scriptLoaded) {
+                setError("Failed to load payment gateway. Please try again.");
+                setLoading(false);
+                return;
             }
-        } catch (err) {
-            setError(err.message || "Failed to contact billing service.");
-        } finally {
+
+            const res = await billingApi.createSubscription(billing, planKey);
+            const data = res.data || res;
             setLoading(false);
+
+            const options = {
+                key: data.key,
+                name: "Crevio Studios",
+                description: `TaskFlow ${planKey.toUpperCase()} — ${billing === "yearly" ? "Yearly" : "Monthly"}`,
+                image: "/logo.svg",
+                currency: "INR",
+                theme: { color: "#00E5CC" },
+                prefill: {
+                    name: user?.name || "",
+                    email: user?.email || "",
+                },
+                modal: {
+                    ondismiss: () => {
+                        setStep("plan");
+                    },
+                },
+                handler: async (response) => {
+                    try {
+                        setStep("verifying");
+                        const verifyRes = await billingApi.verifyPayment({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_subscription_id: response.razorpay_subscription_id,
+                            razorpay_signature: response.razorpay_signature,
+                            plan: planKey,
+                            billing,
+                        });
+                        if (verifyRes.data?.success) {
+                            localStorage.setItem("tf_plan", planKey);
+                            setStep("success");
+                        } else {
+                            setError("Payment verification failed. Contact support.");
+                            setStep("plan");
+                        }
+                    } catch (err) {
+                        setError("Payment verification failed. Please contact support.");
+                        setStep("plan");
+                    }
+                },
+            };
+
+            // Set order or subscription id
+            if (data.type === "subscription" && data.subscriptionId) {
+                options.subscription_id = data.subscriptionId;
+            } else if (data.orderId) {
+                options.order_id = data.orderId;
+                options.amount = data.amount;
+            }
+
+            const rzp = new window.Razorpay(options);
+            rzp.on("payment.failed", (resp) => {
+                setError(`Payment failed: ${resp.error?.description || "Unknown error"}`);
+                setStep("plan");
+            });
+            rzp.open();
+        } catch (err) {
+            setError(err.response?.data?.error || err.message || "Failed to contact billing service.");
+            setLoading(false);
+            setStep("plan");
         }
     };
 
@@ -356,26 +425,35 @@ export function UpgradeModal({ t, feature, onClose }) {
                     </div>
                 )}
 
-                {/* STEP 2: BILLING REDIRECT STATE */}
-                {step === "billing" && (
+                {/* STEP 2: BILLING / OPENING RAZORPAY */}
+                {(step === "billing" || step === "verifying") && (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "40px 0" }}>
-                        <button onClick={() => setStep("plan")} type="button" disabled={loading}
+                        <button onClick={() => setStep("plan")} type="button" disabled={loading || step === "verifying"}
                             style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 24, fontFamily: t.disp, alignSelf: "flex-start" }}>
                             ← Back to plans
                         </button>
 
                         <div style={{ width: 44, height: 44, border: `3px solid ${t.border}`, borderTopColor: t.accent, borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 24 }} />
-                        <style dangerouslySetInnerHTML={{ __html: `
-                            @keyframes spin {
-                                0% { transform: rotate(0deg); }
-                                100% { transform: rotate(360deg); }
-                            }
-                        `}} />
+                        <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }` }} />
 
-                        <h3 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 800, color: t.t1 }}>Redirecting to LemonSqueezy...</h3>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 800, color: t.t1 }}>
+                            {step === "verifying" ? "Verifying Payment…" : "Opening Razorpay Checkout…"}
+                        </h3>
                         <p style={{ margin: "0 0 24px", fontSize: 13, color: t.t2, maxWidth: 360, lineHeight: 1.6, fontFamily: t.disp }}>
-                            Please wait while we secure your checkout session for <strong>{selectedPlan.toUpperCase()}</strong> ({getPlanPrice(selectedPlan)}).
+                            {step === "verifying"
+                                ? "Please wait while we confirm your payment with our servers."
+                                : `Secure checkout for TaskFlow ${selectedPlan.toUpperCase()} (${getPlanPrice(selectedPlan)}). Pay via UPI, Card, or Net Banking.`
+                            }
                         </p>
+
+                        {/* Payment method badges */}
+                        {step !== "verifying" && (
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 }}>
+                                {["UPI", "Credit Card", "Debit Card", "Net Banking", "EMI"].map(m => (
+                                    <div key={m} style={{ padding: "4px 10px", borderRadius: 6, background: t.accentDim, border: `1px solid ${t.accent}33`, fontSize: 11, color: t.accent, fontFamily: t.mono }}>✓ {m}</div>
+                                ))}
+                            </div>
+                        )}
 
                         {error && (
                             <div style={{ padding: "10px 14px", borderRadius: 8, background: `${t.red}15`, border: `1px solid ${t.red}33`, color: t.red, fontSize: 12, marginBottom: 16 }}>

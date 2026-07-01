@@ -33,6 +33,8 @@ import TeamPage from "./components/TeamPage.jsx";
 import Friends from "./components/Friends.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import FeedbackPage from "./pages/FeedbackPage.jsx";
+import GuideHubPage from "./pages/GuideHubPage.jsx";
+import StorePage from "./pages/StorePage.jsx";
 
 import NotesPage from "./components/notes/NotesPage.jsx";
 import NotesHome from "./components/notes/NotesHome.jsx";
@@ -281,16 +283,45 @@ function MainApp() {
         })();
     }, []);
 
+    const isDarkTheme = !themeKey.includes("light") && themeKey !== "sepia" && themeKey !== "pureLight";
     const themeCss = `
     :root {
-      color-scheme: ${themeKey.includes("light") || themeKey === "sepia" || themeKey === "pureLight" ? "light" : "dark"};
-      --accent:    ${t.accent};
-      --accentDim: ${t.accentDim};
-      --accentGlow:${t.accentGlow};
-      --border:    ${t.border};
-      --t3:        ${t.t3};
-      --noteHover: ${t.noteHover};
+      color-scheme: ${isDarkTheme ? "dark" : "light"};
+      --accent:     ${t.accent};
+      --accentDim:  ${t.accentDim};
+      --accentGlow: ${t.accentGlow};
+      --bg:         ${t.bg};
+      --surf:       ${t.surf};
+      --card:       ${t.card};
+      --nav:        ${t.nav};
+      --border:     ${t.border};
+      --inset:      ${t.inset};
+      --shadow:     ${t.shadow};
+      --t1:         ${t.t1};
+      --t2:         ${t.t2};
+      --t3:         ${t.t3};
+      --red:        ${t.red};
+      --amber:      ${t.amber};
+      --green:      ${t.green};
+      --blue:       ${t.blue};
+      --mono:       ${t.mono};
+      --noteHover:  ${t.noteHover};
+      --noteActive: ${t.noteActive || t.accentDim};
+      --noteBg:     ${t.noteBg || t.surf};
+      --noteCard:   ${t.noteCard || t.card};
+      --noteBorder: ${t.noteBorder || t.border};
+      --noteText:   ${t.noteText || t.t1};
+      --noteSubText:${t.noteSubText || t.t2};
+      --noteMuted:  ${t.noteMuted || t.t3};
+      --codeBg:     ${t.codeBg || "#020609"};
+      --codeText:   ${t.codeText || t.accent};
+      --calloutBg:  ${t.calloutBg || t.card};
+      --calloutBorder: ${t.calloutBorder || t.border};
+      --calloutText:   ${t.calloutText || t.amber};
+      --quoteBorder:   ${t.quoteBorder || t.blue};
+      --quoteText:     ${t.quoteText || t.t2};
     }
+    body { background: ${t.bg}; color: ${t.t1}; }
     .hvr:hover  { background: ${t.accentDim} !important; }
     .hvrC:hover { transform: translateY(-2px); box-shadow: ${t.accentGlow} !important; }
     .hvrI:hover { color: ${t.accent} !important; }
@@ -441,6 +472,8 @@ function MainApp() {
                             {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
                             {page === "admin" && user?.role === 'admin' && <AdminPanel t={t} user={user} />}
                             {page === "feedback" && <FeedbackPage t={t} />}
+                            {page === "guide" && <GuideHubPage t={t} setPage={setPageWithPersist} />}
+                            {page === "store" && <StorePage t={t} setPage={setPageWithPersist} />}
                             {page === "customize" && (
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                                     <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}

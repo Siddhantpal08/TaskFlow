@@ -2,16 +2,23 @@ const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
 const billingController = require('../controllers/billingController');
 
-// LemonSqueezy webhook endpoint (unauthenticated, checked via signature)
-router.post('/lemonsqueezy-webhook', billingController.lemonsqueezyWebhook);
+// ── Razorpay Webhook (unauthenticated, verified via signature) ───────────────
+router.post('/razorpay-webhook', billingController.razorpayWebhook);
 
-// All other billing endpoints require auth
+// ── Authenticated billing endpoints ─────────────────────────────────────────
 router.use(authenticate);
 
-// Checkout Session Creation
+// Create checkout session / subscription
 router.post('/create-checkout-session', billingController.createCheckoutSession);
+router.post('/create-subscription', billingController.createSubscription);
 
-// Client-side verification fallback
+// Verify payment after Razorpay checkout success
+router.post('/verify-payment', billingController.verifyPayment);
+
+// Get plan status
+router.get('/plan-status', billingController.getPlanStatus);
+
+// Legacy compat
 router.get('/verify-session', billingController.verifySession);
 
 module.exports = router;

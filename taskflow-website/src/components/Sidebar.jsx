@@ -62,8 +62,10 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
     ];
 
     const bottomNav = [
-        { id: "feedback",  label: "Feedback",  ic: IC.star  },
-        { id: "customize", label: "Customize", ic: IC.pal   },
+        { id: "guide",     label: "Help & Guide", ic: IC.book  },
+        { id: "store",     label: "Store",        ic: IC.shop  },
+        { id: "feedback",  label: "Feedback",     ic: IC.star  },
+        { id: "customize", label: "Customize",    ic: IC.pal   },
         ...(user?.role === 'admin' ? [{ id: "admin", label: "Admin", ic: IC.edt }] : []),
     ];
 
