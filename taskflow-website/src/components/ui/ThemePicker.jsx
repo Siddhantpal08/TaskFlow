@@ -107,7 +107,8 @@ export default function ThemePicker({ t, themeKey, customTheme, onApplyPreset, o
                             <div style={{ display: "flex", alignItems: "center", gap: 6, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "5px 9px" }}>
                                 <input type="color" value={primary} onChange={e => setPrimary(e.target.value)}
                                     style={{ width: 24, height: 24, border: "none", background: "none", cursor: "pointer", padding: 0 }} />
-                                <span style={{ fontSize: 10, fontFamily: t.mono, color: t.t2 }}>{primary.toUpperCase()}</span>
+                                <input type="text" value={primary} onChange={e => setPrimary(e.target.value)}
+                                    style={{ fontSize: 10, fontFamily: t.mono, color: t.t2, border: "none", background: "none", outline: "none", width: 55 }} />
                             </div>
                         </label>
                         <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
@@ -115,7 +116,8 @@ export default function ThemePicker({ t, themeKey, customTheme, onApplyPreset, o
                             <div style={{ display: "flex", alignItems: "center", gap: 6, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "5px 9px" }}>
                                 <input type="color" value={secondary} onChange={e => setSecondary(e.target.value)}
                                     style={{ width: 24, height: 24, border: "none", background: "none", cursor: "pointer", padding: 0 }} />
-                                <span style={{ fontSize: 10, fontFamily: t.mono, color: t.t2 }}>{secondary.toUpperCase()}</span>
+                                <input type="text" value={secondary} onChange={e => setSecondary(e.target.value)}
+                                    style={{ fontSize: 10, fontFamily: t.mono, color: t.t2, border: "none", background: "none", outline: "none", width: 55 }} />
                             </div>
                         </label>
                     </div>

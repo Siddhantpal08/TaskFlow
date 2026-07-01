@@ -228,7 +228,15 @@ export default function CustomDateTimePicker({ t, value, onChange, type = "date"
                             {/* Time Picker selectors */}
                             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                 <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center" }}>
-                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                    <div 
+                                        onWheel={e => {
+                                            e.preventDefault();
+                                            const nh = (timeHour + (e.deltaY > 0 ? -1 : 1) + 24) % 24;
+                                            setTimeHour(nh);
+                                            handleTimeChange(nh, timeMin);
+                                        }}
+                                        style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+                                    >
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -256,7 +264,15 @@ export default function CustomDateTimePicker({ t, value, onChange, type = "date"
                                         </button>
                                     </div>
                                     <span style={{ color: t.t2, fontSize: 16, fontWeight: 700 }}>:</span>
-                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                    <div 
+                                        onWheel={e => {
+                                            e.preventDefault();
+                                            const nm = (timeMin + (e.deltaY > 0 ? -5 : 5) + 60) % 60;
+                                            setTimeMin(nm);
+                                            handleTimeChange(timeHour, nm);
+                                        }}
+                                        style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+                                    >
                                         <button
                                             type="button"
                                             onClick={() => {

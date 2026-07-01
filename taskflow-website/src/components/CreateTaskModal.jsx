@@ -8,6 +8,7 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
     const [priority, setPriority] = useState('medium');
+    const [assignType, setAssignType] = useState(initialAssignee && initialAssignee !== String(user?.id) ? 'team' : 'self');
     const [assigned_to, setAssignedTo] = useState(initialAssignee || String(user?.id || ''));
     const [due_date, setDueDate] = useState('');
     const [loading, setLoading] = useState(false);
@@ -17,8 +18,14 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
 
     const handleSubmit = async (e) => {
         e.preventDefault(); setErr(''); setLoading(true);
+        const finalAssignee = assignType === 'self' ? user?.id : parseInt(assigned_to);
+        if (!finalAssignee) {
+            setErr("Please select an assignee.");
+            setLoading(false);
+            return;
+        }
         try {
-            await onCreate({ title, description: desc, priority, assigned_to: parseInt(assigned_to), due_date: due_date || undefined });
+            await onCreate({ title, description: desc, priority, assigned_to: finalAssignee, due_date: due_date || undefined });
             onClose();
         } catch (e) { setErr(e.message || 'Failed to create task.'); }
         finally { setLoading(false); }
@@ -51,17 +58,35 @@ export default function CreateTaskModal({ t, teamMembers, onClose, onCreate, ini
                         />
                         <CustomSelect
                             t={t}
-                            value={assigned_to}
-                            onChange={setAssignedTo}
-                            options={teamMembers
-                                .filter(m => {
-                                    // Make sure current user is an admin to see admins, else hide admins
-                                    const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
-                                    return amIAdmin ? true : (m.role !== 'admin' || m.id === user?.id);
-                                })
-                                .map(m => ({ value: String(m.id), label: m.name }))}
+                            value={assignType}
+                            onChange={(val) => {
+                                setAssignType(val);
+                                if (val === 'self') setAssignedTo(String(user?.id));
+                            }}
+                            options={[
+                                { value: "self", label: "Assign to Self" },
+                                { value: "team", label: "Assign to Team..." },
+                            ]}
                         />
                     </div>
+                    {assignType === 'team' && (
+                        <div style={{ animation: "popIn 0.2s" }}>
+                            <CustomSelect
+                                t={t}
+                                value={assigned_to}
+                                onChange={setAssignedTo}
+                                options={[
+                                    { value: "", label: "Select team member..." },
+                                    ...teamMembers
+                                    .filter(m => {
+                                        const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
+                                        return m.id !== user?.id && (amIAdmin ? true : (m.role !== 'admin'));
+                                    })
+                                    .map(m => ({ value: String(m.id), label: m.name }))
+                                ]}
+                            />
+                        </div>
+                    )}
                     <CustomDateTimePicker t={t} value={due_date} onChange={setDueDate} type="date" placeholder="Select due date..." />
                     {err && <div style={{ color: t.red, fontSize: 12 }}>{err}</div>}
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>

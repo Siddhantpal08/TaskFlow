@@ -63,8 +63,6 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
 
     const bottomNav = [
         { id: "guide",     label: "Help & Guide", ic: IC.book  },
-        { id: "store",     label: "Store",        ic: IC.shop  },
-        { id: "feedback",  label: "Feedback",     ic: IC.star  },
         { id: "customize", label: "Customize",    ic: IC.pal   },
         ...(user?.role === 'admin' ? [{ id: "admin", label: "Admin", ic: IC.edt }] : []),
     ];
@@ -159,9 +157,8 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                 <div style={{ flex: 1, overflow: "auto", padding: "4px 8px", display: "flex", flexDirection: "column", gap: 4 }}>
                     {/* Notes section header */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 6px", marginBottom: 2 }}>
-                        <span onClick={() => setShowNotes(p => !p)}
-                            style={{ fontSize: 9.5, fontWeight: 700, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", cursor: "pointer", userSelect: "none" }}>
-                            {showNotes ? "▾" : "▸"} Pages
+                        <span style={{ fontSize: 9.5, fontWeight: 700, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", userSelect: "none" }}>
+                            Pages
                         </span>
                         <button onClick={() => addNotePage("root")} title="New page"
                             style={{
@@ -175,8 +172,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                         </button>
                     </div>
 
-                    {showNotes && (
-                        <>
+                    <>
                             {/* Search */}
                             <div style={{ padding: "0 2px 4px", position: "relative" }}>
                                 <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", marginTop: -2, pointerEvents: "none" }}>
@@ -209,7 +205,6 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                                     reorderNotePage={reorderNotePage} updateNotePage={updateNotePage} depth={0} t={t} />
                             ))}
                         </>
-                    )}
                 </div>
             )}
 

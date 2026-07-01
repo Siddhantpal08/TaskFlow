@@ -32,9 +32,7 @@ import Calendar from "./components/Calendar.jsx";
 import TeamPage from "./components/TeamPage.jsx";
 import Friends from "./components/Friends.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
-import FeedbackPage from "./pages/FeedbackPage.jsx";
 import GuideHubPage from "./pages/GuideHubPage.jsx";
-import StorePage from "./pages/StorePage.jsx";
 
 import NotesPage from "./components/notes/NotesPage.jsx";
 import NotesHome from "./components/notes/NotesHome.jsx";
@@ -46,6 +44,7 @@ import AssignModal from "./components/AssignModal.jsx";
 import CreateTaskModal from "./components/CreateTaskModal.jsx";
 import { ToastProvider } from "./components/ui/Toast.jsx";
 import FeedbackModal from "./components/ui/FeedbackModal.jsx";
+import ProFeaturesModal from "./components/ui/ProFeaturesModal.jsx";
 
 // ── Credits Modal ────────────────────────────────────────────────────────────
 function CreditsModal({ onClose }) {
@@ -151,6 +150,7 @@ function MainApp() {
     const [notePageId, setNotePageId] = useState(() => sessionStorage.getItem("tf_notePageId") || null);
     const [expanded, setExpanded] = useState({ root: true });
     const [showQuickCapture, setShowQuickCapture] = useState(false);
+    const [showProFeatures, setShowProFeatures] = useState(false);
 
     // Persist notePageId
     const setNotePageIdWithPersist = (id) => {
@@ -343,6 +343,7 @@ function MainApp() {
     const [isAddingPage, setIsAddingPage] = useState(false);
     const addingPageRef = useRef(false);
     const [upgradeModal, setUpgradeModal] = useState(null); // { feature: string } | null
+    const [sidebarOpen, setSidebarOpen] = useState(true);
 
     const addNotePage = async (parentId, meta = {}) => {
         if (addingPageRef.current) return;
@@ -455,7 +456,8 @@ function MainApp() {
                         addNotePage={addNotePage} deleteNotePage={deleteNotePage}
                         duplicateNotePage={duplicateNotePage} reorderNotePage={reorderNotePage}
                         updateNotePage={updateNotePage} user={user}
-                        onUpgrade={() => setUpgradeModal({ feature: 'Upgrade to TaskFlow Pro' })}
+                        isOpen={sidebarOpen} setIsOpen={setSidebarOpen}
+                        onUpgrade={() => setShowProFeatures(true)}
                         className="sidebar-desktop" />
 
 
@@ -473,9 +475,7 @@ function MainApp() {
                             {page === "team" && <TeamPage t={t} />}
                             {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
                             {page === "admin" && user?.role === 'admin' && <AdminPanel t={t} user={user} />}
-                            {page === "feedback" && <FeedbackPage t={t} />}
                             {page === "guide" && <GuideHubPage t={t} setPage={setPageWithPersist} />}
-                            {page === "store" && <StorePage t={t} setPage={setPageWithPersist} />}
                             {page === "customize" && (
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                                     <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
@@ -489,7 +489,7 @@ function MainApp() {
                         {/* Global Quick Capture FAB */}
                         <button onClick={() => setShowQuickCapture(true)} title="Quick Capture Task (Alt+T)"
                             style={{
-                                position: 'absolute', bottom: 30, right: 30, width: 56, height: 56, borderRadius: 28,
+                                position: 'absolute', bottom: 90, right: 30, width: 56, height: 56, borderRadius: 28,
                                 background: `linear-gradient(135deg, ${t.accent}, #00D2FF)`, color: '#000', border: 'none',
                                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 boxShadow: `0 8px 24px ${t.accent}66`, zIndex: 30, transition: 'transform .2s'
@@ -509,6 +509,9 @@ function MainApp() {
                         <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
                             onApplyPreset={applyPreset} onApplyCustom={applyCustom}
                             onClose={() => setShowThemePicker(false)} />
+                    )}
+                    {showProFeatures && (
+                        <ProFeaturesModal t={t} onClose={() => setShowProFeatures(false)} onUpgrade={() => { setShowProFeatures(false); setUpgradeModal({ feature: "Pro upgrade" }); }} />
                     )}
                     {/* Freemium upgrade modal */}
                     {upgradeModal && (

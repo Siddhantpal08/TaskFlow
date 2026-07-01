@@ -238,6 +238,35 @@ export default function GuideHubPage({ t, setPage }) {
     const [activeTab, setActiveTab] = useState("getting-started");
     const [search, setSearch] = useState("");
     const [expandedItem, setExpandedItem] = useState(null);
+    
+    // Form states
+    const [loading, setLoading] = useState(false);
+    const [msg, setMsg] = useState("");
+    
+    // Support Ticket Form
+    const [ticket, setTicket] = useState({ title: "", category: "bug", desc: "" });
+    // Feedback Form
+    const [feedback, setFeedback] = useState({ type: "feature", desc: "", rating: 5 });
+
+    const handleSupportSubmit = (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setTimeout(() => {
+            setMsg("Ticket submitted successfully. Our team will review it shortly.");
+            setLoading(false);
+            setTicket({ title: "", category: "bug", desc: "" });
+        }, 1000);
+    };
+
+    const handleFeedbackSubmit = (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setTimeout(() => {
+            setMsg("Feedback sent! Thank you for helping improve TaskFlow.");
+            setLoading(false);
+            setFeedback({ type: "feature", desc: "", rating: 5 });
+        }, 1000);
+    };
 
     const section = GUIDE_DATA[activeTab];
 
@@ -323,7 +352,16 @@ export default function GuideHubPage({ t, setPage }) {
                         </button>
                     ))}
 
-                    <div style={{ marginTop: "auto", padding: "10px 4px" }}>
+                    <div style={{ height: 1, background: t.border, margin: "6px 0" }} />
+
+                    <button className="guide-tab" onClick={() => { setActiveTab("support"); setSearch(""); setMsg(""); }}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 8, border: "none", background: activeTab === "support" ? t.accentDim : "transparent", color: activeTab === "support" ? t.accent : t.t2, fontFamily: t.disp, fontSize: 13, fontWeight: activeTab === "support" ? 700 : 400, cursor: "pointer", textAlign: "left", width: "100%", borderLeft: `3px solid ${activeTab === "support" ? t.accent : "transparent"}`, transition: "all .15s" }}>
+                        <span style={{ fontSize: 16 }}>🎫</span> Support Ticket
+                    </button>
+                    <button className="guide-tab" onClick={() => { setActiveTab("feedback"); setSearch(""); setMsg(""); }}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 8, border: "none", background: activeTab === "feedback" ? t.accentDim : "transparent", color: activeTab === "feedback" ? t.accent : t.t2, fontFamily: t.disp, fontSize: 13, fontWeight: activeTab === "feedback" ? 700 : 400, cursor: "pointer", textAlign: "left", width: "100%", borderLeft: `3px solid ${activeTab === "feedback" ? t.accent : "transparent"}`, transition: "all .15s" }}>
+                        <span style={{ fontSize: 16 }}>⭐</span> Share Feedback
+                    </button>                    <div style={{ marginTop: "auto", padding: "10px 4px" }}>
                         <div style={{ background: t.accentDim, border: `1px solid ${t.accent}30`, borderRadius: 10, padding: "10px 12px" }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 4 }}>✦ TaskFlow Pro</div>
                             <div style={{ fontSize: 10.5, color: t.t2, lineHeight: 1.5 }}>Unlock unlimited notes, tasks, team members & more.</div>
@@ -356,26 +394,65 @@ export default function GuideHubPage({ t, setPage }) {
                         </div>
                     ) : (
                         <div>
-                            {/* Section header */}
-                            <div style={{ marginBottom: 20 }}>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
-                                    <span style={{ fontSize: 28 }}>{section.icon}</span>
-                                    {section.label}
+                            {activeTab === "support" ? (
+                                <div style={{ maxWidth: 600 }}>
+                                    <div style={{ marginBottom: 24 }}>
+                                        <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 28 }}>🎫</span> Submit Support Ticket</div>
+                                        <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>Experiencing an issue? Open a ticket and we'll help you out.</div>
+                                    </div>
+                                    <form onSubmit={handleSupportSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                        <input required value={ticket.title} onChange={e => setTicket(p => ({ ...p, title: e.target.value }))} placeholder="Ticket Subject" style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", boxSizing: "border-box" }} />
+                                        <select value={ticket.category} onChange={e => setTicket(p => ({ ...p, category: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", boxSizing: "border-box" }}>
+                                            <option value="bug">Bug Report</option>
+                                            <option value="billing">Billing Issue</option>
+                                            <option value="account">Account Access</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                        <textarea required rows={5} value={ticket.desc} onChange={e => setTicket(p => ({ ...p, desc: e.target.value }))} placeholder="Describe the issue in detail..." style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+                                        <button disabled={loading} style={{ padding: "12px", background: t.accent, color: "#000", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontFamily: t.disp, transition: "opacity .2s" }}>{loading ? "Submitting..." : "Submit Ticket"}</button>
+                                        {msg && <div style={{ color: t.green, fontSize: 13, fontWeight: 600 }}>{msg}</div>}
+                                    </form>
                                 </div>
-                                <div style={{ fontSize: 13, color: t.t2, marginTop: 4 }}>
-                                    {section.items.length} feature{section.items.length !== 1 ? "s" : ""} documented
+                            ) : activeTab === "feedback" ? (
+                                <div style={{ maxWidth: 600 }}>
+                                    <div style={{ marginBottom: 24 }}>
+                                        <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 28 }}>⭐</span> Share Feedback</div>
+                                        <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>Help us shape the future of TaskFlow. What should we build next?</div>
+                                    </div>
+                                    <form onSubmit={handleFeedbackSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                        <select value={feedback.type} onChange={e => setFeedback(p => ({ ...p, type: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", boxSizing: "border-box" }}>
+                                            <option value="feature">Feature Request</option>
+                                            <option value="ui">UI/UX Suggestion</option>
+                                            <option value="general">General Feedback</option>
+                                        </select>
+                                        <textarea required rows={5} value={feedback.desc} onChange={e => setFeedback(p => ({ ...p, desc: e.target.value }))} placeholder="I would love it if..." style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+                                        <button disabled={loading} style={{ padding: "12px", background: t.accent, color: "#000", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontFamily: t.disp, transition: "opacity .2s" }}>{loading ? "Sending..." : "Send Feedback"}</button>
+                                        {msg && <div style={{ color: t.green, fontSize: 13, fontWeight: 600 }}>{msg}</div>}
+                                    </form>
                                 </div>
-                            </div>
+                            ) : section ? (
+                                <div>
+                                    <div style={{ marginBottom: 20 }}>
+                                        <div style={{ fontSize: 22, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
+                                            <span style={{ fontSize: 28 }}>{section.icon}</span>
+                                            {section.label}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: t.t2, marginTop: 4 }}>
+                                            {section.items.length} feature{section.items.length !== 1 ? "s" : ""} documented
+                                        </div>
+                                    </div>
 
-                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                {section.items.map((item, i) => (
-                                    <GuideCard
-                                        key={i} item={item} t={t}
-                                        expanded={expandedItem === i}
-                                        onToggle={() => setExpandedItem(expandedItem === i ? null : i)}
-                                    />
-                                ))}
-                            </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                        {section.items.map((item, i) => (
+                                            <GuideCard
+                                                key={i} item={item} t={t}
+                                                expanded={expandedItem === i}
+                                                onToggle={() => setExpandedItem(expandedItem === i ? null : i)}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
                     )}
                 </div>

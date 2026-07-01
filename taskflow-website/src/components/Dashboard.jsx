@@ -144,7 +144,7 @@ export default function Dashboard({ t, setPage, setTask }) {
     const greeting = hr < 5 ? "Good night" : hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
 
     return (
-        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "auto" }}
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
             className="dash-root">
             <style>{`
                 @media (max-width: 900px) {
