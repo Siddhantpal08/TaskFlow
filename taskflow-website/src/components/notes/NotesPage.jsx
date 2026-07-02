@@ -316,6 +316,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const [dragBox, setDragBox] = useState(null); // { x1, y1, x2, y2 }
     const [showUpgradeModal, setShowUpgradeModal] = useState(null); // { feature } | null
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [pendingWritingMode, setPendingWritingMode] = useState(null); // { value, label } | null
 
     const titleRef = useRef();
     const socketRef = useRef(null);
@@ -1155,12 +1156,17 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                         setShowUpgradeModal({ feature: 'Script & Lyrics Mode is a Pro feature' });
                                         return;
                                     }
-                                    setWritingMode(finalVal);
-                                    // Persist to localStorage (immediate) + DB (durable)
-                                    if (finalVal) localStorage.setItem(`tf_wm_${notePageId}`, finalVal);
-                                    else localStorage.removeItem(`tf_wm_${notePageId}`);
-                                    updateNotePage(notePageId, { writing_mode: finalVal, writingMode: finalVal });
-                                    notesApi.setWritingMode(notePageId, finalVal).catch(() => {});
+                                    // ── Confirm before switching to a special mode ──
+                                    if (finalVal && finalVal !== writingMode) {
+                                        const modeLabel = finalVal === 'script' ? '📽️ Script Mode' : '🎵 Lyrics Mode';
+                                        setPendingWritingMode({ value: finalVal, label: modeLabel });
+                                        return;
+                                    }
+                                    // Allow switching back to normal (clearing the mode)
+                                    setWritingMode(null);
+                                    localStorage.removeItem(`tf_wm_${notePageId}`);
+                                    updateNotePage(notePageId, { writing_mode: null, writingMode: null });
+                                    notesApi.setWritingMode(notePageId, null).catch(() => {});
                                 }}
                                 options={[
                                     { value: "", label: "📄 Normal Note" },
@@ -1595,6 +1601,28 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             {/* Upgrade modal (for pro features) */}
             {showUpgradeModal && (
                 <UpgradeModal t={t} feature={showUpgradeModal.feature} onClose={() => setShowUpgradeModal(null)} />
+            )}
+
+            {/* Writing mode change confirmation */}
+            {pendingWritingMode && (
+                <ConfirmModal
+                    t={t}
+                    title={`Switch to ${pendingWritingMode.label}?`}
+                    description={`Switching to ${pendingWritingMode.label} will reformat this note for ${pendingWritingMode.value === 'script' ? 'screenplay writing' : 'song lyrics'}. You won't be able to switch to a different mode afterwards. Switch back to Normal mode first if needed.`}
+                    confirmText={`Yes, Switch Mode`}
+                    cancelText="Cancel"
+                    danger={false}
+                    icon={pendingWritingMode.value === 'script' ? '📽️' : '🎵'}
+                    onCancel={() => setPendingWritingMode(null)}
+                    onConfirm={() => {
+                        const finalVal = pendingWritingMode.value;
+                        setWritingMode(finalVal);
+                        localStorage.setItem(`tf_wm_${notePageId}`, finalVal);
+                        updateNotePage(notePageId, { writing_mode: finalVal, writingMode: finalVal });
+                        notesApi.setWritingMode(notePageId, finalVal).catch(() => {});
+                        setPendingWritingMode(null);
+                    }}
+                />
             )}
 
             {/* Delete note confirmation modal */}

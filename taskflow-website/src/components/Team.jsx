@@ -21,6 +21,7 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
     const [newTeamName, setNewTeamName] = useState(team?.name || '');
     const [renaming, setRenaming] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [memberToRemove, setMemberToRemove] = useState(null); // { id, name }
 
     useEffect(() => {
         if (!team) return;
@@ -110,15 +111,17 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
         } catch (e) { toastError("Failed to reject"); }
     };
 
-    const handleRemoveMember = async (memberId, memberName) => {
-        if (!window.confirm(`Remove ${memberName} from the team?`)) return;
+    const handleRemoveMember = async () => {
+        if (!memberToRemove) return;
         try {
-            await teamApi.removeMember(team.id, memberId);
-            toastSuccess(`${memberName} removed.`);
-            setMembers(m => m.filter(x => x.id !== memberId));
+            await teamApi.removeMember(team.id, memberToRemove.id);
+            toastSuccess(`${memberToRemove.name} removed.`);
+            setMembers(m => m.filter(x => x.id !== memberToRemove.id));
             refreshTeams?.();
         } catch (e) {
             toastError(e.response?.data?.message || 'Failed to remove member.');
+        } finally {
+            setMemberToRemove(null);
         }
     };
 
@@ -245,7 +248,7 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                                 </button>
                                 {/* Admin can remove members (except themselves) */}
                                 {team?.role === 'admin' && !isMe && (
-                                    <button onClick={() => handleRemoveMember(u.id, u.name)}
+                                    <button onClick={() => setMemberToRemove({ id: u.id, name: u.name })}
                                         style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${t.red}33`, background: 'transparent', color: t.red, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 600, transition: 'all .2s' }}
                                         title="Remove member"
                                         onMouseEnter={e => e.currentTarget.style.background = `${t.red}14`}
@@ -295,6 +298,20 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                     icon="🗑️"
                     onConfirm={handleDeleteTeam}
                     onCancel={() => setShowDeleteConfirm(false)}
+                />
+            )}
+
+            {/* Remove Member Confirm */}
+            {memberToRemove && (
+                <ConfirmModal
+                    t={t}
+                    title="Remove Member?"
+                    description={<>Are you sure you want to remove <strong>{memberToRemove.name}</strong> from <strong>{team?.name}</strong>? They will lose access to the team immediately.</>}
+                    confirmText="Remove"
+                    danger={true}
+                    icon="👤"
+                    onConfirm={handleRemoveMember}
+                    onCancel={() => setMemberToRemove(null)}
                 />
             )}
 

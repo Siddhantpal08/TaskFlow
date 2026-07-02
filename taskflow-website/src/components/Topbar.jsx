@@ -5,7 +5,7 @@ import { useData } from "../context/DataContext.jsx";
 export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, setNotif, page, setPage, setShowQuickCapture }) {
     const { user, logout } = useAuth();
     const { unreadCount } = useData();
-    const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team", friends: "Friends" };
+    const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team", friends: "Friends", guide: "Help & Guide", profile: "Profile", admin: "Admin Panel", customize: "Customize" };
 
     return (
         <div style={{

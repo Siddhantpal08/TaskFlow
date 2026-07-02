@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { I, IC } from "../ui/Icon.jsx";
-import { mkBlock } from "../../data/notes.js";
+import { mkBlock, INIT_PAGES } from "../../data/notes.js";
 import EmptyState from "../ui/EmptyState.jsx";
 
 // Suggested note templates for the workspace home
@@ -101,14 +102,41 @@ const TEMPLATES = [
     },
 ];
 
+
 export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
     const subPages = pages["root"]?.childIds?.map(id => pages[id]).filter(Boolean) || [];
+    const [restoring, setRestoring] = useState(false);
 
     const handleTemplate = async (tpl) => {
-        // Create page with correct emoji and title
         const created = await addNotePage("root", { title: tpl.title, emoji: tpl.emoji, initBlocks: tpl.blocks });
-        // addNotePage returns the new id — navigate to it
-        // Navigation handled inside addNotePage
+    };
+
+    const handleRestoreStarter = async () => {
+        if (!confirm("This will add the 5 default starter notes back to your workspace. Your existing notes will not be deleted. Continue?")) return;
+        setRestoring(true);
+        try {
+            const idMap = { root: null };
+            const order = ["intro", "np1", "np1a", "np1b", "np1b1", "np2", "np3"];
+            let firstId = null;
+            for (const oldId of order) {
+                const pg = INIT_PAGES[oldId];
+                if (!pg) continue;
+                const newId = await addNotePage(pg.parentId === "root" ? "root" : (idMap[pg.parentId] || "root"), {
+                    title: pg.title,
+                    emoji: pg.emoji,
+                    initBlocks: pg.blocks,
+                });
+                if (newId) {
+                    idMap[oldId] = newId;
+                    if (!firstId) firstId = newId;
+                }
+            }
+            if (firstId) navigateNote(firstId);
+        } catch (e) {
+            console.error("Failed to restore starter notes:", e);
+        } finally {
+            setRestoring(false);
+        }
     };
 
     return (
@@ -117,13 +145,36 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
             <div style={{ maxWidth: 860, margin: "0 auto", padding: "40px 48px 80px" }}>
 
                 {/* Header */}
-                <div style={{ marginBottom: 40 }}>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: t.t1, fontFamily: "'Outfit',sans-serif", letterSpacing: "-0.5px" }}>
-                        🏠 Workspace Home
+                <div style={{ marginBottom: 40, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                    <div>
+                        <div style={{ fontSize: 32, fontWeight: 800, color: t.t1, fontFamily: "'Outfit',sans-serif", letterSpacing: "-0.5px" }}>
+                            🏠 Workspace Home
+                        </div>
+                        <div style={{ fontSize: 14, color: t.t2, marginTop: 6, fontFamily: t.disp }}>
+                            Your notes, journals, and creative docs — all in one place.
+                        </div>
                     </div>
-                    <div style={{ fontSize: 14, color: t.t2, marginTop: 6, fontFamily: t.disp }}>
-                        Your notes, journals, and creative docs — all in one place.
-                    </div>
+                    {/* Restore Starter Notes Button */}
+                    <button
+                        onClick={handleRestoreStarter}
+                        disabled={restoring}
+                        title="Re-add the default starter notes (Quick Start Guide, My Workspace, Ideas & Brain Dump, Journal)"
+                        style={{
+                            display: "flex", alignItems: "center", gap: 7,
+                            padding: "9px 16px", borderRadius: 10,
+                            border: `1px solid ${t.accent}44`,
+                            background: restoring ? t.accentDim : "transparent",
+                            color: t.accent, cursor: restoring ? "not-allowed" : "pointer",
+                            fontFamily: t.disp, fontSize: 13, fontWeight: 600,
+                            transition: "all .2s", whiteSpace: "nowrap",
+                            opacity: restoring ? 0.7 : 1,
+                        }}
+                        onMouseEnter={e => { if (!restoring) e.currentTarget.style.background = t.accentDim; }}
+                        onMouseLeave={e => { if (!restoring) e.currentTarget.style.background = "transparent"; }}
+                    >
+                        <span style={{ fontSize: 16 }}>{restoring ? "⏳" : "🔄"}</span>
+                        {restoring ? "Restoring…" : "Restore Starter Notes"}
+                    </button>
                 </div>
 
                 {/* Recent pages */}
