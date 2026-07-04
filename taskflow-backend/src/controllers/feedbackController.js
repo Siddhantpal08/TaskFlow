@@ -59,6 +59,50 @@ const getFeedback = asyncWrapper(async (req, res) => {
 });
 
 /**
+ * PATCH /api/v1/feedback/:id/status
+ */
+const updateFeedbackStatus = asyncWrapper(async (req, res) => {
+    if (req.user.role !== 'admin') {
+        throw new AppError('Admin access required.', 403);
+    }
+    const feedbackId = parseInt(req.params.id);
+    const { status } = req.body;
+    
+    if (!['pending', 'done'].includes(status)) {
+        throw new AppError('Invalid status.', 400);
+    }
+    
+    await db.query(`UPDATE feedback SET status = ? WHERE id = ?`, [status, feedbackId]);
+    
+    const [[feedback]] = await db.query(
+        `SELECT f.*, u.email, u.name FROM feedback f JOIN users u ON u.id = f.user_id WHERE f.id = ?`,
+        [feedbackId]
+    );
+    
+    if (feedback && feedback.email && status === 'done') {
+        await mailer.sendSupportTicketEmail(
+            feedback.email, 
+            `Your feedback ("${feedback.message.slice(0, 30)}...") has been reviewed and implemented!`,
+            `Feedback #${feedbackId}`
+        );
+    }
+    
+    res.json({ success: true, message: 'Status updated' });
+});
+
+/**
+ * DELETE /api/v1/feedback/:id
+ */
+const deleteFeedback = asyncWrapper(async (req, res) => {
+    if (req.user.role !== 'admin') {
+        throw new AppError('Admin access required.', 403);
+    }
+    const feedbackId = parseInt(req.params.id);
+    await db.query(`DELETE FROM feedback WHERE id = ?`, [feedbackId]);
+    res.json({ success: true, message: 'Feedback deleted' });
+});
+
+/**
  * PUT /api/v1/feedback/:id/upvote — Any logged-in user can upvote a feedback entry
  * Uses a separate table to prevent double-voting.
  */
@@ -91,7 +135,7 @@ const upvoteFeedback = asyncWrapper(async (req, res) => {
  */
 const getPublicFeedboard = asyncWrapper(async (req, res) => {
     const [rows] = await db.query(
-        `SELECT f.id, f.rating, f.message, f.upvotes, f.created_at,
+        `SELECT f.id, f.rating, f.message, f.upvotes, f.created_at, f.status,
                 CONCAT(LEFT(u.name, LOCATE(' ', CONCAT(u.name,' '))-1), '.') AS author_initial
          FROM feedback f
          LEFT JOIN users u ON u.id = f.user_id
@@ -129,4 +173,4 @@ const submitTicket = asyncWrapper(async (req, res) => {
     res.status(201).json({ success: true, message: 'Ticket submitted successfully!' });
 });
 
-module.exports = { submitFeedback, getFeedback, submitTicket, upvoteFeedback, getPublicFeedboard };
+module.exports = { submitFeedback, getFeedback, submitTicket, upvoteFeedback, getPublicFeedboard, updateFeedbackStatus, deleteFeedback };

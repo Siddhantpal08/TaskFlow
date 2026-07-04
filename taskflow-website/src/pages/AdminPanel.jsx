@@ -447,7 +447,7 @@ export default function AdminPanel({ t: themeProp, user }) {
                             fontSize: 10, fontWeight: 600, color: thm.t3, textTransform: 'uppercase',
                             letterSpacing: '0.6px', fontFamily: thm.mono,
                         }}>
-                            <span>User</span><span>Rating</span><span>Message</span><span>Submitted At</span>
+                            <span>User</span><span>Rating</span><span>Message</span><span>Status & Actions</span>
                         </div>
                         {feedbackLoading ? (
                             <div style={{ padding: 20, color: thm.t3, fontSize: 13 }}>Loading feedback…</div>
@@ -470,8 +470,42 @@ export default function AdminPanel({ t: themeProp, user }) {
                                     {'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}
                                 </span>
                                 <div style={{ fontSize: 12.5, color: thm.t2, paddingRight: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>{f.message}</div>
-                                <div style={{ fontSize: 11, color: thm.t3, fontFamily: thm.mono }}>
-                                    {new Date(f.created_at).toLocaleString()}
+                                <div style={{ fontSize: 11, color: thm.t3, fontFamily: thm.mono, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{
+                                            padding: '2px 6px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase', fontSize: 10,
+                                            background: f.status === 'done' ? `${thm.green}22` : `${thm.amber}22`,
+                                            color: f.status === 'done' ? thm.green : thm.amber,
+                                        }}>{f.status || 'pending'}</span>
+                                        <span>{new Date(f.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                                        <button onClick={async () => {
+                                            const newStatus = f.status === 'done' ? 'pending' : 'done';
+                                            try {
+                                                await feedbackApi.updateStatus(f.id, newStatus);
+                                                notify(`Feedback marked as ${newStatus}`);
+                                                loadFeedback();
+                                            } catch { notify('Failed to update status'); }
+                                        }} style={{
+                                            padding: '4px 8px', borderRadius: 6, border: `1px solid ${thm.border}`,
+                                            background: 'transparent', color: thm.t2, fontSize: 10, cursor: 'pointer', fontFamily: thm.mono, fontWeight: 700,
+                                        }}>
+                                            {f.status === 'done' ? 'Mark Pending' : 'Mark Done'}
+                                        </button>
+                                        <button onClick={async () => {
+                                            if (window.confirm('Delete this feedback?')) {
+                                                try {
+                                                    await feedbackApi.delete(f.id);
+                                                    notify('Feedback deleted');
+                                                    loadFeedback();
+                                                } catch { notify('Failed to delete feedback'); }
+                                            }
+                                        }} style={{
+                                            padding: '4px 8px', borderRadius: 6, border: `1px solid ${thm.red}44`,
+                                            background: 'transparent', color: thm.red, fontSize: 10, cursor: 'pointer', fontFamily: thm.mono,
+                                        }}>✕</button>
+                                    </div>
                                 </div>
                             </div>
                         ))}

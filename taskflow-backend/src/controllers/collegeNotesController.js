@@ -186,28 +186,58 @@ const acceptShare = asyncWrapper(async (req, res) => {
     );
     if (!share) return res.status(404).json({ status: 'fail', message: 'Share link invalid or expired' });
     
+    const [[pageOwner]] = await db.query('SELECT user_id FROM notes_pages WHERE id = ?', [share.page_id]);
+    const [allOwnerPages] = await db.query('SELECT * FROM notes_pages WHERE user_id = ? AND deleted_at IS NULL', [pageOwner.user_id]);
+    
+    // Find all pages in the subtree starting at the shared root
+    const subtree = [];
+    const rootPage = allOwnerPages.find(p => p.id === share.page_id) || share;
+    const collect = (parentId) => {
+        const children = allOwnerPages.filter(p => p.parent_id === parentId);
+        for (const c of children) {
+            subtree.push(c);
+            collect(c.id);
+        }
+    };
+    subtree.push(rootPage);
+    collect(share.page_id);
+
     if (mode === 'collab') {
-        await db.query(
-            'INSERT IGNORE INTO note_collaborators (page_id, user_id, can_edit) VALUES (?, ?, TRUE)',
-            [share.page_id, userId]
-        );
+        for (const p of subtree) {
+            await db.query(
+                'INSERT IGNORE INTO note_collaborators (page_id, user_id, can_edit) VALUES (?, ?, TRUE)',
+                [p.id, userId]
+            );
+        }
         return res.status(200).json({ status: 'success', data: { id: share.page_id, title: share.title } });
     }
 
-    // Deep copy the page
-    const newId = uuidv4();
-    await db.query(
-        'INSERT INTO notes_pages (id, user_id, parent_id, title, emoji, position, writing_mode) VALUES (?,?,NULL,?,?,0,?)',
-        [newId, userId, `${share.title} (Shared)`, share.emoji, share.writing_mode || null]
-    );
-    const [blocks] = await db.query('SELECT * FROM notes_blocks WHERE page_id = ?', [share.page_id]);
-    for (const b of blocks) {
+    // Deep copy the subtree
+    const idMap = {}; // oldId -> newId
+    const newRootId = uuidv4();
+    
+    for (const p of subtree) {
+        const newId = p.id === share.page_id ? newRootId : uuidv4();
+        idMap[p.id] = newId;
+        
+        const parentId = p.id === share.page_id ? null : idMap[p.parent_id];
+        const newTitle = p.id === share.page_id ? `${p.title} (Shared)` : p.title;
+        
         await db.query(
-            'INSERT INTO notes_blocks (id, page_id, type, content, checked, position, indent) VALUES (?,?,?,?,?,?,?)',
-            [uuidv4(), newId, b.type, b.content, b.checked, b.position, b.indent || 0]
+            'INSERT INTO notes_pages (id, user_id, parent_id, title, emoji, position, writing_mode) VALUES (?,?,?,?,?,?,?)',
+            [newId, userId, parentId, newTitle, p.emoji, p.position || 0, p.writing_mode || null]
         );
+
+        const [blocks] = await db.query('SELECT * FROM notes_blocks WHERE page_id = ?', [p.id]);
+        for (const b of blocks) {
+            await db.query(
+                'INSERT INTO notes_blocks (id, page_id, type, content, checked, position, indent) VALUES (?,?,?,?,?,?,?)',
+                [uuidv4(), newId, b.type, b.content, b.checked, b.position, b.indent || 0]
+            );
+        }
     }
-    res.status(201).json({ status: 'success', data: { id: newId, title: share.title } });
+    
+    res.status(201).json({ status: 'success', data: { id: newRootId, title: share.title } });
 });
 
 // ─── Blocks ───────────────────────────────────────────────────────────────────

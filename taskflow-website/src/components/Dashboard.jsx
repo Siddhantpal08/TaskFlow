@@ -202,6 +202,8 @@ export default function Dashboard({ t, setPage, setTask }) {
 
                     {/* Command Palette shortcut */}
                     <button
+                        id="cmd-palette-btn"
+                        className="cmd-palette-btn"
                         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
                         title="Open Command Palette (Ctrl+K)"
                         style={{

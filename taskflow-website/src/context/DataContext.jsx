@@ -126,7 +126,13 @@ export function DataProvider({ children }) {
 
         socket.on('task:updated', (task) => {
             if (!task?.id) return;
-            setTasks(prev => (prev || []).map(t => t.id === task.id ? task : t));
+            setTasks(prev => {
+                const arr = prev || [];
+                if (arr.some(t => t.id === task.id)) {
+                    return arr.map(t => t.id === task.id ? task : t);
+                }
+                return [task, ...arr];
+            });
         });
 
         socket.on('task:delegated', (task) => {

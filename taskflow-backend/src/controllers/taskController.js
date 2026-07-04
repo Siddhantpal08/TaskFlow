@@ -2,6 +2,26 @@ const asyncWrapper = require('../utils/asyncWrapper');
 const taskService = require('../services/taskService');
 const taskModel = require('../models/taskModel');
 const { emitToUser } = require('../utils/socket');
+const teamModel = require('../models/teamModel');
+
+const broadcastToTeammates = async (task, eventName) => {
+    emitToUser(String(task.assigned_to), eventName, task);
+    if (task.assigned_by && String(task.assigned_by) !== String(task.assigned_to)) {
+        emitToUser(String(task.assigned_by), eventName, task);
+    }
+    try {
+        const members = await teamModel.getTeamMembers(task.assigned_to);
+        if (Array.isArray(members)) {
+            members.forEach(m => {
+                if (m.id !== task.assigned_to && m.id !== task.assigned_by) {
+                    emitToUser(String(m.id), eventName, task);
+                }
+            });
+        }
+    } catch (e) {
+        console.error('Failed to broadcast to teammates:', e);
+    }
+};
 const notificationService = require('../services/notificationService');
 const mailer = require('../utils/mailer');
 const Joi = require('joi');
@@ -111,11 +131,7 @@ const updateTask = asyncWrapper(async (req, res) => {
     if (data.due_date) data.due_date = data.due_date.substring(0, 10);
     const task = await taskService.updateTask(parseInt(req.params.id, 10), req.user.id, data);
 
-    emitToUser(String(task.assigned_to), 'task:updated', task);
-    // Also notify the assigner so their dashboard/team view updates in real-time
-    if (task.assigned_by && String(task.assigned_by) !== String(task.assigned_to)) {
-        emitToUser(String(task.assigned_by), 'task:updated', task);
-    }
+    await broadcastToTeammates(task, 'task:updated');
 
     res.status(200).json({ success: true, data: task });
 });
@@ -173,8 +189,7 @@ const updateStatus = asyncWrapper(async (req, res) => {
         }
     }
 
-    emitToUser(String(task.assigned_by), 'task:updated', task);
-    emitToUser(String(task.assigned_to), 'task:updated', task);
+    await broadcastToTeammates(task, 'task:updated');
 
     res.status(200).json({ success: true, data: task });
 });

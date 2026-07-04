@@ -30,8 +30,8 @@ const STEPS = [
         emoji: "🎯",
         title: "Command Palette — Your Shortcut Hub",
         desc: "Press Ctrl+K (or ⌘K on Mac) anywhere to open the Command Palette. Jump to any page, create a task, switch themes, and more — all without lifting your hands from the keyboard.",
-        highlight: null,
-        position: "center",
+        highlight: "cmd-palette-btn",
+        position: "bottom",
     },
     {
         id: "notes",

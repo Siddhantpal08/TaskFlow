@@ -7,21 +7,31 @@ export default function InteractiveTour({ run, setRun, t }) {
             target: 'body',
             content: 'Welcome to TaskFlow! Let\'s take a quick tour to help you get started.',
             placement: 'center',
+            title: 'Welcome',
         },
         {
             target: '.sidebar-desktop',
-            content: 'This is your navigation sidebar. Access your dashboard, tasks, notes, and settings here.',
+            content: 'This is your navigation sidebar. Access your dashboard, tasks, notes, and team settings here.',
             placement: 'right',
+            title: 'Your Navigation Hub',
         },
         {
             target: '#topbar-capture-btn',
             content: 'Need to write something down quickly? Use this button to capture a new task from anywhere in the app.',
             placement: 'bottom',
+            title: 'Create Tasks in One Click',
         },
         {
-            target: '.stats-grid',
-            content: 'Your dashboard gives you a bird\'s-eye view of your day and upcoming tasks.',
+            target: '.dash-root',
+            content: 'The Dashboard shows your task stats, upcoming events, and what needs attention right now.',
+            placement: 'center',
+            title: 'Your Command Center',
+        },
+        {
+            target: '#cmd-palette-btn',
+            content: 'Press Ctrl+K (or ⌘K on Mac) anywhere to open the Command Palette. Jump to any page, create a task, switch themes, and more — all without lifting your hands from the keyboard.',
             placement: 'bottom',
+            title: 'Command Palette — Your Shortcut Hub',
         }
     ];
 

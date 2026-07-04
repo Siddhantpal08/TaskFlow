@@ -528,6 +528,18 @@ export default function GuideHubPage({ t, setPage }) {
                                                         </span>
                                                         <span>·</span>
                                                         <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                                                        {post.status && (
+                                                            <>
+                                                                <span>·</span>
+                                                                <span style={{ 
+                                                                    padding: '2px 6px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase', fontSize: 9,
+                                                                    background: post.status === 'done' ? `${t.green}22` : `${t.amber}22`,
+                                                                    color: post.status === 'done' ? t.green : t.amber
+                                                                }}>
+                                                                    {post.status}
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

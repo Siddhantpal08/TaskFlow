@@ -1427,8 +1427,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                                         onAddAfter={(type, content) => addBlk(idx, type, content)}
                                                         onSlash={(r, q) => setSlash({ x: r.left, y: r.bottom + 4, idx, q })}
                                                         onSlashClose={() => setSlash(null)}
-                                                        onFocusPrev={() => document.getElementById("blk-" + (idx - 1))?.focus()}
-                                                        onFocusNext={() => document.getElementById("blk-" + (idx + 1))?.focus()}
+                                                        onFocusPrev={() => focusAtEnd("blk-" + (idx - 1))}
+                                                        onFocusNext={() => focusAtStart("blk-" + (idx + 1))}
                                                         onPasteHTML={(h, txt) => handlePasteHTML(h, txt, idx)}
                                                         isDragging={dragFromIdx.current === idx}
                                                         isDragOver={dragOver === idx}
