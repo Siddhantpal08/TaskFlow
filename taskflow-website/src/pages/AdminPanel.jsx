@@ -428,9 +428,37 @@ export default function AdminPanel({ t: themeProp, user }) {
                                     <div style={{ fontSize: 12.5, fontWeight: 700, color: thm.t1, marginBottom: 4 }}>{tkt.title}</div>
                                     <div style={{ fontSize: 12, color: thm.t2, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>{tkt.description}</div>
                                 </div>
-                                <div style={{ fontSize: 11, color: thm.t3, fontFamily: thm.mono }}>
-                                    <span style={{ display: 'inline-block', padding: '2px 6px', background: tkt.status === 'open' ? `${thm.amber}22` : `${thm.green}22`, color: tkt.status === 'open' ? thm.amber : thm.green, borderRadius: 4, marginBottom: 4, fontWeight: 700 }}>{tkt.status}</span>
-                                    <br />{new Date(tkt.created_at).toLocaleString()}
+                                <div style={{ fontSize: 11, color: thm.t3, fontFamily: thm.mono, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ display: 'inline-block', padding: '2px 6px', background: (tkt.status === 'done' || tkt.status === 'resolved') ? `${thm.green}22` : `${thm.amber}22`, color: (tkt.status === 'done' || tkt.status === 'resolved') ? thm.green : thm.amber, borderRadius: 4, fontWeight: 700 }}>{tkt.status}</span>
+                                        <span>{new Date(tkt.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                        <button onClick={async () => {
+                                            try {
+                                                const newStatus = (tkt.status === 'done' || tkt.status === 'resolved') ? 'in_progress' : 'done';
+                                                await api.patch(`/feedback/tickets/${tkt.id}/status`, { status: newStatus });
+                                                loadFeedback();
+                                            } catch (e) {
+                                                setActionMsg(e.response?.data?.message || 'Failed to update ticket');
+                                                setTimeout(() => setActionMsg(''), 3000);
+                                            }
+                                        }} style={{ background: thm.surf, border: `1px solid ${thm.border}`, color: thm.t2, padding: '4px 8px', borderRadius: 6, fontSize: 10, cursor: 'pointer' }} className="hvrC">
+                                            {(tkt.status === 'done' || tkt.status === 'resolved') ? 'Reopen' : 'Mark Done'}
+                                        </button>
+                                        <button onClick={async () => {
+                                            if (!window.confirm("Delete this ticket?")) return;
+                                            try {
+                                                await api.delete(`/feedback/tickets/${tkt.id}`);
+                                                loadFeedback();
+                                            } catch (e) {
+                                                setActionMsg(e.response?.data?.message || 'Failed to delete ticket');
+                                                setTimeout(() => setActionMsg(''), 3000);
+                                            }
+                                        }} style={{ background: thm.surf, border: `1px solid ${thm.border}`, color: thm.red, padding: '4px 8px', borderRadius: 6, fontSize: 10, cursor: 'pointer' }} className="hvrC">
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}

@@ -131,17 +131,71 @@ const upvoteFeedback = asyncWrapper(async (req, res) => {
 });
 
 /**
+ * PATCH /api/v1/feedback/tickets/:id/status
+ */
+const updateTicketStatus = asyncWrapper(async (req, res) => {
+    if (req.user.role !== 'admin') {
+        throw new AppError('Admin access required.', 403);
+    }
+    const ticketId = parseInt(req.params.id);
+    const { status } = req.body;
+    
+    if (!['open', 'in_progress', 'done', 'resolved'].includes(status)) {
+        throw new AppError('Invalid status.', 400);
+    }
+    
+    await db.query(`UPDATE support_tickets SET status = ? WHERE id = ?`, [status, ticketId]);
+    
+    const [[ticket]] = await db.query(
+        `SELECT t.*, u.email, u.name FROM support_tickets t JOIN users u ON u.id = t.user_id WHERE t.id = ?`,
+        [ticketId]
+    );
+    
+    if (ticket && ticket.email && (status === 'done' || status === 'resolved')) {
+        await mailer.sendSupportTicketEmail(
+            ticket.email, 
+            `Your support ticket regarding "${ticket.title}" has been addressed and resolved!`,
+            `Ticket #${ticketId}`
+        );
+    }
+    
+    res.json({ success: true, message: 'Ticket status updated' });
+});
+
+/**
+ * DELETE /api/v1/feedback/tickets/:id
+ */
+const deleteTicket = asyncWrapper(async (req, res) => {
+    if (req.user.role !== 'admin') {
+        throw new AppError('Admin access required.', 403);
+    }
+    const ticketId = parseInt(req.params.id);
+    await db.query(`DELETE FROM support_tickets WHERE id = ?`, [ticketId]);
+    res.json({ success: true, message: 'Support ticket deleted' });
+});
+
+/**
  * GET /api/v1/feedback/public — Returns top feedback entries (anonymized) for the public board
  */
 const getPublicFeedboard = asyncWrapper(async (req, res) => {
     const [rows] = await db.query(
-        `SELECT f.id, f.rating, f.message, f.upvotes, f.created_at, f.status,
-                CONCAT(LEFT(u.name, LOCATE(' ', CONCAT(u.name,' '))-1), '.') AS author_initial
-         FROM feedback f
-         LEFT JOIN users u ON u.id = f.user_id
-         WHERE f.is_public = 1 OR f.rating >= 4
-         ORDER BY f.upvotes DESC, f.created_at DESC
-         LIMIT 20`
+        `SELECT id, rating, message, upvotes, created_at, status, author_initial
+         FROM (
+             SELECT f.id, f.rating, f.message, f.upvotes, f.created_at, f.status,
+                    CONCAT(LEFT(u.name, LOCATE(' ', CONCAT(u.name,' '))-1), '.') AS author_initial
+             FROM feedback f
+             LEFT JOIN users u ON u.id = f.user_id
+             
+             UNION ALL
+             
+             SELECT t.id, 5 as rating, CONCAT('[', t.category, '] ', t.title, ' - ', t.description) as message, 0 as upvotes, t.created_at, t.status,
+                    CONCAT(LEFT(u.name, LOCATE(' ', CONCAT(u.name,' '))-1), '.') AS author_initial
+             FROM support_tickets t
+             LEFT JOIN users u ON u.id = t.user_id
+             WHERE t.category IN ('bug', 'feature')
+         ) combined
+         ORDER BY upvotes DESC, created_at DESC
+         LIMIT 50`
     );
     res.json({ success: true, data: rows });
 });
@@ -173,4 +227,4 @@ const submitTicket = asyncWrapper(async (req, res) => {
     res.status(201).json({ success: true, message: 'Ticket submitted successfully!' });
 });
 
-module.exports = { submitFeedback, getFeedback, submitTicket, upvoteFeedback, getPublicFeedboard, updateFeedbackStatus, deleteFeedback };
+module.exports = { submitFeedback, getFeedback, submitTicket, upvoteFeedback, getPublicFeedboard, updateFeedbackStatus, deleteFeedback, updateTicketStatus, deleteTicket };

@@ -188,18 +188,14 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {loading && <div style={{ color: t.t3, fontSize: 13 }}>Loading members…</div>}
                 {!loading && members.map(u => {
-                    const myTasks = tasks.filter(tk => tk.assigned_to === u.id);
-                    const done = myTasks.filter(tk => tk.status === "done").length;
-                    const pct = myTasks.length ? Math.round(done / myTasks.length * 100) : 0;
+                    const total = u.total_tasks || 0;
+                    const done = u.done_tasks || 0;
+                    const active = u.active_tasks || 0;
+                    const pct = total ? Math.round(done / total * 100) : 0;
                     const isOnline = onlineUsers.has(String(u.id));
                     const isMe = u.id === user?.id;
-                    const pendingTasks = myTasks.filter(tk => tk.status !== 'done');
-                    const activeTasks = myTasks.filter(tk => tk.status === 'active');
-                    const hasOverdue = pendingTasks.some(tk => tk.due_date && new Date(tk.due_date) < new Date());
-                    const nextDue = pendingTasks
-                        .filter(tk => tk.due_date)
-                        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
-                    const nextDueFmt = nextDue ? new Date(nextDue.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+                    const hasOverdue = u.overdue_tasks > 0;
+                    const nextDueFmt = u.next_due ? new Date(u.next_due).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
 
                     return (
                         <div key={u.id} style={{
@@ -239,11 +235,11 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                                 {/* Task counts */}
                                 <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
                                     <div style={{ textAlign: "center" }}>
-                                        <div style={{ fontSize: 16, fontWeight: 800, color: t.accent, lineHeight: 1 }}>{myTasks.length}</div>
+                                        <div style={{ fontSize: 16, fontWeight: 800, color: t.accent, lineHeight: 1 }}>{total}</div>
                                         <div style={{ fontSize: 9, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>TOTAL</div>
                                     </div>
                                     <div style={{ textAlign: "center" }}>
-                                        <div style={{ fontSize: 16, fontWeight: 800, color: t.amber, lineHeight: 1 }}>{activeTasks.length}</div>
+                                        <div style={{ fontSize: 16, fontWeight: 800, color: t.amber, lineHeight: 1 }}>{active}</div>
                                         <div style={{ fontSize: 9, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>ACTIVE</div>
                                     </div>
                                     <div style={{ textAlign: "center" }}>

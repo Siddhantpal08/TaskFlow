@@ -140,7 +140,6 @@ export default function Dashboard({ t, setPage, setTask }) {
     ];
     const todayQuote = quotes[new Date().getDate() % quotes.length];
 
-    const myTasks = tasks.filter(t => t.assigned_to === user?.id);
     const filteredTasks = taskFilter === "all" ? myTasks : myTasks.filter(x => x.status === taskFilter);
 
     // Today's tasks for focus strip
@@ -148,7 +147,7 @@ export default function Dashboard({ t, setPage, setTask }) {
     const todayTasks = myTasks.filter(tk => tk.due_date && new Date(tk.due_date).toDateString() === todayStr && tk.status !== "done");
 
     return (
-        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
+        <div id="dashboard-main-view" style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
             className="dash-root">
             <style>{`
                 @keyframes statPulse {

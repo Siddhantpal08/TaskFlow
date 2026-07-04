@@ -132,7 +132,12 @@ const getTeamMembers = async (userId) => {
     // NOTE: is_online is intentionally excluded — online presence is tracked via socket
     // events in DataContext (onlineUsers Set), NOT from the DB, to avoid tinyint truncation errors.
     const [rows] = await db.query(
-        `SELECT DISTINCT u.id, u.name, u.email, u.avatar_initials, u.avatar_url, u.created_at
+        `SELECT DISTINCT u.id, u.name, u.email, u.avatar_initials, u.avatar_url, u.created_at,
+            (SELECT COUNT(*) FROM tasks WHERE assigned_to = u.id AND deleted_at IS NULL) as total_tasks,
+            (SELECT COUNT(*) FROM tasks WHERE assigned_to = u.id AND status = 'done' AND deleted_at IS NULL) as done_tasks,
+            (SELECT COUNT(*) FROM tasks WHERE assigned_to = u.id AND status = 'active' AND deleted_at IS NULL) as active_tasks,
+            (SELECT COUNT(*) FROM tasks WHERE assigned_to = u.id AND status != 'done' AND due_date < NOW() AND deleted_at IS NULL) as overdue_tasks,
+            (SELECT MIN(due_date) FROM tasks WHERE assigned_to = u.id AND status != 'done' AND due_date IS NOT NULL AND deleted_at IS NULL) as next_due
          FROM users u
          JOIN team_members tm1 ON u.id = tm1.user_id
          JOIN team_members tm2 ON tm1.team_id = tm2.team_id

@@ -22,7 +22,7 @@ const STEPS = [
         emoji: "📊",
         title: "Your Command Center",
         desc: "The Dashboard shows your task stats, upcoming events, and what needs attention right now. Red = overdue, Amber = active, Green = done.",
-        highlight: null,
+        highlight: "dashboard-main-view",
         position: "center",
     },
     {
