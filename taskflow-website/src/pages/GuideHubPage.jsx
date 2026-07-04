@@ -421,7 +421,7 @@ export default function GuideHubPage({ t, setPage }) {
                     </button>
                     <button className="guide-tab" onClick={() => { setActiveTab("community"); setSearch(""); setMsg(""); }}
                         style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 8, border: "none", background: activeTab === "community" ? t.accentDim : "transparent", color: activeTab === "community" ? t.accent : t.t2, fontFamily: t.disp, fontSize: 13, fontWeight: activeTab === "community" ? 700 : 400, cursor: "pointer", textAlign: "left", width: "100%", borderLeft: `3px solid ${activeTab === "community" ? t.accent : "transparent"}`, transition: "all .15s" }}>
-                        <I d={IC.team} sz={16} c={activeTab === "community" ? t.accent : t.t2} /> Community Board
+                        <I d={IC.team} sz={16} c={activeTab === "community" ? t.accent : t.t2} /> Feature Requests
                     </button>
                 </div>
 
@@ -499,9 +499,9 @@ export default function GuideHubPage({ t, setPage }) {
                                     <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                         <div>
                                             <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
-                                                <I d={IC.team} sz={28} c={t.t1} /> Community Board
+                                                <I d={IC.team} sz={28} c={t.t1} /> Feature Requests
                                             </div>
-                                            <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>See what others are requesting. Upvote the features you want built next!</div>
+                                            <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>See what others are requesting. Upvote the features and suggestions you want built next!</div>
                                         </div>
                                         <button onClick={loadCommunityFeedback} disabled={loadingCommunity} style={{ background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 12px", color: t.t2, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
                                             {loadingCommunity ? "Loading..." : "↻ Refresh"}

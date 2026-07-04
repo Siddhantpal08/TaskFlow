@@ -2,6 +2,8 @@ import { useState } from "react";
 import { I, IC } from "../ui/Icon.jsx";
 import { mkBlock, INIT_PAGES } from "../../data/notes.js";
 import EmptyState from "../ui/EmptyState.jsx";
+import { useAuth } from "../../context/AuthContext";
+import { useData } from "../../context/DataContext";
 
 // Suggested note templates for the workspace home
 const TEMPLATES = [
@@ -102,8 +104,9 @@ const TEMPLATES = [
     },
 ];
 
-
 export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
+    const { user } = useAuth();
+    const { tasks = [], createTask, deleteTask } = useData();
     const subPages = pages["root"]?.childIds?.map(id => pages[id]).filter(Boolean) || [];
     const [restoring, setRestoring] = useState(false);
 
@@ -156,11 +159,22 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
                     </div>
                     {/* Utility Buttons */}
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                        <button onClick={() => alert("Resetting workspace...")}
+                        <button onClick={async () => {
+                            if (!window.confirm("Are you sure you want to reset and delete all your assigned tasks?")) return;
+                            const myTasks = tasks.filter(x => x.assigned_to === user?.id);
+                            for (const x of myTasks) await deleteTask(x.id);
+                        }}
                             style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: `1px solid ${t.border}`, background: "transparent", color: t.t2, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }}>
                             <span style={{ fontSize: 16 }}>🧹</span> Reset Data
                         </button>
-                        <button onClick={() => alert("Populating demo data...")}
+                        <button onClick={async () => {
+                            const dummies = [
+                                { title: "Review Q3 Strategy", priority: "high", assigned_to: user?.id, due_date: new Date().toISOString() },
+                                { title: "Update Documentation", priority: "medium", assigned_to: user?.id, due_date: new Date(Date.now() + 86400000).toISOString() },
+                                { title: "Fix Dashboard bugs", priority: "high", assigned_to: user?.id }
+                            ];
+                            for (const d of dummies) await createTask(d);
+                        }}
                             style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: `1px solid ${t.border}`, background: "transparent", color: t.t2, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }}>
                             <span style={{ fontSize: 16 }}>✨</span> Populate Demo
                         </button>

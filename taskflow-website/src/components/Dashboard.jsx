@@ -371,30 +371,6 @@ export default function Dashboard({ t, setPage, setTask }) {
                                 </button>
                             ))}
                         </div>
-                        {/* Developer options */}
-                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${t.border}` }}>
-                            <div style={{ fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono, marginBottom: 8 }}>Dev Tools</div>
-                            <div style={{ display: "flex", gap: 6 }}>
-                                <button onClick={async () => {
-                                    const dummies = [
-                                        { title: "Review Q3 Strategy", priority: "high", assigned_to: user?.id, due_date: new Date().toISOString() },
-                                        { title: "Update Documentation", priority: "medium", assigned_to: user?.id, due_date: new Date(Date.now() + 86400000).toISOString() },
-                                        { title: "Fix Dashboard bugs", priority: "high", assigned_to: user?.id }
-                                    ];
-                                    for (const d of dummies) await createTask(d);
-                                }}
-                                    style={{ flex: 1, padding: "5px", borderRadius: 6, border: `1px solid ${t.accent}44`, background: t.accentDim, color: t.accent, fontSize: 10, cursor: "pointer", fontFamily: t.disp }}>
-                                    + Populate
-                                </button>
-                                <button onClick={async () => {
-                                    const myTasks = tasks.filter(x => x.assigned_to === user?.id);
-                                    for (const x of myTasks) await deleteTask(x.id);
-                                }}
-                                    style={{ flex: 1, padding: "5px", borderRadius: 6, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red, fontSize: 10, cursor: "pointer", fontFamily: t.disp }}>
-                                    Reset Data
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

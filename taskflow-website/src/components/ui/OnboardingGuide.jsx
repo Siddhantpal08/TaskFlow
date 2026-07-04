@@ -59,12 +59,23 @@ export default function OnboardingGuide({ t }) {
     const [exiting, setExiting] = useState(false);
 
     useEffect(() => {
+        let timer;
         const seen = localStorage.getItem(STORAGE_KEY);
         if (!seen) {
-            // Small delay so the app finishes rendering first
-            const timer = setTimeout(() => setVisible(true), 800);
-            return () => clearTimeout(timer);
+            timer = setTimeout(() => setVisible(true), 800);
         }
+
+        const handleStartTour = () => {
+            setStep(0);
+            setExiting(false);
+            setVisible(true);
+        };
+        window.addEventListener('start-tour', handleStartTour);
+
+        return () => {
+            if (timer) clearTimeout(timer);
+            window.removeEventListener('start-tour', handleStartTour);
+        };
     }, []);
 
     const dismiss = () => {
