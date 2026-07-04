@@ -153,4 +153,26 @@ const bulkDeleteTasks = async (ids, userId) => {
     return await taskModel.bulkDeleteTasks(ids, userId);
 };
 
-module.exports = { createTask, getTask, updateTask, updateStatus, delegateTask, splitTask, deleteTask, bulkDeleteTasks };
+const getDeletedTasks = async (userId) => {
+    return await taskModel.getDeletedTasks(userId);
+};
+
+const restoreTask = async (taskId, userId) => {
+    const task = await taskModel.getTaskById(taskId);
+    if (!task) throw new AppError('Task not found.', 404);
+    if (task.assigned_by !== userId && task.assigned_to !== userId) {
+        throw new AppError('Only the task creator or assignee can restore this task.', 403);
+    }
+    await taskModel.restoreTask(taskId);
+};
+
+const hardDeleteTask = async (taskId, userId) => {
+    const task = await taskModel.getTaskById(taskId);
+    if (!task) throw new AppError('Task not found.', 404);
+    if (task.assigned_by !== userId && task.assigned_to !== userId) {
+        throw new AppError('Only the task creator or assignee can permanently delete this task.', 403);
+    }
+    await taskModel.hardDeleteTask(taskId);
+};
+
+module.exports = { createTask, getTask, updateTask, updateStatus, delegateTask, splitTask, deleteTask, bulkDeleteTasks, getDeletedTasks, restoreTask, hardDeleteTask };

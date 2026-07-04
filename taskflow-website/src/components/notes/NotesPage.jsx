@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { I, IC } from "../ui/Icon.jsx";
 import { EMOJIS, mkBlock, BLOCK_TYPES, SCRIPT_BLOCK_TYPES, LYRICS_BLOCK_TYPES, SCRIPT_TYPES, LYRICS_TYPES } from "../../data/notes.js";
 import NoteBlock from "./NoteBlock.jsx";
@@ -70,6 +71,7 @@ function LockGate({ notePageId, t, onUnlock }) {
                         inputMode="numeric"
                         maxLength={12}
                         placeholder="Enter PIN"
+                        autoComplete="new-password"
                         value={pin}
                         onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
                         onKeyDown={e => e.key === "Enter" && tryUnlock()}
@@ -128,7 +130,7 @@ function LockGate({ notePageId, t, onUnlock }) {
 const PinInput = ({ value, onChange, show, setShow, placeholder, onEnter, t }) => (
     <div style={{ position: "relative" }}>
         <input type={show ? "text" : "password"} maxLength={12} placeholder={placeholder}
-            value={value} onChange={onChange}
+            value={value} onChange={onChange} autoComplete="new-password"
             onKeyDown={e => e.key === "Enter" && onEnter()}
             style={{ padding: "8px 40px 8px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 16, textAlign: "center", outline: "none", fontFamily: t.mono, width: "100%" }} />
         <button onClick={() => setShow(p => !p)}
@@ -164,7 +166,7 @@ function SetLockModal({ notePageId, t, onClose }) {
         onClose();
     };
 
-    return (
+    return createPortal(
         <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div onClick={e => e.stopPropagation()} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: "28px 32px", minWidth: 300, display: "flex", flexDirection: "column", gap: 12, boxShadow: t.shadow }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, fontFamily: t.disp }}>
@@ -185,7 +187,8 @@ function SetLockModal({ notePageId, t, onClose }) {
                     <button onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 8, background: t.card, border: `1px solid ${t.border}`, color: t.t2, fontFamily: t.disp, cursor: "pointer", fontSize: 13 }}>Cancel</button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
@@ -224,7 +227,7 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
     const totalNotes = subNoteCount + 1;
     const finalUrlToDisplay = shareUrl ? (isCollab ? `${shareUrl}&mode=collab` : shareUrl) : "";
 
-    return (
+    return createPortal(
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: '#00000077', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div onClick={e => e.stopPropagation()} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 18, padding: '30px 32px', width: 430, boxShadow: t.shadow, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {/* Header */}
@@ -285,7 +288,8 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
 
                 <div style={{ fontSize: 10.5, color: t.t3, fontFamily: t.mono, textAlign: 'center' }}>Link expires in 72 hours</div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
@@ -1151,11 +1155,6 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 disabled={writingMode === "script" || writingMode === "lyrics"}
                                 onChange={val => {
                                     const finalVal = val || null;
-                                    // ── Writing modes are Pro only ──
-                                    if (finalVal && !isPro()) {
-                                        setShowUpgradeModal({ feature: 'Script & Lyrics Mode is a Pro feature' });
-                                        return;
-                                    }
                                     // ── Confirm before switching to a special mode ──
                                     if (finalVal && finalVal !== writingMode) {
                                         const modeLabel = finalVal === 'script' ? '📽️ Script Mode' : '🎵 Lyrics Mode';

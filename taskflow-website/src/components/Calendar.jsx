@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { I, IC } from "./ui/Icon.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { eventsApi } from "../api/events.js";
@@ -39,7 +40,7 @@ function AddEventModal({ t, date, onClose, onAdd }) {
         } finally { setLoading(false); }
     };
 
-    return (
+    return createPortal(
         <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="popIn" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: 24, width: 380, boxShadow: t.shadow }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: t.t1, marginBottom: 18 }}>New Event</div>
@@ -82,7 +83,8 @@ function AddEventModal({ t, date, onClose, onAdd }) {
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
@@ -244,8 +246,8 @@ export default function Calendar({ t }) {
                     </div>
  
                     {/* Day cells */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 1, background: t.border, padding: "0 14px 14px" }}>
-                        {[...Array(offset)].map((_, i) => <div key={`b${i}`} style={{ background: t.card, minHeight: 90 }} />)}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 1, background: t.border, padding: "0 14px 14px", flex: 1 }}>
+                        {[...Array(offset)].map((_, i) => <div key={`b${i}`} style={{ background: t.card }} />)}
                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                             const dayEvs = evMap[d] || [];
                             const firstEv = dayEvs[0];
@@ -276,7 +278,7 @@ export default function Calendar({ t }) {
             </div>
 
             {/* Sidebar */}
-            <div style={{ width: 260, flexShrink: 0, padding: "22px 28px 22px 0", overflow: "hidden", display: "flex", flexDirection: "column" }} className="cal-sidebar">
+            <div style={{ width: 340, flexShrink: 0, padding: "22px 28px 22px 0", overflow: "hidden", display: "flex", flexDirection: "column" }} className="cal-sidebar">
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 15, boxShadow: t.shadow, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
 
                     <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>{MONTHS[viewMonth].slice(0, 3)} Events</div>
@@ -309,7 +311,7 @@ export default function Calendar({ t }) {
                             </div>
                         );
                     })}
-                    <button onClick={() => { setClickedDate(null); setShowAdd(true); }} style={{ width: "100%", marginTop: 11, padding: "7px", borderRadius: 8, border: `1px dashed ${t.border}`, background: "transparent", color: t.t3, fontSize: 12, fontFamily: t.disp, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                    <button onClick={() => { setClickedDate(null); setShowAdd(true); }} style={{ width: "100%", marginTop: 11, padding: "7px", borderRadius: 8, border: `1px dashed ${t.border}`, background: "transparent", color: t.t3, fontSize: 12, fontFamily: t.disp, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, flexShrink: 0 }}>
                         <I d={IC.plus} sz={12} c={t.t3} /> Add Event
                     </button>
                 </div>

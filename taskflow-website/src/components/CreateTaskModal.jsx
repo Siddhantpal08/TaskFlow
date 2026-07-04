@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { teamApi } from "../api/team.js";
@@ -45,7 +46,7 @@ export default function CreateTaskModal({ t, onClose, onCreate, initialAssignee 
         finally { setLoading(false); }
     };
 
-    return (
+    return createPortal(
         <div onClick={e => e.target === e.currentTarget && onClose()} style={{
             position: 'fixed', inset: 0, background: '#00000088', zIndex: 999,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -116,6 +117,7 @@ export default function CreateTaskModal({ t, onClose, onCreate, initialAssignee 
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

@@ -10,6 +10,9 @@ const {
     splitTask,
     deleteTask,
     bulkDelete,
+    listDeletedTasks,
+    restoreTask,
+    hardDeleteTask,
 } = require('../controllers/taskController');
 
 const router = express.Router();
@@ -20,11 +23,14 @@ router.use(authenticate);
 router.get('/', listTasks);
 router.post('/', createTask);
 router.delete('/', bulkDelete);          // must be before /:id
+router.get('/trash', listDeletedTasks);
 router.get('/:id', getTask);
 router.put('/:id', updateTask);
 router.patch('/:id/status', updateStatus);
 router.patch('/:id/delegate', delegateTask);
 router.post('/:id/split', splitTask);
+router.patch('/:id/restore', restoreTask);
+router.delete('/:id/permanent', hardDeleteTask);
 router.delete('/:id', deleteTask);
 
 module.exports = router;

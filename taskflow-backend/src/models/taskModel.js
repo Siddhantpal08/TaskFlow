@@ -39,7 +39,7 @@ const getTasksForUser = async (userId, filters = {}) => {
         FROM tasks t
         JOIN users u1 ON u1.id = t.assigned_by
         JOIN users u2 ON u2.id = t.assigned_to
-        WHERE (t.assigned_by = ? OR t.assigned_to = ?)
+        WHERE (t.assigned_by = ? OR t.assigned_to = ?) AND t.deleted_at IS NULL
     `;
     const params = [userId, userId];
 
@@ -66,7 +66,7 @@ const getSubTasks = async (parentTaskId) => {
     const [rows] = await db.query(
         `SELECT t.*, u.name AS assigned_to_name, u.avatar_initials AS assigned_to_initials
          FROM tasks t JOIN users u ON u.id = t.assigned_to
-         WHERE t.parent_task_id = ?`,
+         WHERE t.parent_task_id = ? AND t.deleted_at IS NULL`,
         [parentTaskId]
     );
     return rows;
@@ -75,7 +75,7 @@ const getSubTasks = async (parentTaskId) => {
 /** Count tasks assigned to a user (for team view) */
 const getTaskCountByUser = async (userId) => {
     const [rows] = await db.query(
-        'SELECT COUNT(*) AS count FROM tasks WHERE assigned_to = ?',
+        'SELECT COUNT(*) AS count FROM tasks WHERE assigned_to = ? AND deleted_at IS NULL',
         [userId]
     );
     return rows[0].count;
@@ -86,7 +86,7 @@ const getTasksDueSoon = async (userId, withinHours = 48) => {
     const [rows] = await db.query(
         `SELECT * FROM tasks
          WHERE assigned_to = ? AND status != 'done'
-           AND due_date IS NOT NULL
+           AND due_date IS NOT NULL AND deleted_at IS NULL
            AND due_date BETWEEN CURDATE() AND DATE_ADD(NOW(), INTERVAL ? HOUR)`,
         [userId, withinHours]
     );
@@ -142,6 +142,29 @@ const splitTask = async (taskId, subtasks) => {
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 const deleteTask = async (id) => {
+    await db.query('UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+};
+
+const getDeletedTasks = async (userId) => {
+    const [rows] = await db.query(
+        `SELECT t.*,
+                u1.name AS assigned_by_name, u1.avatar_initials AS assigned_by_initials,
+                u2.name AS assigned_to_name, u2.avatar_initials AS assigned_to_initials
+         FROM tasks t
+         JOIN users u1 ON u1.id = t.assigned_by
+         JOIN users u2 ON u2.id = t.assigned_to
+         WHERE (t.assigned_by = ? OR t.assigned_to = ?) AND t.deleted_at IS NOT NULL
+         ORDER BY t.deleted_at DESC`,
+        [userId, userId]
+    );
+    return rows;
+};
+
+const restoreTask = async (id) => {
+    await db.query('UPDATE tasks SET deleted_at = NULL WHERE id = ?', [id]);
+};
+
+const hardDeleteTask = async (id) => {
     await db.query('DELETE FROM tasks WHERE id = ?', [id]);
 };
 
@@ -154,7 +177,7 @@ const bulkDeleteTasks = async (ids, userId) => {
 
     const placeholders = ids.map(() => '?').join(',');
     const [result] = await db.query(
-        `DELETE FROM tasks WHERE id IN (${placeholders}) AND (assigned_by = ? OR assigned_to = ?)`,
+        `UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP WHERE id IN (${placeholders}) AND (assigned_by = ? OR assigned_to = ?) AND deleted_at IS NULL`,
         [...ids, userId, userId]
     );
     const deleted = result.affectedRows;
@@ -175,4 +198,7 @@ module.exports = {
     splitTask,
     deleteTask,
     bulkDeleteTasks,
+    getDeletedTasks,
+    restoreTask,
+    hardDeleteTask,
 };

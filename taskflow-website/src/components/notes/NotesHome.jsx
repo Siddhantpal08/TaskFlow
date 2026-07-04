@@ -154,27 +154,37 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
                             Your notes, journals, and creative docs — all in one place.
                         </div>
                     </div>
-                    {/* Restore Starter Notes Button */}
-                    <button
-                        onClick={handleRestoreStarter}
-                        disabled={restoring}
-                        title="Re-add the default starter notes (Quick Start Guide, My Workspace, Ideas & Brain Dump, Journal)"
-                        style={{
-                            display: "flex", alignItems: "center", gap: 7,
-                            padding: "9px 16px", borderRadius: 10,
-                            border: `1px solid ${t.accent}44`,
-                            background: restoring ? t.accentDim : "transparent",
-                            color: t.accent, cursor: restoring ? "not-allowed" : "pointer",
-                            fontFamily: t.disp, fontSize: 13, fontWeight: 600,
-                            transition: "all .2s", whiteSpace: "nowrap",
-                            opacity: restoring ? 0.7 : 1,
-                        }}
-                        onMouseEnter={e => { if (!restoring) e.currentTarget.style.background = t.accentDim; }}
-                        onMouseLeave={e => { if (!restoring) e.currentTarget.style.background = "transparent"; }}
-                    >
-                        <span style={{ fontSize: 16 }}>{restoring ? "⏳" : "🔄"}</span>
-                        {restoring ? "Restoring…" : "Restore Starter Notes"}
-                    </button>
+                    {/* Utility Buttons */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                        <button onClick={() => alert("Resetting workspace...")}
+                            style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: `1px solid ${t.border}`, background: "transparent", color: t.t2, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }}>
+                            <span style={{ fontSize: 16 }}>🧹</span> Reset Data
+                        </button>
+                        <button onClick={() => alert("Populating demo data...")}
+                            style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: `1px solid ${t.border}`, background: "transparent", color: t.t2, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }}>
+                            <span style={{ fontSize: 16 }}>✨</span> Populate Demo
+                        </button>
+                        <button
+                            onClick={handleRestoreStarter}
+                            disabled={restoring}
+                            title="Re-add the default starter notes"
+                            style={{
+                                display: "flex", alignItems: "center", gap: 7,
+                                padding: "9px 16px", borderRadius: 10,
+                                border: `1px solid ${t.accent}44`,
+                                background: restoring ? t.accentDim : "transparent",
+                                color: t.accent, cursor: restoring ? "not-allowed" : "pointer",
+                                fontFamily: t.disp, fontSize: 13, fontWeight: 600,
+                                transition: "all .2s", whiteSpace: "nowrap",
+                                opacity: restoring ? 0.7 : 1,
+                            }}
+                            onMouseEnter={e => { if (!restoring) e.currentTarget.style.background = t.accentDim; }}
+                            onMouseLeave={e => { if (!restoring) e.currentTarget.style.background = "transparent"; }}
+                        >
+                            <span style={{ fontSize: 16 }}>{restoring ? "⏳" : "🔄"}</span>
+                            {restoring ? "Restoring…" : "Restore Starter Notes"}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Recent pages */}

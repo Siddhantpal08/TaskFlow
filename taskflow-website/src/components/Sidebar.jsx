@@ -33,24 +33,12 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
     const { user: authUser, logout } = useAuth();
     const user = userProp || authUser;
 
-    // ── Collapse state — persisted in localStorage ───────────────────────────
-    const [collapsed, setCollapsed] = useState(() => {
-        const saved = localStorage.getItem("tf_sidebar_pinned");
-        return saved === null ? true : saved === "collapsed";
-    });
-    const [hovered, setHovered] = useState(false);
     const [noteSearch, setNoteSearch] = useState("");
     const [showNotes, setShowNotes] = useState(true);
     const [pageToDelete, setPageToDelete] = useState(null);
 
-    const pinCollapsed = () => {
-        const next = !collapsed;
-        setCollapsed(next);
-        localStorage.setItem("tf_sidebar_pinned", next ? "collapsed" : "expanded");
-    };
-
-    const isOpen = !collapsed || hovered; // show expanded if hovered OR pinned open
-    const W = isOpen ? 240 : 64;
+    const isOpen = true;
+    const W = 240;
 
     // Primary nav items
     const nav = [
@@ -64,6 +52,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
     const bottomNav = [
         { id: "guide",     label: "Help & Guide", ic: IC.book  },
         { id: "customize", label: "Customize",    ic: IC.pal   },
+        { id: "trash",     label: "Recycle Bin",  ic: IC.trash },
         ...(user?.role === 'admin' ? [{ id: "admin", label: "Admin", ic: IC.edt }] : []),
     ];
 
@@ -112,16 +101,14 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                 display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden",
                 position: "relative", transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
             }}
-            onMouseEnter={() => collapsed && setHovered(true)}
-            onMouseLeave={() => collapsed && setHovered(false)}
         >
             {/* ── Header ── */}
             <div style={{
-                padding: isOpen ? "16px 14px 12px" : "12px 0",
+                padding: isOpen ? "0 14px" : "0",
                 borderBottom: `1px solid ${t.border}`,
                 display: "flex", alignItems: "center",
                 justifyContent: isOpen ? "space-between" : "center",
-                minHeight: 58,
+                height: 58, boxSizing: "border-box",
             }}>
                 {isOpen ? (
                     <div onClick={() => setPage("dashboard")} style={{ cursor: "pointer", opacity: 1, transition: "opacity .15s" }}
@@ -134,15 +121,6 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                         style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
                         <TFLogo size={26} showText={false} />
                     </div>
-                )}
-                {/* Pin/collapse toggle */}
-                {isOpen && (
-                    <button onClick={pinCollapsed} title={collapsed ? "Pin sidebar open" : "Collapse sidebar"}
-                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 5, color: t.t3, transition: "color .15s" }}
-                        onMouseEnter={e => e.currentTarget.style.color = t.accent}
-                        onMouseLeave={e => e.currentTarget.style.color = t.t3}>
-                        <I d={collapsed ? IC.arr : IC.x} sz={13} c="currentColor" />
-                    </button>
                 )}
             </div>
 
@@ -179,7 +157,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
                                     <I d={IC.srch} sz={11} c={t.t3} />
                                 </div>
                                 <input value={noteSearch} onChange={e => setNoteSearch(e.target.value)}
-                                    placeholder="Search pages…"
+                                    placeholder="Search pages…" autoComplete="off" name="tf-search-disable-autofill"
                                     style={{ width: "100%", boxSizing: "border-box", padding: "5px 8px 5px 26px", borderRadius: 6, border: `1px solid ${t.border}`, background: t.inset, color: t.t1, fontSize: 11, fontFamily: t.disp, outline: "none" }} />
                             </div>
 

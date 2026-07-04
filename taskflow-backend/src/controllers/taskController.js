@@ -277,6 +277,24 @@ const bulkDelete = asyncWrapper(async (req, res) => {
     res.status(200).json({ success: true, data: result });
 });
 
+/** GET /api/v1/tasks/trash */
+const listDeletedTasks = asyncWrapper(async (req, res) => {
+    const tasks = await taskService.getDeletedTasks(req.user.id);
+    res.status(200).json({ success: true, data: tasks });
+});
+
+/** PATCH /api/v1/tasks/:id/restore */
+const restoreTask = asyncWrapper(async (req, res) => {
+    await taskService.restoreTask(parseInt(req.params.id, 10), req.user.id);
+    res.status(200).json({ success: true, message: 'Task restored successfully.' });
+});
+
+/** DELETE /api/v1/tasks/:id/permanent */
+const hardDeleteTask = asyncWrapper(async (req, res) => {
+    await taskService.hardDeleteTask(parseInt(req.params.id, 10), req.user.id);
+    res.status(200).json({ success: true, message: 'Task permanently deleted.' });
+});
+
 module.exports = {
     listTasks,
     createTask,
@@ -287,4 +305,7 @@ module.exports = {
     splitTask,
     deleteTask,
     bulkDelete,
+    listDeletedTasks,
+    restoreTask,
+    hardDeleteTask,
 };

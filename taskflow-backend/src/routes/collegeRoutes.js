@@ -39,8 +39,11 @@ router.use('/billing',       billingRoutes);
 // ── Rich Notes (pages + blocks + sharing) ────────────────────────────────────
 router.get('/notes/pages',                    nc.getPages);
 router.post('/notes/pages',                   nc.createPage);
+router.get('/notes/trash',                    nc.getDeletedPages);
 router.get('/notes/pages/:id',                nc.getPage);
 router.put('/notes/pages/:id',                nc.updatePage);
+router.patch('/notes/pages/:id/restore',      nc.restorePage);
+router.delete('/notes/pages/:id/permanent',   nc.hardDeletePage);
 router.delete('/notes/pages/:id',             nc.deletePage);
 router.post('/notes/pages/:id/duplicate',     nc.duplicatePage);
 router.patch('/notes/pages/:id/reorder',      nc.reorderPages);

@@ -53,7 +53,7 @@ export default function KanbanBoard({ t, tasks, setTask, updateTaskStatus, user 
     };
 
     return (
-        <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16, height: 'calc(100vh - 200px)' }}>
+        <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16, flex: 1, minHeight: 0 }}>
             <style dangerouslySetInnerHTML={{__html: `
                 .kanban-col::-webkit-scrollbar { width: 4px; }
                 .kanban-col::-webkit-scrollbar-thumb { background: ${t.border}; border-radius: 4px; }

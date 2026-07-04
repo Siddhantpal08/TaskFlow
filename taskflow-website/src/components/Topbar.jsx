@@ -1,16 +1,18 @@
 import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
+import FocusTimer from "./FocusTimer.jsx";
 
 export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, setNotif, page, setPage, setShowQuickCapture }) {
     const { user, logout } = useAuth();
     const { unreadCount } = useData();
-    const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team", friends: "Friends", guide: "Help & Guide", profile: "Profile", admin: "Admin Panel", customize: "Customize" };
+    const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team", friends: "Friends", guide: "Help & Guide", profile: "Profile", admin: "Admin Panel", customize: "Customize", trash: "Recycle Bin" };
 
     return (
         <div style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "11px 22px",
-            borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0
+            display: "flex", alignItems: "center", gap: 12, padding: "0 22px",
+            borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0,
+            height: 58, boxSizing: "border-box"
         }} className="topbar">
             <div style={{ minWidth: 0 }} className="topbar-title">
                 <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.4px", color: t.t1 }}>{labels[page] || page}</div>
@@ -21,19 +23,24 @@ export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, 
 
             <div style={{ flex: 1 }} />
 
-            {setShowQuickCapture && (
-                <button onClick={() => setShowQuickCapture(true)} className="hvrI"
+            <FocusTimer t={t} />
+
+            {setShowQuickCapture && page !== "dashboard" && (
+                <button onClick={() => setShowQuickCapture(true)} id="topbar-capture-btn"
                     title="Quick Capture Task (Alt+T)"
                     style={{
-                        background: `linear-gradient(135deg, ${t.accent}, #00D2FF)`,
-                        border: `1px solid ${t.accent}44`,
+                        background: `linear-gradient(135deg, #F59E0B, #F97316)`,
+                        border: `1px solid #F59E0B44`,
                         color: '#000',
-                        borderRadius: 9, padding: "7px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                        transition: "all .2s", fontWeight: 700, fontFamily: t.disp, fontSize: 13,
-                        boxShadow: `0 4px 12px ${t.accent}40`
-                    }}>
+                        borderRadius: 9, padding: "7px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                        transition: "all .2s", fontWeight: 800, fontFamily: t.disp, fontSize: 13,
+                        boxShadow: `0 4px 14px #F59E0B44`,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 20px #F59E0B55"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 14px #F59E0B44"; }}
+                >
                     <I d={IC.plus} sz={15} c="#000" sw={2.5} />
-                    <span className="hide-mobile">Capture</span>
+                    <span className="hide-mobile">New Task</span>
                 </button>
             )}
 

@@ -8,7 +8,7 @@ function fmtDate(d) {
 
 export default function DatabaseGrid({ t, tasks, setTask, updateTaskStatus }) {
     return (
-        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow, overflowX: "auto" }}>
+        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "auto", boxShadow: t.shadow, flex: 1, minHeight: 0 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                     <tr style={{ background: t.surf, borderBottom: `2px solid ${t.border}`, fontSize: 11, fontWeight: 700, color: t.t2, textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: t.mono }}>

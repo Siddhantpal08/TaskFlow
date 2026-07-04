@@ -45,6 +45,10 @@ import CreateTaskModal from "./components/CreateTaskModal.jsx";
 import { ToastProvider } from "./components/ui/Toast.jsx";
 import FeedbackModal from "./components/ui/FeedbackModal.jsx";
 import ProFeaturesModal from "./components/ui/ProFeaturesModal.jsx";
+import OnboardingGuide from "./components/ui/OnboardingGuide.jsx";
+import RecycleBin from "./components/RecycleBin.jsx";
+import CommandPalette from "./components/CommandPalette.jsx";
+import InteractiveTour from "./components/InteractiveTour.jsx";
 
 // ── Credits Modal ────────────────────────────────────────────────────────────
 function CreditsModal({ onClose }) {
@@ -137,6 +141,19 @@ function MainApp() {
     const [notif, setNotif] = useState(false);
     const [task, setTask] = useState(null);
     const [pageLoading, setPageLoading] = useState(false);
+    const [commandOpen, setCommandOpen] = useState(false);
+    const [runTour, setRunTour] = useState(false);
+    const [tourKey, setTourKey] = useState(0);
+
+    useEffect(() => {
+        const handleStartTour = () => {
+            setPageWithPersist('dashboard'); // Switch to dashboard for tour
+            setTourKey(prev => prev + 1);
+            setTimeout(() => setRunTour(true), 800);
+        };
+        window.addEventListener('start-tour', handleStartTour);
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, []);
 
     const setPageWithPersist = (p) => {
         setPage(p);
@@ -293,6 +310,9 @@ function MainApp() {
       --accent:     ${t.accent};
       --accentDim:  ${t.accentDim};
       --accentGlow: ${t.accentGlow};
+      --gold:       ${t.gold || "#F59E0B"};
+      --goldDim:    ${t.goldDim || "#F59E0B18"};
+      --goldGlow:   ${t.goldGlow || "0 0 20px #F59E0B44"};
       --bg:         ${t.bg};
       --surf:       ${t.surf};
       --card:       ${t.card};
@@ -335,8 +355,8 @@ function MainApp() {
       100% { background-position: -200% 0; }
     }
     @keyframes fadeSlideIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
     .fadeUp { animation: fadeSlideIn 0.3s ease both; }
     `;
@@ -465,7 +485,7 @@ function MainApp() {
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                         <Topbar t={t} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
                             notif={notif} setNotif={setNotif} page={page} setPage={setPageWithPersist} setShowQuickCapture={setShowQuickCapture} />
-                        <main style={{ flex: 1, overflow: "auto" }} className="fadeUp" key={page}>
+                        <main style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }} className="fadeUp" key={page}>
                             {page === "dashboard" && <Dashboard t={t} setPage={setPageWithPersist} setTask={setTask} />}
                             {page === "tasks" && <Tasks t={t} setTask={setTask} />}
                             {page === "notes" && notePageId && <NotesPage t={t} dark={themeKey.includes("dark") || themeKey === "midnight"} pages={pages} notePageId={notePageId}
@@ -473,6 +493,7 @@ function MainApp() {
                                 addNotePage={addNotePage} deleteNotePage={deleteNotePage} duplicateNotePage={duplicateNotePage} />}
                             {page === "notes" && !notePageId && <NotesHome t={t} pages={pages} addNotePage={addNotePage} navigateNote={navigateNote} />}
                             {page === "calendar" && <Calendar t={t} />}
+                            {page === "trash" && <RecycleBin t={t} />}
                             {page === "team" && <TeamPage t={t} />}
                             {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
                             {page === "admin" && user?.role === 'admin' && <AdminPanel t={t} user={user} />}
@@ -515,6 +536,15 @@ function MainApp() {
 
                     {/* Global Chat Widget */}
                     <ChatWidget t={t} />
+
+                    {/* Command Palette */}
+                    <CommandPalette t={t} setPage={setPageWithPersist} open={commandOpen} setOpen={setCommandOpen} pages={pages} navigateNote={navigateNote} />
+
+                    {/* First-login Onboarding Guide */}
+                    <OnboardingGuide t={t} />
+
+                    {/* Interactive Tour (Joyride) */}
+                    <InteractiveTour run={runTour} setRun={setRunTour} t={t} key={tourKey} />
 
                     {/* Mobile bottom nav */}
                     <nav className="mobile-nav">

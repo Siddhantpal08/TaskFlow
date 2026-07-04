@@ -59,6 +59,50 @@ const getFeedback = asyncWrapper(async (req, res) => {
 });
 
 /**
+ * PUT /api/v1/feedback/:id/upvote — Any logged-in user can upvote a feedback entry
+ * Uses a separate table to prevent double-voting.
+ */
+const upvoteFeedback = asyncWrapper(async (req, res) => {
+    const feedbackId = parseInt(req.params.id);
+    const userId = req.user.id;
+
+    if (!feedbackId) throw new AppError('Invalid feedback ID.', 400);
+
+    try {
+        // Insert vote (will fail silently if already voted due to unique constraint)
+        await db.query(
+            `INSERT IGNORE INTO feedback_votes (user_id, feedback_id) VALUES (?, ?)`,
+            [userId, feedbackId]
+        );
+        // Update count
+        await db.query(
+            `UPDATE feedback SET upvotes = (SELECT COUNT(*) FROM feedback_votes WHERE feedback_id = ?) WHERE id = ?`,
+            [feedbackId, feedbackId]
+        );
+        const [[row]] = await db.query(`SELECT upvotes FROM feedback WHERE id = ?`, [feedbackId]);
+        res.json({ success: true, upvotes: row?.upvotes || 0 });
+    } catch (e) {
+        throw new AppError('Failed to upvote.', 500);
+    }
+});
+
+/**
+ * GET /api/v1/feedback/public — Returns top feedback entries (anonymized) for the public board
+ */
+const getPublicFeedboard = asyncWrapper(async (req, res) => {
+    const [rows] = await db.query(
+        `SELECT f.id, f.rating, f.message, f.upvotes, f.created_at,
+                CONCAT(LEFT(u.name, LOCATE(' ', CONCAT(u.name,' '))-1), '.') AS author_initial
+         FROM feedback f
+         LEFT JOIN users u ON u.id = f.user_id
+         WHERE f.is_public = 1 OR f.rating >= 4
+         ORDER BY f.upvotes DESC, f.created_at DESC
+         LIMIT 20`
+    );
+    res.json({ success: true, data: rows });
+});
+
+/**
  * POST /api/v1/tickets
  */
 const submitTicket = asyncWrapper(async (req, res) => {
@@ -85,4 +129,4 @@ const submitTicket = asyncWrapper(async (req, res) => {
     res.status(201).json({ success: true, message: 'Ticket submitted successfully!' });
 });
 
-module.exports = { submitFeedback, getFeedback, submitTicket };
+module.exports = { submitFeedback, getFeedback, submitTicket, upvoteFeedback, getPublicFeedboard };

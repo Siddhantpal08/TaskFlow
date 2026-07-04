@@ -120,6 +120,16 @@ const startReminderJob = () => {
             console.log(`[Cron] 1-week-ahead: ${events.length} event(s)`);
         } catch (err) { console.error('[Cron] 1-week-ahead failed:', err); }
     });
+
+    // ── 00:00 Daily: Trash Cleanup (Delete items older than 30 days) ──────────
+    cron.schedule('0 0 * * *', async () => {
+        try {
+            console.log('[Cron] Running 30-day trash cleanup...');
+            const [taskResult] = await db.query(`DELETE FROM tasks WHERE deleted_at <= CURDATE() - INTERVAL 30 DAY`);
+            const [noteResult] = await db.query(`DELETE FROM notes_pages WHERE deleted_at <= CURDATE() - INTERVAL 30 DAY`);
+            console.log(`[Cron] Trash cleanup: Deleted ${taskResult.affectedRows} tasks and ${noteResult.affectedRows} notes.`);
+        } catch (err) { console.error('[Cron] Trash cleanup failed:', err); }
+    });
 };
 
 module.exports = { startReminderJob };

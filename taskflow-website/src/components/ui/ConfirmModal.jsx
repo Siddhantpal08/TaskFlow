@@ -1,3 +1,5 @@
+import { createPortal } from "react-dom";
+
 export default function ConfirmModal({ 
     t, 
     title = "Are you sure?", 
@@ -10,7 +12,7 @@ export default function ConfirmModal({
     icon = "⚠️",
     loading = false
 }) {
-    return (
+    return createPortal(
         <div 
             onClick={onCancel} 
             style={{ 
@@ -102,6 +104,7 @@ export default function ConfirmModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

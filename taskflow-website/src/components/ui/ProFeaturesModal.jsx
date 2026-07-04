@@ -5,7 +5,6 @@ export default function ProFeaturesModal({ t, onClose, onUpgrade }) {
         { icon: "✨", title: "Unlimited Note Pages", desc: "Build out a massive second brain with zero limits." },
         { icon: "✅", title: "Unlimited Tasks & Sub-tasks", desc: "Break down complex projects endlessly." },
         { icon: "👥", title: "Unlimited Team Members", desc: "Collaborate with your entire agency or team." },
-        { icon: "🎵", title: "Script & Lyrics Modes", desc: "Specialized note formats for creators." },
         { icon: "🔗", title: "Public Link Sharing", desc: "Share notes instantly with external clients." },
         { icon: "📄", title: "PDF Exporting", desc: "Download professional documents of your notes." },
         { icon: "⚡", title: "Real-time Collaboration", desc: "See your team's cursors instantly." }

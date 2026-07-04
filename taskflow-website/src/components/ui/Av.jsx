@@ -1,5 +1,8 @@
+import { useState } from "react";
+
 export function Av({ u, sz = 32 }) {
-    if (u?.avatar_url) {
+    const [failed, setFailed] = useState(false);
+    if (u?.avatar_url && !failed) {
         return (
             <img
                 src={u.avatar_url}
@@ -8,7 +11,7 @@ export function Av({ u, sz = 32 }) {
                     width: sz, height: sz, borderRadius: "50%", flexShrink: 0,
                     objectFit: "cover", border: `1.5px solid ${u.color}55`
                 }}
-                onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+                onError={() => setFailed(true)}
             />
         );
     }

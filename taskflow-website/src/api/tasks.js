@@ -12,4 +12,7 @@ export const tasksApi = {
     delegate: (id, assigned_to) => api.patch(`/tasks/${id}/delegate`, { assigned_to }),
     delete: (id) => api.delete(`/tasks/${id}`),
     bulkDelete: (ids) => api.delete('/tasks', { ids }),
+    getTrash: () => api.get('/tasks/trash'),
+    restore: (id) => api.patch(`/tasks/${id}/restore`),
+    hardDelete: (id) => api.delete(`/tasks/${id}/permanent`),
 };

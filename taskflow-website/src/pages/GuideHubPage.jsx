@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { feedbackApi } from "../api/feedback";
 import { I, IC } from "../components/ui/Icon";
 
@@ -237,7 +237,7 @@ const GUIDE_DATA = {
 const ALL_SECTIONS = Object.entries(GUIDE_DATA);
 
 export default function GuideHubPage({ t, setPage }) {
-    const [activeTab, setActiveTab] = useState("getting-started");
+    const [activeTab, setActiveTab] = useState("community");
     const [search, setSearch] = useState("");
     const [expandedItem, setExpandedItem] = useState(null);
     
@@ -249,6 +249,41 @@ export default function GuideHubPage({ t, setPage }) {
     const [ticket, setTicket] = useState({ title: "", category: "bug", desc: "" });
     // Feedback Form
     const [feedback, setFeedback] = useState({ type: "feature", desc: "", rating: 5 });
+    
+    // Community Feedback State
+    const [communityPosts, setCommunityPosts] = useState([]);
+    const [loadingCommunity, setLoadingCommunity] = useState(false);
+
+    // Fetch Community Feedback
+    const loadCommunityFeedback = async () => {
+        setLoadingCommunity(true);
+        try {
+            const res = await feedbackApi.getPublic();
+            if (res.data?.success) {
+                setCommunityPosts(res.data.data);
+            }
+        } catch (e) {
+            console.error("Failed to load community board", e);
+        } finally {
+            setLoadingCommunity(false);
+        }
+    };
+
+    // Load initially if default tab is community
+    useEffect(() => {
+        if (activeTab === "community") loadCommunityFeedback();
+    }, [activeTab]);
+
+    const handleUpvote = async (id) => {
+        try {
+            const res = await feedbackApi.upvote(id);
+            if (res.data?.success) {
+                setCommunityPosts(prev => prev.map(p => p.id === id ? { ...p, upvotes: res.data.upvotes } : p));
+            }
+        } catch (e) {
+            console.error("Upvote failed", e);
+        }
+    };
 
     const handleSupportSubmit = async (e) => {
         e.preventDefault();
@@ -316,8 +351,11 @@ export default function GuideHubPage({ t, setPage }) {
                         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 12px", borderRadius: 999, background: t.accentDim, border: `1px solid ${t.accent}40`, fontSize: 11, color: t.accent, fontFamily: t.mono, fontWeight: 700, letterSpacing: "0.5px", marginBottom: 12 }}>
                             ✦ HELP & GUIDE HUB
                         </div>
-                        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: t.t1, letterSpacing: "-0.5px" }}>
+                        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: t.t1, letterSpacing: "-0.5px", display: "flex", alignItems: "center", gap: 12 }}>
                             Feature Documentation
+                            <button onClick={() => window.dispatchEvent(new Event('start-tour'))} style={{ background: t.accent, color: "#000", border: "none", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700, display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontFamily: t.disp, transform: "translateY(-1px)", boxShadow: `0 4px 12px ${t.accent}40` }}>
+                                ✨ Start Interactive Tour
+                            </button>
                         </h1>
                         <p style={{ margin: "6px 0 0", fontSize: 13, color: t.t2 }}>
                             Everything you need to master TaskFlow — shortcuts, features, and tips.
@@ -375,6 +413,10 @@ export default function GuideHubPage({ t, setPage }) {
                         style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 8, border: "none", background: activeTab === "feedback" ? t.accentDim : "transparent", color: activeTab === "feedback" ? t.accent : t.t2, fontFamily: t.disp, fontSize: 13, fontWeight: activeTab === "feedback" ? 700 : 400, cursor: "pointer", textAlign: "left", width: "100%", borderLeft: `3px solid ${activeTab === "feedback" ? t.accent : "transparent"}`, transition: "all .15s" }}>
                         <I d={IC.star} sz={16} c={activeTab === "feedback" ? t.accent : t.t2} /> Share Feedback
                     </button>
+                    <button className="guide-tab" onClick={() => { setActiveTab("community"); setSearch(""); setMsg(""); }}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 8, border: "none", background: activeTab === "community" ? t.accentDim : "transparent", color: activeTab === "community" ? t.accent : t.t2, fontFamily: t.disp, fontSize: 13, fontWeight: activeTab === "community" ? 700 : 400, cursor: "pointer", textAlign: "left", width: "100%", borderLeft: `3px solid ${activeTab === "community" ? t.accent : "transparent"}`, transition: "all .15s" }}>
+                        <I d={IC.team} sz={16} c={activeTab === "community" ? t.accent : t.t2} /> Community Board
+                    </button>
                 </div>
 
                 {/* ── Content ── */}
@@ -428,6 +470,14 @@ export default function GuideHubPage({ t, setPage }) {
                                         <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>Help us shape the future of TaskFlow. What should we build next?</div>
                                     </div>
                                     <form onSubmit={handleFeedbackSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: t.t2 }}>Rate your experience:</span>
+                                            <div style={{ display: "flex", gap: 4 }}>
+                                                {[1, 2, 3, 4, 5].map(star => (
+                                                    <div key={star} onClick={() => setFeedback(p => ({ ...p, rating: star }))} style={{ cursor: "pointer", fontSize: 24, color: star <= feedback.rating ? t.accent : t.border, transition: "color .15s" }}>★</div>
+                                                ))}
+                                            </div>
+                                        </div>
                                         <select value={feedback.type} onChange={e => setFeedback(p => ({ ...p, type: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", boxSizing: "border-box" }}>
                                             <option value="feature">Feature Request</option>
                                             <option value="ui">UI/UX Suggestion</option>
@@ -437,6 +487,46 @@ export default function GuideHubPage({ t, setPage }) {
                                         <button disabled={loading} style={{ padding: "12px", background: t.accent, color: "#000", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontFamily: t.disp, transition: "opacity .2s" }}>{loading ? "Sending..." : "Send Feedback"}</button>
                                         {msg && <div style={{ color: t.green, fontSize: 13, fontWeight: 600 }}>{msg}</div>}
                                     </form>
+                                </div>
+                            ) : activeTab === "community" ? (
+                                <div style={{ maxWidth: 800 }}>
+                                    <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <div>
+                                            <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
+                                                <I d={IC.team} sz={28} c={t.t1} /> Community Board
+                                            </div>
+                                            <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>See what others are requesting. Upvote the features you want built next!</div>
+                                        </div>
+                                        <button onClick={loadCommunityFeedback} disabled={loadingCommunity} style={{ background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 12px", color: t.t2, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                                            {loadingCommunity ? "Loading..." : "↻ Refresh"}
+                                        </button>
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                        {communityPosts.length === 0 && !loadingCommunity && (
+                                            <div style={{ padding: "40px 0", textAlign: "center", color: t.t3, fontSize: 13 }}>No community feedback available yet.</div>
+                                        )}
+                                        {communityPosts.map(post => (
+                                            <div key={post.id} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center" }}>
+                                                <div onClick={() => handleUpvote(post.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 12px", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, cursor: "pointer", minWidth: 40 }} className="hvrC">
+                                                    <span style={{ fontSize: 16, color: t.accent }}>▲</span>
+                                                    <span style={{ fontSize: 14, fontWeight: 800, color: t.t1, marginTop: 4 }}>{post.upvotes || 0}</span>
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ fontSize: 14, color: t.t1, lineHeight: 1.5, wordBreak: "break-word" }}>{post.message}</div>
+                                                    <div style={{ fontSize: 11, color: t.t3, marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                                                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                            <div style={{ width: 16, height: 16, borderRadius: "50%", background: t.accentDim, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 }}>
+                                                                {post.author_initial || "?"}
+                                                            </div>
+                                                            User {post.author_initial}
+                                                        </span>
+                                                        <span>·</span>
+                                                        <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             ) : section ? (
                                 <div>

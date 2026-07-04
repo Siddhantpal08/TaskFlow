@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Sitemap: https://taskflow-by-crevio.vercel.app/sitemap.xml
+
+# TaskFlow — by Crevio Studios
+# Created by Siddhant Pal

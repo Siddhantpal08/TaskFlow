@@ -3,6 +3,7 @@ export const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Outf
 export const DARK = {
     bg: "#060B12", surf: "#0C1420", card: "#0F1C2E", border: "#182A42",
     accent: "#00E5CC", accentDim: "#00E5CC14", accentGlow: "0 0 28px #00E5CC44",
+    gold: "#F59E0B", goldDim: "#F59E0B18", goldGlow: "0 0 20px #F59E0B44",
     red: "#FF3D5A", amber: "#FFAA00", green: "#00D67B", blue: "#0072FF",
     t1: "#E2EFFF", t2: "#6A88AA", t3: "#2E4A68",
     nav: "#080E18", mono: "'IBM Plex Mono',monospace", disp: "'Outfit',sans-serif",

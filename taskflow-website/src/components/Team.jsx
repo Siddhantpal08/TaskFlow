@@ -184,8 +184,8 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                 </div>
             )}
 
-            {/* Team member cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }} className="team-grid">
+            {/* Team member strips */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {loading && <div style={{ color: t.t3, fontSize: 13 }}>Loading members…</div>}
                 {!loading && members.map(u => {
                     const myTasks = tasks.filter(tk => tk.assigned_to === u.id);
@@ -194,62 +194,101 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                     const isOnline = onlineUsers.has(String(u.id));
                     const isMe = u.id === user?.id;
                     const pendingTasks = myTasks.filter(tk => tk.status !== 'done');
+                    const activeTasks = myTasks.filter(tk => tk.status === 'active');
                     const hasOverdue = pendingTasks.some(tk => tk.due_date && new Date(tk.due_date) < new Date());
+                    const nextDue = pendingTasks
+                        .filter(tk => tk.due_date)
+                        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
+                    const nextDueFmt = nextDue ? new Date(nextDue.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+
                     return (
-                        <div key={u.id} className="hvrC" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 18, textAlign: "center", boxShadow: t.shadow, transition: "all .2s", position: 'relative' }}>
-                            {/* Online indicator badge */}
-                            <div style={{ position: 'absolute', top: 10, right: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <div className={isOnline ? 'glw' : ''} style={{ width: 6, height: 6, borderRadius: "50%", background: isOnline ? t.green : t.border }} />
-                                <span style={{ fontSize: 9, color: isOnline ? t.green : t.t3, fontFamily: t.mono }}>{isOnline ? 'online' : 'offline'}</span>
-                            </div>
-                            {/* Workload warning */}
-                            {hasOverdue && (
-                                <div style={{ position: 'absolute', top: 10, left: 12, fontSize: 10, color: t.red, fontWeight: 700 }}>⚠ Overdue</div>
-                            )}
-                            <div style={{ display: "flex", justifyContent: "center", marginBottom: 11, marginTop: 4 }}>
+                        <div key={u.id} style={{
+                            background: t.card, border: `1px solid ${hasOverdue ? t.red + "33" : t.border}`,
+                            borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center",
+                            gap: 14, transition: "all .15s", boxShadow: t.shadow,
+                        }}
+                            onMouseEnter={e => e.currentTarget.style.borderColor = hasOverdue ? t.red + "55" : t.accent + "33"}
+                            onMouseLeave={e => e.currentTarget.style.borderColor = hasOverdue ? t.red + "33" : t.border}
+                        >
+                            {/* Avatar */}
+                            <div style={{ position: "relative", flexShrink: 0 }}>
                                 <div style={{ padding: isMe ? 2 : 0, borderRadius: '50%', border: isMe ? `2px solid ${t.accent}` : '2px solid transparent', display: 'inline-flex' }}>
-                                    <Av u={{ ...u, av: u.avatar_initials || u.initials || u.name?.slice(0, 2), color: t.accent, avatar_url: u.avatar_url }} sz={46} />
+                                    <Av u={{ ...u, av: u.avatar_initials || u.initials || u.name?.slice(0, 2), color: t.accent, avatar_url: u.avatar_url }} sz={40} />
+                                </div>
+                                {/* Online dot */}
+                                <div className={isOnline ? 'glw' : ''} style={{
+                                    position: "absolute", bottom: 1, right: 1,
+                                    width: 9, height: 9, borderRadius: "50%",
+                                    background: isOnline ? t.green : t.border,
+                                    border: `2px solid ${t.card}`,
+                                }} />
+                            </div>
+
+                            {/* Name + Role */}
+                            <div style={{ minWidth: 130, flexShrink: 0 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 700, color: t.t1 }}>
+                                    {u.name} {isMe && <span style={{ fontSize: 10, color: t.accent, fontFamily: t.mono }}>(you)</span>}
+                                </div>
+                                <div style={{ fontSize: 10.5, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>
+                                    {u.role === 'admin' ? '👑 Admin' : 'Member'} · {isOnline ? <span style={{ color: t.green }}>● Online</span> : 'Offline'}
                                 </div>
                             </div>
-                            <div style={{ fontSize: 13.5, fontWeight: 700, color: t.t1 }}>{u.name}</div>
-                            <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 2, marginBottom: 10 }}>
-                                {u.role === 'admin' ? "Admin" : "Member"} {isMe && "(You)"}
-                            </div>
-                            {/* Progress bar */}
-                            <div>
-                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>
-                                    <span>Progress</span><span style={{ color: t.accent }}>{done}/{myTasks.length}</span>
-                                </div>
-                                <div style={{ height: 3, background: t.border, borderRadius: 2 }}>
-                                    <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, background: hasOverdue ? `linear-gradient(to right, ${t.red}, ${t.amber})` : `linear-gradient(to right,#009688,${t.accent})`, transition: "width .6s" }} />
-                                </div>
-                                {/* Pending tasks preview */}
-                                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'left' }}>
-                                    {pendingTasks.slice(0, 2).map(tk => (
-                                        <div key={tk.id} style={{ fontSize: 10, color: t.t2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: `${t.border}88`, padding: '3px 6px', borderRadius: 4, fontFamily: t.mono }}>
-                                            • {tk.title}
+
+                            {/* Stats row */}
+                            <div style={{ display: "flex", gap: 16, flex: 1, alignItems: "center" }}>
+                                {/* Task counts */}
+                                <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                                    <div style={{ textAlign: "center" }}>
+                                        <div style={{ fontSize: 16, fontWeight: 800, color: t.accent, lineHeight: 1 }}>{myTasks.length}</div>
+                                        <div style={{ fontSize: 9, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>TOTAL</div>
+                                    </div>
+                                    <div style={{ textAlign: "center" }}>
+                                        <div style={{ fontSize: 16, fontWeight: 800, color: t.amber, lineHeight: 1 }}>{activeTasks.length}</div>
+                                        <div style={{ fontSize: 9, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>ACTIVE</div>
+                                    </div>
+                                    <div style={{ textAlign: "center" }}>
+                                        <div style={{ fontSize: 16, fontWeight: 800, color: t.green, lineHeight: 1 }}>{done}</div>
+                                        <div style={{ fontSize: 9, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>DONE</div>
+                                    </div>
+                                    {hasOverdue && (
+                                        <div style={{ textAlign: "center" }}>
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: t.red, lineHeight: 1 }}>⚠</div>
+                                            <div style={{ fontSize: 9, color: t.red, fontFamily: t.mono, marginTop: 1 }}>OVERDUE</div>
                                         </div>
-                                    ))}
-                                    {pendingTasks.length > 2 && (
-                                        <div style={{ fontSize: 9, color: t.t3, paddingLeft: 6, fontFamily: t.mono }}>+{pendingTasks.length - 2} more pending...</div>
-                                    )}
-                                    {pendingTasks.length === 0 && myTasks.length > 0 && (
-                                        <div style={{ fontSize: 9, color: t.green, paddingLeft: 6, fontFamily: t.mono }}>✓ All tasks cleared!</div>
                                     )}
                                 </div>
+
+                                {/* Progress bar */}
+                                <div style={{ flex: 1, minWidth: 80 }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: t.t3, marginBottom: 4, fontFamily: t.mono }}>
+                                        <span>Progress</span>
+                                        <span style={{ color: pct === 100 ? t.green : t.accent }}>{pct}%</span>
+                                    </div>
+                                    <div style={{ height: 5, background: t.border, borderRadius: 3, overflow: "hidden" }}>
+                                        <div style={{ height: "100%", width: `${pct}%`, borderRadius: 3, background: hasOverdue ? `linear-gradient(90deg, ${t.red}, ${t.amber})` : `linear-gradient(90deg, #009688, ${t.accent})`, transition: "width .6s" }} />
+                                    </div>
+                                </div>
+
+                                {/* Next deadline */}
+                                {nextDueFmt && (
+                                    <div style={{ flexShrink: 0, textAlign: "center" }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: hasOverdue ? t.red : t.t2 }}>{nextDueFmt}</div>
+                                        <div style={{ fontSize: 9, color: t.t3, fontFamily: t.mono }}>NEXT DUE</div>
+                                    </div>
+                                )}
                             </div>
+
                             {/* Action buttons */}
-                            <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+                            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                                 <button onClick={() => setAssignToUser(u.id)}
-                                    style={{ flex: 1, padding: '6px 10px', borderRadius: 6, border: `1px solid ${t.border}`, background: 'transparent', color: t.accent, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 700, transition: 'all .2s' }}
-                                    onMouseEnter={e => e.currentTarget.style.background = `${t.accent}14`}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${t.accent}44`, background: t.accentDim, color: t.accent, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 700, transition: 'all .15s', whiteSpace: "nowrap" }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = t.accent; e.currentTarget.style.color = "#000"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = t.accentDim; e.currentTarget.style.color = t.accent; }}>
                                     Assign ↗
                                 </button>
-                                {/* Admin can remove members (except themselves) */}
                                 {team?.role === 'admin' && !isMe && (
                                     <button onClick={() => setMemberToRemove({ id: u.id, name: u.name })}
-                                        style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${t.red}33`, background: 'transparent', color: t.red, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 600, transition: 'all .2s' }}
+                                        style={{ padding: '6px 8px', borderRadius: 7, border: `1px solid ${t.red}33`, background: 'transparent', color: t.red, fontSize: 11, cursor: 'pointer', transition: 'all .15s' }}
                                         title="Remove member"
                                         onMouseEnter={e => e.currentTarget.style.background = `${t.red}14`}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>

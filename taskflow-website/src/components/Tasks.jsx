@@ -41,9 +41,9 @@ export default function Tasks({ t, setTask, searchQuery }) {
         .filter(tk => !searchQuery || tk.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
-        <div style={{ padding: "22px 26px" }}>
+        <div style={{ padding: "22px 26px", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
                 {/* Filter tabs */}
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {tabs.map(f => {
@@ -68,7 +68,9 @@ export default function Tasks({ t, setTask, searchQuery }) {
                         background: t.accent, border: 'none', borderRadius: 8, padding: '8px 16px',
                         color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13,
                         display: 'flex', alignItems: 'center', gap: 6,
-                    }}>+ New Task</button>
+                    }}>
+                        <I d={IC.plus} sz={14} c="currentColor" /> New Task
+                    </button>
                 </div>
             </div>
 
@@ -78,13 +80,13 @@ export default function Tasks({ t, setTask, searchQuery }) {
                 <DatabaseGrid t={t} tasks={list} setTask={setTask} updateTaskStatus={updateTaskStatus} />
             ) : (
                 /* Tasks table (List View) */
-                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "10px 18px", borderBottom: `1px solid ${t.border}`, fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", fontFamily: t.mono }}>
+                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "auto", boxShadow: t.shadow, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "10px 18px", borderBottom: `1px solid ${t.border}`, fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", fontFamily: t.mono, flexShrink: 0 }}>
                     <span>Task</span><span>Assigned By</span><span>Due</span><span>Priority</span><span>Status</span><span></span>
                 </div>
                 {loading && <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>Loading tasks…</div>}
                 {!loading && list.length === 0 && (
-                    <div style={{ padding: '16px 20px 32px' }}>
+                    <div style={{ padding: '16px 20px 32px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         <EmptyState
                             t={t}
                             icon="task"
@@ -134,11 +136,12 @@ export default function Tasks({ t, setTask, searchQuery }) {
                             <StTag s={tk.status} t={t} />
                         </div>
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                            {tk.status === "done" && (
+                            {/* Delete button (only for creators, or done tasks) */}
+                            {(tk.status === "done" || tk.assigned_by === user?.id) && (
                                 <button onClick={e => {
                                     e.stopPropagation();
                                     setTaskToDelete(tk);
-                                }} style={{ background: "transparent", border: "none", color: t.t3, cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, transition: "background .15s" }} onMouseEnter={e => { e.currentTarget.style.color = t.red; e.currentTarget.style.background = t.red + "20"; }} onMouseLeave={e => { e.currentTarget.style.color = t.t3; e.currentTarget.style.background = "transparent"; }} title="Delete completed task">
+                                }} style={{ background: "transparent", border: "none", color: t.t3, cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, transition: "background .15s" }} onMouseEnter={e => { e.currentTarget.style.color = t.red; e.currentTarget.style.background = t.red + "20"; }} onMouseLeave={e => { e.currentTarget.style.color = t.t3; e.currentTarget.style.background = "transparent"; }} title="Delete task">
                                     <I d={IC.trash} sz={16} />
                                 </button>
                             )}

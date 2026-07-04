@@ -8,10 +8,10 @@ const getPages = asyncWrapper(async (req, res) => {
     const userId = req.user.id;
     const [rows] = await db.query(
         `SELECT p.id, p.title, p.emoji, p.parent_id, p.position, p.updated_at, p.writing_mode, IF(p.user_id = ?, 1, 0) AS is_owner
-         FROM notes_pages p WHERE p.user_id = ?
+         FROM notes_pages p WHERE p.user_id = ? AND p.deleted_at IS NULL
          UNION
          SELECT p.id, p.title, p.emoji, p.parent_id, p.position, p.updated_at, p.writing_mode, 0 AS is_owner
-         FROM notes_pages p JOIN note_collaborators c ON p.id = c.page_id WHERE c.user_id = ?
+         FROM notes_pages p JOIN note_collaborators c ON p.id = c.page_id WHERE c.user_id = ? AND p.deleted_at IS NULL
          ORDER BY position ASC`,
         [userId, userId, userId]
     );
@@ -86,8 +86,36 @@ const updatePage = asyncWrapper(async (req, res) => {
 const deletePage = asyncWrapper(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
+    await db.query('UPDATE notes_pages SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?', [id, userId]);
+    res.json({ status: 'success', message: 'Page moved to trash' });
+});
+
+/** GET /api/college/v1/notes/trash */
+const getDeletedPages = asyncWrapper(async (req, res) => {
+    const userId = req.user.id;
+    const [rows] = await db.query(
+        `SELECT id, title, emoji, deleted_at, parent_id, updated_at
+         FROM notes_pages WHERE user_id = ? AND deleted_at IS NOT NULL
+         ORDER BY deleted_at DESC`,
+        [userId]
+    );
+    res.json({ status: 'success', data: rows });
+});
+
+/** PATCH /api/college/v1/notes/pages/:id/restore */
+const restorePage = asyncWrapper(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+    await db.query('UPDATE notes_pages SET deleted_at = NULL WHERE id = ? AND user_id = ?', [id, userId]);
+    res.json({ status: 'success', message: 'Page restored' });
+});
+
+/** DELETE /api/college/v1/notes/pages/:id/permanent */
+const hardDeletePage = asyncWrapper(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
     await db.query('DELETE FROM notes_pages WHERE id = ? AND user_id = ?', [id, userId]);
-    res.json({ status: 'success', message: 'Page deleted' });
+    res.json({ status: 'success', message: 'Page permanently deleted' });
 });
 
 /** POST /api/college/v1/notes/pages/:id/duplicate */
@@ -254,6 +282,7 @@ const deleteBlock = asyncWrapper(async (req, res) => {
 
 module.exports = {
     getPages, createPage, getPage, updatePage, deletePage,
+    getDeletedPages, restorePage, hardDeletePage,
     duplicatePage, reorderPages, setWritingMode, sharePage, acceptShare,
     createBlock, updateBlock, deleteBlock,
 };

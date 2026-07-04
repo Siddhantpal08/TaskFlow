@@ -20,6 +20,15 @@ export const notesApi = {
     /** DELETE /notes/pages/:id */
     deletePage: (id)                   => api.delete(`/notes/pages/${id}`),
 
+    /** GET /notes/trash */
+    getTrash: ()                       => api.get('/notes/trash'),
+
+    /** PATCH /notes/pages/:id/restore */
+    restore: (id)                      => api.patch(`/notes/pages/${id}/restore`),
+
+    /** DELETE /notes/pages/:id/permanent */
+    hardDelete: (id)                   => api.delete(`/notes/pages/${id}/permanent`),
+
     /** POST /notes/pages/:id/duplicate */
     duplicatePage: (id)                => api.post(`/notes/pages/${id}/duplicate`),
 
