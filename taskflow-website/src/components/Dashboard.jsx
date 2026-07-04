@@ -200,6 +200,23 @@ export default function Dashboard({ t, setPage, setTask }) {
                         </div>
                     </div>
 
+                    {/* Command Palette shortcut */}
+                    <button
+                        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
+                        title="Open Command Palette (Ctrl+K)"
+                        style={{
+                            background: t.inset, border: `1px solid ${t.border}`,
+                            borderRadius: 10, padding: "10px 14px",
+                            color: t.t2, fontFamily: t.mono, fontSize: 12,
+                            cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                            transition: "all .2s", whiteSpace: "nowrap",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = t.accent + "66"; e.currentTarget.style.color = t.accent; e.currentTarget.style.background = t.accentDim; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.t2; e.currentTarget.style.background = t.inset; }}
+                    >
+                        ⌘ Ctrl+K
+                    </button>
+
                     {/* Primary CTA */}
                     <button
                         onClick={() => setPage("tasks")}

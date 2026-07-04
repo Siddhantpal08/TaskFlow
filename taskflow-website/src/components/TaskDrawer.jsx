@@ -32,7 +32,7 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     const [task, setTask] = useState(initialTask);
     const [editing, setEditing] = useState(false);
     const [delegating, setDelegating] = useState(false);
-    const [form, setForm] = useState({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '', assigned_to: task.assigned_to, status: task.status });
+    const [form, setForm] = useState({ title: task.title, description: task.description || '', priority: task.priority, assigned_to: task.assigned_to, status: task.status });
     const [delegateTo, setDelegateTo] = useState('');
     const [saving, setSaving] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -67,7 +67,7 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
         if (!form.title.trim()) return toastError('Title cannot be empty.');
         try {
             setSaving(true);
-            let updated = await updateTask(task.id, { ...form, due_date: form.due_date || null });
+            let updated = await updateTask(task.id, { ...form });
 
             // Because status has its own endpoint and linear transitions, we trigger it only if changed explicitly
             if (form.status !== task.status && canStatus) {
@@ -165,7 +165,12 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                                         { value: "high", label: "High" },
                                     ]}
                                 />
-                                <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} style={INP(t)} />
+                                {/* Due Date: locked — set at creation, cannot be changed */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 11px', borderRadius: 8, background: `${INP(t).background}`, border: `1px solid ${t.border}`, color: t.t3, fontSize: 12, fontFamily: t.mono }}>
+                                    <span style={{ fontSize: 14 }}>📅</span>
+                                    <span>{fmtDate(task.due_date)}</span>
+                                    <span style={{ fontSize: 10, color: t.t3, marginLeft: 'auto', fontStyle: 'italic' }}>locked</span>
+                                </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                 <CustomSelect
@@ -201,7 +206,7 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                                 <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: t.accent, color: '#000', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
                                     {saving ? 'Saving…' : 'Save Changes'}
                                 </button>
-                                <button onClick={() => { setEditing(false); setForm({ title: task.title, description: task.description || '', priority: task.priority, due_date: task.due_date ? task.due_date.slice(0, 10) : '', assigned_to: task.assigned_to, status: task.status }); }} style={{ padding: '9px 14px', borderRadius: 8, border: `1px solid ${t.border}`, background: 'none', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                                <button onClick={() => { setEditing(false); setForm({ title: task.title, description: task.description || '', priority: task.priority, assigned_to: task.assigned_to, status: task.status }); }} style={{ padding: '9px 14px', borderRadius: 8, border: `1px solid ${t.border}`, background: 'none', color: t.t2, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
                                     Cancel
                                 </button>
                             </div>

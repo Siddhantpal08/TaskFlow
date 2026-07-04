@@ -112,6 +112,10 @@ const updateTask = asyncWrapper(async (req, res) => {
     const task = await taskService.updateTask(parseInt(req.params.id, 10), req.user.id, data);
 
     emitToUser(String(task.assigned_to), 'task:updated', task);
+    // Also notify the assigner so their dashboard/team view updates in real-time
+    if (task.assigned_by && String(task.assigned_by) !== String(task.assigned_to)) {
+        emitToUser(String(task.assigned_by), 'task:updated', task);
+    }
 
     res.status(200).json({ success: true, data: task });
 });

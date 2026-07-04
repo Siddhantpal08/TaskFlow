@@ -14,15 +14,21 @@ const GUIDE_DATA = {
                 tags: ["profile", "setup", "account"],
             },
             {
+                title: "Command Palette — Your Power Move",
+                desc: "Press Ctrl+K (or ⌘K on Mac) to open the Command Palette from anywhere in the app. Instantly jump to Tasks, Notes, Calendar, or Team. Create tasks, switch themes, and trigger any action — all without touching the mouse.",
+                shortcut: "Ctrl+K / ⌘K",
+                tags: ["shortcut", "command", "keyboard", "quick", "palette"],
+            },
+            {
                 title: "Create Your First Task",
-                desc: "Click '+ New Task' in the Tasks page or use the Quick Capture button (⊕) in the bottom-right corner. Set title, priority, due date, and assignee.",
-                shortcut: "Quick Capture: Ctrl+K (coming soon)",
+                desc: "Click '+ New Task' in the Tasks page or press Ctrl+K to open the Command Palette and select 'New Task'. Set title, priority, due date, and assignee.",
+                shortcut: "Ctrl+K → New Task",
                 tags: ["tasks", "create", "quick"],
             },
             {
                 title: "Write Your First Note",
-                desc: "Click '+ New Page' in the sidebar. Start typing immediately. Use '/' to open the command palette for blocks (headings, lists, code, etc.)",
-                shortcut: "/ → Command palette",
+                desc: "Click '+ New Page' in the sidebar. Start typing immediately. Use '/' to open the block command menu (headings, lists, code, etc.)",
+                shortcut: "/ → Block menu",
                 tags: ["notes", "create", "blocks"],
             },
             {

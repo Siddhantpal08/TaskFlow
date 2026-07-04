@@ -303,7 +303,7 @@ export function DataProvider({ children }) {
         <DataContext.Provider value={{
             tasks: tasks || [], events: events || [], taskDates, teams: teams || [], teamMembers: teamMembers || [],
             notifications: notifications || [], onlineUsers,
-            loading, unreadCount, refreshTeams, refreshAll,
+            loading, unreadCount, refreshTeams, refreshAll, refreshTasks,
             createTask, updateTaskStatus, updateTask, delegateTask, splitTask, deleteTask,
             createEvent, deleteEvent, fetchEventsForMonth,
             markNotifRead, markAllNotifRead, clearAllNotif,

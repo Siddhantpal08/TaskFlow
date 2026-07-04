@@ -26,10 +26,18 @@ const STEPS = [
         position: "center",
     },
     {
+        id: "command-palette",
+        emoji: "🎯",
+        title: "Command Palette — Your Shortcut Hub",
+        desc: "Press Ctrl+K (or ⌘K on Mac) anywhere to open the Command Palette. Jump to any page, create a task, switch themes, and more — all without lifting your hands from the keyboard.",
+        highlight: null,
+        position: "center",
+    },
+    {
         id: "notes",
         emoji: "📝",
         title: "Your Personal Notion",
-        desc: "Notes lets you write rich documents with headings, todos, code blocks, and more. Type '/' for a command menu. Everything auto-saves.",
+        desc: "Notes lets you write rich documents with headings, todos, code blocks, and more. Type '/' inside a note for a block command menu. Everything auto-saves to the cloud.",
         highlight: null,
         position: "center",
     },
@@ -43,7 +51,7 @@ const STEPS = [
     },
 ];
 
-const STORAGE_KEY = "tf_guide_seen_v2";
+const STORAGE_KEY = "tf_guide_seen_v3";
 
 export default function OnboardingGuide({ t }) {
     const [visible, setVisible] = useState(false);

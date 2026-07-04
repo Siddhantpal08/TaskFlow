@@ -7,7 +7,7 @@ import EmptyState from './ui/EmptyState.jsx';
 
 
 export default function TeamPage({ t }) {
-    const { refreshTeams, refreshAll } = useData();
+    const { refreshTeams, refreshAll, refreshTasks } = useData();
     const [joinCode, setJoinCode] = useState("");
     const [teamName, setTeamName] = useState("");
     const [loading, setLoading] = useState(false);
@@ -29,6 +29,8 @@ export default function TeamPage({ t }) {
 
     useEffect(() => {
         fetchMyTeams();
+        // Refresh tasks so team member stats (pending/done/active) reflect latest status
+        refreshTasks?.();
     }, []);
 
     const handleJoin = async () => {

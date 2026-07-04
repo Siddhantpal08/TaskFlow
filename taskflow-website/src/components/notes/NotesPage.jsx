@@ -278,7 +278,7 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <input readOnly value={finalUrlToDisplay}
                             style={{ flex: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 12px', color: t.t2, fontSize: 11, fontFamily: t.mono, outline: 'none' }}
-                            onFocus={e => e.target.select()} />
+                            onFocus={e => { e.target.select(); setTimeout(() => { const len = e.target.value.length; e.target.setSelectionRange(len, len); }, 0); }} />
                         <button onClick={handleCopy}
                             style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: copied ? '#22c55e' : t.accent, color: '#000', fontWeight: 700, fontFamily: t.disp, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s', flexShrink: 0 }}>
                             {copied ? '✓ Copied!' : 'Copy Link'}
@@ -1591,7 +1591,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 <ShareModal
                     notePageId={notePageId}
                     pg={pg}
-                    subNoteCount={(pg.childIds || []).length}
+                    subNoteCount={getAllDescendantIds(notePageId).length - 1}
                     t={t}
                     onClose={() => setShowShareModal(false)}
                 />
