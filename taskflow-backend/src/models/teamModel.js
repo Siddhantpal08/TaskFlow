@@ -148,7 +148,13 @@ const getTeamMembers = async (userId) => {
     // If a user has no teams, they should at least see themselves (for personal tasks)
     if (rows.length === 0) {
         const [self] = await db.query(
-            `SELECT id, name, email, avatar_initials, avatar_url, created_at FROM users WHERE id = ?`, [userId]
+            `SELECT id, name, email, avatar_initials, avatar_url, created_at,
+                (SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND deleted_at IS NULL) as total_tasks,
+                (SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status = 'done' AND deleted_at IS NULL) as done_tasks,
+                (SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status = 'active' AND deleted_at IS NULL) as active_tasks,
+                (SELECT COUNT(*) FROM tasks WHERE assigned_to = users.id AND status != 'done' AND due_date < NOW() AND deleted_at IS NULL) as overdue_tasks,
+                (SELECT MIN(due_date) FROM tasks WHERE assigned_to = users.id AND status != 'done' AND due_date IS NOT NULL AND deleted_at IS NULL) as next_due
+             FROM users WHERE id = ?`, [userId]
         );
         return self;
     }
