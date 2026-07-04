@@ -64,13 +64,7 @@ export default function Tasks({ t, setTask, searchQuery }) {
                         <button onClick={() => setViewMode("grid")} style={{ background: viewMode === "grid" ? t.accentDim : "transparent", color: viewMode === "grid" ? t.accent : t.t2, border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: viewMode === "grid" ? 700 : 500, fontFamily: t.disp, transition: "all .15s" }}>Grid</button>
                     </div>
 
-                    <button onClick={() => setShowCreate(true)} style={{
-                        background: t.accent, border: 'none', borderRadius: 8, padding: '8px 16px',
-                        color: '#060B12', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13,
-                        display: 'flex', alignItems: 'center', gap: 6,
-                    }}>
-                        <I d={IC.plus} sz={14} c="currentColor" /> New Task
-                    </button>
+
                 </div>
             </div>
 

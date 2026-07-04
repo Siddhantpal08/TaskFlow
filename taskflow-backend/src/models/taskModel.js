@@ -33,15 +33,19 @@ const getTaskById = async (id) => {
  */
 const getTasksForUser = async (userId, filters = {}) => {
     let sql = `
-        SELECT t.*,
+        SELECT DISTINCT t.*,
                u1.name AS assigned_by_name, u1.avatar_initials AS assigned_by_initials,
                u2.name AS assigned_to_name, u2.avatar_initials AS assigned_to_initials
         FROM tasks t
         JOIN users u1 ON u1.id = t.assigned_by
         JOIN users u2 ON u2.id = t.assigned_to
-        WHERE (t.assigned_by = ? OR t.assigned_to = ?) AND t.deleted_at IS NULL
+        LEFT JOIN team_members tm1 ON tm1.user_id = t.assigned_to
+        LEFT JOIN team_members tm2 ON tm2.team_id = tm1.team_id AND tm2.user_id = ?
+        LEFT JOIN team_members tm3 ON tm3.user_id = t.assigned_by
+        LEFT JOIN team_members tm4 ON tm4.team_id = tm3.team_id AND tm4.user_id = ?
+        WHERE (t.assigned_by = ? OR t.assigned_to = ? OR tm2.user_id IS NOT NULL OR tm4.user_id IS NOT NULL) AND t.deleted_at IS NULL
     `;
-    const params = [userId, userId];
+    const params = [userId, userId, userId, userId];
 
     if (filters.status) {
         sql += ' AND t.status = ?';

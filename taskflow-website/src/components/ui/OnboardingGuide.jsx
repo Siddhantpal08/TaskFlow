@@ -51,7 +51,7 @@ const STEPS = [
     },
 ];
 
-const STORAGE_KEY = "tf_guide_seen_v3";
+const STORAGE_KEY = "tf_guide_seen_v5";
 
 export default function OnboardingGuide({ t }) {
     const [visible, setVisible] = useState(false);
@@ -140,7 +140,6 @@ export default function OnboardingGuide({ t }) {
                         <div style={{ height: "100%", width: `${progress}%`, background: `linear-gradient(90deg, ${t.accent}, #F59E0B)`, transition: "width .4s ease", borderRadius: "24px 0 0 0" }} />
                     </div>
 
-                    {/* Skip button */}
                     <button
                         onClick={dismiss}
                         style={{
@@ -153,7 +152,7 @@ export default function OnboardingGuide({ t }) {
                         onMouseEnter={e => { e.currentTarget.style.borderColor = t.t2; e.currentTarget.style.color = t.t2; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.t3; }}
                     >
-                        Skip tour
+                        Don't show again (Skip)
                     </button>
 
                     {/* Step indicator dots */}

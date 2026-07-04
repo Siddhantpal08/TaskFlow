@@ -165,13 +165,12 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
                                         { value: "high", label: "High" },
                                     ]}
                                 />
-                                {/* Due Date: editable */}
-                                <input 
-                                    type="date" 
-                                    value={form.due_date ? new Date(form.due_date).toISOString().substring(0, 10) : ''}
-                                    onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-                                    style={INP(t)} 
-                                />
+                                {/* Due Date: locked — set at creation, cannot be changed */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 11px', borderRadius: 8, background: `${INP(t).background}`, border: `1px solid ${t.border}`, color: t.t3, fontSize: 12, fontFamily: t.mono }}>
+                                    <span style={{ fontSize: 14 }}>📅</span>
+                                    <span>{fmtDate(task.due_date)}</span>
+                                    <span style={{ fontSize: 10, color: t.t3, marginLeft: 'auto', fontStyle: 'italic' }}>locked</span>
+                                </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                 <CustomSelect

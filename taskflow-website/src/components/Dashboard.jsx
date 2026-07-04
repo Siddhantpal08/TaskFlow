@@ -90,18 +90,19 @@ function TaskRow({ tk, t, onClick }) {
 
 export default function Dashboard({ t, setPage, setTask }) {
     const { user } = useAuth();
-    const { tasks = [], events = [], onlineUsers = new Set(), notifications = [], loading } = useData();
+    const { tasks = [], events = [], onlineUsers = new Set(), notifications = [], loading, createTask, deleteTask } = useData();
     const [taskFilter, setTaskFilter] = useState("all");
+    const myTasks = tasks.filter(t => t.assigned_to === user?.id);
 
     const trends = useMemo(() => {
         const now = new Date();
         const weekAgo = new Date(now - 7 * 86400000);
-        const tasksThisWeek = tasks.filter(x => new Date(x.created_at) >= weekAgo).length;
-        const doneThisWeek = tasks.filter(x => x.status === "done" && x.updated_at && new Date(x.updated_at) >= weekAgo).length;
-        const activeCount = tasks.filter(x => x.status === "active").length;
-        const overdueCount = tasks.filter(x => x.due_date && x.status !== "done" && new Date(x.due_date) < now).length;
+        const tasksThisWeek = myTasks.filter(x => new Date(x.created_at) >= weekAgo).length;
+        const doneThisWeek = myTasks.filter(x => x.status === "done" && x.updated_at && new Date(x.updated_at) >= weekAgo).length;
+        const activeCount = myTasks.filter(x => x.status === "active").length;
+        const overdueCount = myTasks.filter(x => x.due_date && x.status !== "done" && new Date(x.due_date) < now).length;
         return { tasksThisWeek, doneThisWeek, activeCount, overdueCount };
-    }, [tasks]);
+    }, [myTasks]);
 
     if (loading) return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: t.t2, fontSize: 13 }}>
@@ -109,11 +110,11 @@ export default function Dashboard({ t, setPage, setTask }) {
         </div>
     );
 
-    const total = tasks.length;
-    const done = tasks.filter(x => x.status === "done").length;
-    const active = tasks.filter(x => x.status === "active").length;
-    const overdue = tasks.filter(x => x.due_date && x.status !== "done" && new Date(x.due_date) < new Date()).length;
-    const pending = tasks.filter(x => x.status === "pending").length;
+    const total = myTasks.length;
+    const done = myTasks.filter(x => x.status === "done").length;
+    const active = myTasks.filter(x => x.status === "active").length;
+    const overdue = myTasks.filter(x => x.due_date && x.status !== "done" && new Date(x.due_date) < new Date()).length;
+    const pending = myTasks.filter(x => x.status === "pending").length;
     const rate = total ? Math.round(done / total * 100) : 0;
     const firstName = user?.name?.split(" ")[0] || "there";
 
@@ -139,11 +140,12 @@ export default function Dashboard({ t, setPage, setTask }) {
     ];
     const todayQuote = quotes[new Date().getDate() % quotes.length];
 
-    const filteredTasks = taskFilter === "all" ? tasks : tasks.filter(x => x.status === taskFilter);
+    const myTasks = tasks.filter(t => t.assigned_to === user?.id);
+    const filteredTasks = taskFilter === "all" ? myTasks : myTasks.filter(x => x.status === taskFilter);
 
     // Today's tasks for focus strip
     const todayStr = new Date().toDateString();
-    const todayTasks = tasks.filter(tk => tk.due_date && new Date(tk.due_date).toDateString() === todayStr && tk.status !== "done");
+    const todayTasks = myTasks.filter(tk => tk.due_date && new Date(tk.due_date).toDateString() === todayStr && tk.status !== "done");
 
     return (
         <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, width: "100%", height: "100%", boxSizing: "border-box", overflow: "hidden" }}
@@ -369,6 +371,30 @@ export default function Dashboard({ t, setPage, setTask }) {
                                     {label}
                                 </button>
                             ))}
+                        </div>
+                        {/* Developer options */}
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${t.border}` }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono, marginBottom: 8 }}>Dev Tools</div>
+                            <div style={{ display: "flex", gap: 6 }}>
+                                <button onClick={async () => {
+                                    const dummies = [
+                                        { title: "Review Q3 Strategy", priority: "high", assigned_to: user?.id, due_date: new Date().toISOString() },
+                                        { title: "Update Documentation", priority: "medium", assigned_to: user?.id, due_date: new Date(Date.now() + 86400000).toISOString() },
+                                        { title: "Fix Dashboard bugs", priority: "high", assigned_to: user?.id }
+                                    ];
+                                    for (const d of dummies) await createTask(d);
+                                }}
+                                    style={{ flex: 1, padding: "5px", borderRadius: 6, border: `1px solid ${t.accent}44`, background: t.accentDim, color: t.accent, fontSize: 10, cursor: "pointer", fontFamily: t.disp }}>
+                                    + Populate
+                                </button>
+                                <button onClick={async () => {
+                                    const myTasks = tasks.filter(x => x.assigned_to === user?.id);
+                                    for (const x of myTasks) await deleteTask(x.id);
+                                }}
+                                    style={{ flex: 1, padding: "5px", borderRadius: 6, border: `1px solid ${t.red}44`, background: `${t.red}12`, color: t.red, fontSize: 10, cursor: "pointer", fontFamily: t.disp }}>
+                                    Reset Data
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
