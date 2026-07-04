@@ -192,7 +192,6 @@ const getPublicFeedboard = asyncWrapper(async (req, res) => {
                     CONCAT(LEFT(u.name, LOCATE(' ', CONCAT(u.name,' '))-1), '.') AS author_initial
              FROM support_tickets t
              LEFT JOIN users u ON u.id = t.user_id
-             WHERE t.category IN ('bug', 'feature')
          ) combined
          ORDER BY upvotes DESC, created_at DESC
          LIMIT 50`
