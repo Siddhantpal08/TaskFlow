@@ -13,6 +13,7 @@ export default function ProfilePage({ t, onGoBack }) {
     const fileRef = useRef();
     const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || null);
     const [cancelLoading, setCancelLoading] = useState(false);
+    const [renewalReminder, setRenewalReminder] = useState(user?.renewal_reminder ?? true);
 
     // Image Zoom Modal
     const [imgModal, setImgModal] = useState(false);
@@ -48,6 +49,7 @@ export default function ProfilePage({ t, onGoBack }) {
             const payload = { name, avatar_initials: initials.toUpperCase().slice(0, 2) };
             payload.bio = bio;
             payload.avatar_url = avatarPreview;
+            payload.renewal_reminder = renewalReminder;
             const res = await api.patch('/users/me', payload);
             setUser(res.data);
             setIsEditing(false);
@@ -230,6 +232,20 @@ export default function ProfilePage({ t, onGoBack }) {
                             <>
                                 <div style={{ fontSize: 12, color: t.t2, lineHeight: 1.5 }}>
                                     Your subscription will auto-renew securely via Razorpay at the end of your billing cycle. If you cancel, your current benefits will remain active until the cycle ends.
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={renewalReminder} 
+                                        onChange={(e) => {
+                                            setRenewalReminder(e.target.checked);
+                                            // Optional: automatically trigger save or let them click Save manually.
+                                            // The simplest is letting them click "Save Changes" if editing, or we can just enable isEditing.
+                                            setIsEditing(true);
+                                        }} 
+                                        style={{ cursor: 'pointer', width: 16, height: 16, accentColor: t.accent }} 
+                                    />
+                                    <span style={{ fontSize: 13, color: t.t1, fontWeight: 600 }}>Enable Auto-Renewal Reminders</span>
                                 </div>
                                 <button type="button" onClick={handleCancelSubscription} disabled={cancelLoading}
                                     style={{ background: 'transparent', border: `1px solid ${t.red}40`, borderRadius: 8, padding: '8px 16px', color: t.red, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600, alignSelf: 'flex-start', marginTop: 4, transition: "all .2s", opacity: cancelLoading ? 0.6 : 1 }}

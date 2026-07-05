@@ -26,7 +26,7 @@ const getUserByEmail = async (email) => {
 const getUserById = async (id) => {
     try {
         const [rows] = await db.query(
-            'SELECT id, name, email, avatar_initials, role, plan, plan_expires_at, bio, avatar_url, is_online, created_at FROM users WHERE id = ?',
+            'SELECT id, name, email, avatar_initials, role, plan, plan_expires_at, bio, avatar_url, is_online, renewal_reminder, created_at FROM users WHERE id = ?',
             [id]
         );
         return rows[0] || null;
@@ -41,7 +41,7 @@ const getUserById = async (id) => {
             } catch (_) { }
             try {
                 const [retry] = await db.query(
-                    'SELECT id, name, email, avatar_initials, role, plan, plan_expires_at, bio, avatar_url, is_online, created_at FROM users WHERE id = ?',
+                    'SELECT id, name, email, avatar_initials, role, plan, plan_expires_at, bio, avatar_url, is_online, renewal_reminder, created_at FROM users WHERE id = ?',
                     [id]
                 );
                 return retry[0] || null;
@@ -91,11 +91,19 @@ const deleteAllRefreshTokensForUser = async (userId) => {
     await db.query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
 };
 
-const updateUserProfile = async (userId, { name, avatar_initials, bio, avatar_url }) => {
-    await db.query(
-        'UPDATE users SET name = ?, avatar_initials = ?, bio = ?, avatar_url = ? WHERE id = ?',
-        [name, avatar_initials, bio || null, avatar_url || null, userId]
-    );
+const updateUserProfile = async (userId, { name, avatar_initials, bio, avatar_url, renewal_reminder }) => {
+    let query = 'UPDATE users SET name = ?, avatar_initials = ?, bio = ?, avatar_url = ?';
+    let params = [name, avatar_initials, bio || null, avatar_url || null];
+    
+    if (renewal_reminder !== undefined) {
+        query += ', renewal_reminder = ?';
+        params.push(renewal_reminder ? 1 : 0);
+    }
+    
+    query += ' WHERE id = ?';
+    params.push(userId);
+    
+    await db.query(query, params);
 };
 
 const deleteUserById = async (id) => {

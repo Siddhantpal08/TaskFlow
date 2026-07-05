@@ -118,7 +118,12 @@ const getUserTeams = async (userId) => {
 
 const getMembersOfTeam = async (teamId) => {
     const [rows] = await db.query(
-        `SELECT u.id, u.name, u.email, u.avatar_initials, u.avatar_url, tm.role, tm.joined_at
+        `SELECT u.id, u.name, u.email, u.avatar_initials, u.avatar_url, tm.role, tm.joined_at,
+            (SELECT COUNT(*) FROM tasks WHERE assigned_to = u.id AND deleted_at IS NULL) as total_tasks,
+            (SELECT COUNT(*) FROM tasks WHERE assigned_to = u.id AND status = 'done' AND deleted_at IS NULL) as done_tasks,
+            (SELECT COUNT(*) FROM tasks WHERE assigned_to = u.id AND status = 'active' AND deleted_at IS NULL) as active_tasks,
+            (SELECT COUNT(*) FROM tasks WHERE assigned_to = u.id AND status != 'done' AND due_date < NOW() AND deleted_at IS NULL) as overdue_tasks,
+            (SELECT MIN(due_date) FROM tasks WHERE assigned_to = u.id AND status != 'done' AND due_date IS NOT NULL AND deleted_at IS NULL) as next_due
          FROM users u
          JOIN team_members tm ON u.id = tm.user_id
          WHERE tm.team_id = ?

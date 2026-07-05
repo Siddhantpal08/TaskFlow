@@ -11,6 +11,7 @@ const updateProfileSchema = Joi.object({
     avatar_initials: Joi.string().max(2).optional(),
     bio: Joi.string().max(1000).allow('', null).optional(),
     avatar_url: Joi.string().allow('', null).optional(),
+    renewal_reminder: Joi.boolean().optional(),
 });
 
 const validateBody = (schema, body) => {
@@ -79,12 +80,13 @@ const updateMe = asyncWrapper(async (req, res) => {
     const data = validateBody(updateProfileSchema, req.body);
     const user = await userModel.getUserById(req.user.id);
 
-    if (data.name !== undefined || data.bio !== undefined || data.avatar_url !== undefined) {
+    if (data.name !== undefined || data.bio !== undefined || data.avatar_url !== undefined || data.renewal_reminder !== undefined) {
         await userModel.updateUserProfile(req.user.id, {
             name: data.name || user.name,
             avatar_initials: data.avatar_initials || user.avatar_initials,
             bio: data.bio !== undefined ? data.bio : user.bio,
             avatar_url: data.avatar_url !== undefined ? data.avatar_url : user.avatar_url,
+            renewal_reminder: data.renewal_reminder !== undefined ? data.renewal_reminder : user.renewal_reminder,
         });
     }
 

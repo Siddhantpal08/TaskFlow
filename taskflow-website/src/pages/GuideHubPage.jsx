@@ -271,8 +271,8 @@ export default function GuideHubPage({ t, setPage }) {
         setLoadingCommunity(true);
         try {
             const res = await feedbackApi.getPublic();
-            if (res.data?.success) {
-                setCommunityPosts(res.data.data);
+            if (res.success) {
+                setCommunityPosts(res.data);
             }
         } catch (e) {
             console.error("Failed to load community board", e);
@@ -289,8 +289,8 @@ export default function GuideHubPage({ t, setPage }) {
     const handleUpvote = async (id) => {
         try {
             const res = await feedbackApi.upvote(id);
-            if (res.data?.success) {
-                setCommunityPosts(prev => prev.map(p => p.id === id ? { ...p, upvotes: res.data.upvotes } : p));
+            if (res.success) {
+                setCommunityPosts(prev => prev.map(p => p.id === id ? { ...p, upvotes: res.upvotes || p.upvotes + 1 } : p));
             }
         } catch (e) {
             console.error("Upvote failed", e);

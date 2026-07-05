@@ -115,7 +115,7 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
     };
 
     const handleRestoreStarter = async () => {
-        if (!confirm("This will add the 5 default starter notes back to your workspace. Your existing notes will not be deleted. Continue?")) return;
+        if (!confirm("This will merge the default starter notes into your workspace. Existing notes with the same name will be skipped. Continue?")) return;
         setRestoring(true);
         try {
             const idMap = { root: null };
@@ -124,6 +124,14 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
             for (const oldId of order) {
                 const pg = INIT_PAGES[oldId];
                 if (!pg) continue;
+
+                // Check if already exists
+                const existing = Object.values(pages).find(existingPg => existingPg && existingPg.title === pg.title);
+                if (existing) {
+                    idMap[oldId] = existing.id;
+                    continue;
+                }
+
                 const newId = await addNotePage(pg.parentId === "root" ? "root" : (idMap[pg.parentId] || "root"), {
                     title: pg.title,
                     emoji: pg.emoji,
@@ -146,6 +154,59 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
         <div style={{ flex: 1, overflow: "auto" }}>
             <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})` }} />
             <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 48px 80px", display: "flex", gap: 40, alignItems: "flex-start", flexWrap: "wrap" }}>
+                
+                {/* Left Utility Sidebar */}
+                <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>
+                        Developer Utilities
+                    </div>
+                    
+                    <button onClick={async () => {
+                        if (!window.confirm("Are you sure you want to reset and delete all your assigned tasks?")) return;
+                        const myTasks = tasks.filter(x => x.assigned_to === user?.id);
+                        for (const x of myTasks) await deleteTask(x.id);
+                    }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.card, color: t.t1, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }} className="note-card-hover">
+                        <span style={{ fontSize: 18 }}>🧹</span> Reset User Tasks
+                    </button>
+                    
+                    <button onClick={async () => {
+                        const dummies = [
+                            { title: "Review Q3 Strategy", priority: "high", assigned_to: user?.id, due_date: new Date().toISOString() },
+                            { title: "Update Documentation", priority: "medium", assigned_to: user?.id, due_date: new Date(Date.now() + 86400000).toISOString() },
+                            { title: "Fix Dashboard bugs", priority: "high", assigned_to: user?.id }
+                        ];
+                        for (const d of dummies) await createTask(d);
+                    }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.card, color: t.t1, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }} className="note-card-hover">
+                        <span style={{ fontSize: 18 }}>✨</span> Populate Demo Data
+                    </button>
+                    
+                    <button
+                        onClick={handleRestoreStarter}
+                        disabled={restoring}
+                        title="Re-add the default starter notes"
+                        style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "12px 16px", borderRadius: 12,
+                            border: `1px solid ${t.accent}44`,
+                            background: restoring ? t.accentDim : `${t.accent}10`,
+                            color: t.accent, cursor: restoring ? "not-allowed" : "pointer",
+                            fontFamily: t.disp, fontSize: 13, fontWeight: 600,
+                            transition: "all .2s", opacity: restoring ? 0.7 : 1,
+                        }}
+                        onMouseEnter={e => { if (!restoring) e.currentTarget.style.background = `${t.accent}25`; }}
+                        onMouseLeave={e => { if (!restoring) e.currentTarget.style.background = `${t.accent}10`; }}
+                    >
+                        <span style={{ fontSize: 18 }}>{restoring ? "⏳" : "🔄"}</span>
+                        {restoring ? "Restoring…" : "Restore Starter Notes"}
+                    </button>
+                    
+                    <div style={{ fontSize: 11, color: t.t3, lineHeight: 1.5, padding: "0 4px", marginTop: 8 }}>
+                        Use these utilities to populate your workspace with demo data or reset it to a clean state.
+                    </div>
+                </div>
+
                 {/* Main Content */}
                 <div style={{ flex: 1, minWidth: 300 }}>
 
@@ -210,60 +271,7 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
                         <span style={{ fontSize: 12, color: t.t3, fontFamily: t.disp }}>Blank Page</span>
                     </div>
                 </div>
-                </div>
-
-                {/* Right Utility Sidebar */}
-                <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 16 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>
-                        Developer Utilities
-                    </div>
-                    
-                    <button onClick={async () => {
-                        if (!window.confirm("Are you sure you want to reset and delete all your assigned tasks?")) return;
-                        const myTasks = tasks.filter(x => x.assigned_to === user?.id);
-                        for (const x of myTasks) await deleteTask(x.id);
-                    }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.card, color: t.t1, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }} className="note-card-hover">
-                        <span style={{ fontSize: 18 }}>🧹</span> Reset User Tasks
-                    </button>
-                    
-                    <button onClick={async () => {
-                        const dummies = [
-                            { title: "Review Q3 Strategy", priority: "high", assigned_to: user?.id, due_date: new Date().toISOString() },
-                            { title: "Update Documentation", priority: "medium", assigned_to: user?.id, due_date: new Date(Date.now() + 86400000).toISOString() },
-                            { title: "Fix Dashboard bugs", priority: "high", assigned_to: user?.id }
-                        ];
-                        for (const d of dummies) await createTask(d);
-                    }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.card, color: t.t1, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }} className="note-card-hover">
-                        <span style={{ fontSize: 18 }}>✨</span> Populate Demo Data
-                    </button>
-                    
-                    <button
-                        onClick={handleRestoreStarter}
-                        disabled={restoring}
-                        title="Re-add the default starter notes"
-                        style={{
-                            display: "flex", alignItems: "center", gap: 10,
-                            padding: "12px 16px", borderRadius: 12,
-                            border: `1px solid ${t.accent}44`,
-                            background: restoring ? t.accentDim : `${t.accent}10`,
-                            color: t.accent, cursor: restoring ? "not-allowed" : "pointer",
-                            fontFamily: t.disp, fontSize: 13, fontWeight: 600,
-                            transition: "all .2s", opacity: restoring ? 0.7 : 1,
-                        }}
-                        onMouseEnter={e => { if (!restoring) e.currentTarget.style.background = `${t.accent}25`; }}
-                        onMouseLeave={e => { if (!restoring) e.currentTarget.style.background = `${t.accent}10`; }}
-                    >
-                        <span style={{ fontSize: 18 }}>{restoring ? "⏳" : "🔄"}</span>
-                        {restoring ? "Restoring…" : "Restore Starter Notes"}
-                    </button>
-                    
-                    <div style={{ fontSize: 11, color: t.t3, lineHeight: 1.5, padding: "0 4px", marginTop: 8 }}>
-                        Use these utilities to populate your workspace with demo data or reset it to a clean state.
-                    </div>
-                </div>
-
+            </div>
             </div>
         </div>
     );
