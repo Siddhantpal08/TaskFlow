@@ -48,8 +48,6 @@ import ProFeaturesModal from "./components/ui/ProFeaturesModal.jsx";
 import OnboardingGuide from "./components/ui/OnboardingGuide.jsx";
 import RecycleBin from "./components/RecycleBin.jsx";
 import CommandPalette from "./components/CommandPalette.jsx";
-import InteractiveTour from "./components/InteractiveTour.jsx";
-
 // ── Credits Modal ────────────────────────────────────────────────────────────
 function CreditsModal({ onClose }) {
     return (
@@ -142,18 +140,6 @@ function MainApp() {
     const [task, setTask] = useState(null);
     const [pageLoading, setPageLoading] = useState(false);
     const [commandOpen, setCommandOpen] = useState(false);
-    const [runTour, setRunTour] = useState(false);
-    const [tourKey, setTourKey] = useState(0);
-
-    useEffect(() => {
-        const handleStartTour = () => {
-            setPageWithPersist('dashboard'); // Switch to dashboard for tour
-            setTourKey(prev => prev + 1);
-            setTimeout(() => setRunTour(true), 800);
-        };
-        window.addEventListener('start-tour', handleStartTour);
-        return () => window.removeEventListener('start-tour', handleStartTour);
-    }, []);
 
     const setPageWithPersist = (p) => {
         setPage(p);
@@ -542,9 +528,6 @@ function MainApp() {
 
                     {/* First-login Onboarding Guide */}
                     <OnboardingGuide t={t} />
-
-                    {/* Interactive Tour (Joyride) */}
-                    <InteractiveTour run={runTour} setRun={setRunTour} t={t} key={tourKey} />
 
                     {/* Mobile bottom nav */}
                     <nav className="mobile-nav">

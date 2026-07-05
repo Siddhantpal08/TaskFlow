@@ -107,26 +107,48 @@ const deleteFeedback = asyncWrapper(async (req, res) => {
  * Uses a separate table to prevent double-voting.
  */
 const upvoteFeedback = asyncWrapper(async (req, res) => {
-    const feedbackId = parseInt(req.params.id);
+    const paramId = req.params.id; // 'f_1' or 't_2'
     const userId = req.user.id;
 
-    if (!feedbackId) throw new AppError('Invalid feedback ID.', 400);
+    if (!paramId) throw new AppError('Invalid ID.', 400);
+
+    const type = paramId.startsWith('f_') ? 'feedback' : paramId.startsWith('t_') ? 'ticket' : null;
+    const actualId = parseInt(paramId.substring(2));
+
+    if (!type || isNaN(actualId)) {
+        throw new AppError('Invalid ID format.', 400);
+    }
 
     try {
-        // Insert vote (will fail silently if already voted due to unique constraint)
-        await db.query(
-            `INSERT IGNORE INTO feedback_votes (user_id, feedback_id) VALUES (?, ?)`,
-            [userId, feedbackId]
-        );
-        // Update count
-        await db.query(
-            `UPDATE feedback SET upvotes = (SELECT COUNT(*) FROM feedback_votes WHERE feedback_id = ?) WHERE id = ?`,
-            [feedbackId, feedbackId]
-        );
-        const [[row]] = await db.query(`SELECT upvotes FROM feedback WHERE id = ?`, [feedbackId]);
-        res.json({ success: true, upvotes: row?.upvotes || 0 });
+        if (type === 'feedback') {
+            const [[existing]] = await db.query(`SELECT 1 FROM feedback_votes WHERE user_id = ? AND feedback_id = ?`, [userId, actualId]);
+            if (existing) {
+                await db.query(`DELETE FROM feedback_votes WHERE user_id = ? AND feedback_id = ?`, [userId, actualId]);
+            } else {
+                await db.query(`INSERT INTO feedback_votes (user_id, feedback_id) VALUES (?, ?)`, [userId, actualId]);
+            }
+            await db.query(
+                `UPDATE feedback SET upvotes = (SELECT COUNT(*) FROM feedback_votes WHERE feedback_id = ?) WHERE id = ?`,
+                [actualId, actualId]
+            );
+            const [[row]] = await db.query(`SELECT upvotes FROM feedback WHERE id = ?`, [actualId]);
+            res.json({ success: true, upvotes: row?.upvotes || 0 });
+        } else {
+            const [[existing]] = await db.query(`SELECT 1 FROM support_ticket_votes WHERE user_id = ? AND ticket_id = ?`, [userId, actualId]);
+            if (existing) {
+                await db.query(`DELETE FROM support_ticket_votes WHERE user_id = ? AND ticket_id = ?`, [userId, actualId]);
+            } else {
+                await db.query(`INSERT INTO support_ticket_votes (user_id, ticket_id) VALUES (?, ?)`, [userId, actualId]);
+            }
+            await db.query(
+                `UPDATE support_tickets SET upvotes = (SELECT COUNT(*) FROM support_ticket_votes WHERE ticket_id = ?) WHERE id = ?`,
+                [actualId, actualId]
+            );
+            const [[row]] = await db.query(`SELECT upvotes FROM support_tickets WHERE id = ?`, [actualId]);
+            res.json({ success: true, upvotes: row?.upvotes || 0 });
+        }
     } catch (e) {
-        throw new AppError('Failed to upvote.', 500);
+        throw new AppError('Failed to toggle upvote.', 500);
     }
 });
 
@@ -181,14 +203,14 @@ const getPublicFeedboard = asyncWrapper(async (req, res) => {
     const [rows] = await db.query(
         `SELECT id, rating, message, upvotes, created_at, status, author_initial
          FROM (
-             SELECT f.id, f.rating, f.message, f.upvotes, f.created_at, f.status,
+             SELECT CONCAT('f_', f.id) as id, f.rating, f.message, f.upvotes, f.created_at, f.status,
                     CONCAT(LEFT(u.name, LOCATE(' ', CONCAT(u.name,' '))-1), '.') AS author_initial
              FROM feedback f
              LEFT JOIN users u ON u.id = f.user_id
              
              UNION ALL
              
-             SELECT t.id, 5 as rating, CONCAT('[', t.category, '] ', t.title, ' - ', t.description) as message, 0 as upvotes, t.created_at, t.status,
+             SELECT CONCAT('t_', t.id) as id, 5 as rating, t.title as message, t.upvotes, t.created_at, t.status,
                     CONCAT(LEFT(u.name, LOCATE(' ', CONCAT(u.name,' '))-1), '.') AS author_initial
              FROM support_tickets t
              LEFT JOIN users u ON u.id = t.user_id

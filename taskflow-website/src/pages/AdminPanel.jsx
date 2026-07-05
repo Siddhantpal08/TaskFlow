@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../api/admin.js';
 import { feedbackApi } from '../api/feedback.js';
+import { api } from '../api/client.js';
 import ConfirmModal from '../components/ui/ConfirmModal.jsx';
 
 const DARK = {
