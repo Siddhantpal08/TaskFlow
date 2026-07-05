@@ -427,7 +427,7 @@ export default function GuideHubPage({ t, setPage }) {
                     </button>
                     <button className="guide-tab" onClick={() => { setActiveTab("community"); setSearch(""); setMsg(""); }}
                         style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 8, border: "none", background: activeTab === "community" ? t.accentDim : "transparent", color: activeTab === "community" ? t.accent : t.t2, fontFamily: t.disp, fontSize: 13, fontWeight: activeTab === "community" ? 700 : 400, cursor: "pointer", textAlign: "left", width: "100%", borderLeft: `3px solid ${activeTab === "community" ? t.accent : "transparent"}`, transition: "all .15s" }}>
-                        <I d={IC.team} sz={16} c={activeTab === "community" ? t.accent : t.t2} /> Feature Requests
+                        <I d={IC.team} sz={16} c={activeTab === "community" ? t.accent : t.t2} /> Community Board
                     </button>
                 </div>
 
@@ -453,7 +453,7 @@ export default function GuideHubPage({ t, setPage }) {
                     ) : (
                         <div>
                             {activeTab === "support" ? (
-                                <div style={{ maxWidth: 600 }}>
+                                <div style={{ width: "100%", maxWidth: 1200 }}>
                                     <div style={{ marginBottom: 24 }}>
                                         <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
                                             <I d={IC.note} sz={28} c={t.t1} /> Submit Support Ticket
@@ -479,7 +479,7 @@ export default function GuideHubPage({ t, setPage }) {
                                     </form>
                                 </div>
                             ) : activeTab === "feedback" ? (
-                                <div style={{ maxWidth: 600 }}>
+                                <div style={{ width: "100%", maxWidth: 1200 }}>
                                     <div style={{ marginBottom: 24 }}>
                                         <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
                                             <I d={IC.star} sz={28} c={t.t1} /> Share Feedback
