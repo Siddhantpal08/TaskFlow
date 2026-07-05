@@ -1328,11 +1328,16 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 transform: zoom !== 100 ? `scale(${zoom / 100})` : 'none',
                                 transformOrigin: 'top center',
                             }}>
-                                <div className="tf-print-area" style={{
+                                <style>{`
+                                    .notes-page-padding { padding: ${writingMode ? "80px 96px" : "32px 60px 80px"}; }
+                                    @media (max-width: 768px) {
+                                        .notes-page-padding { padding: 20px 16px 80px !important; }
+                                    }
+                                `}</style>
+                                <div className="tf-print-area notes-page-padding" style={{
                                     maxWidth: writingMode ? "none" : 720,
                                     width: "100%",
                                     margin: "0 auto",
-                                    padding: writingMode ? "80px 96px" : "32px 60px 80px",
                                     position: "relative",
                                     background: writingMode ? (docTheme === 'light' ? '#FFFFFF' : '#1A1C22') : 'transparent',
                                     color: writingMode ? (docTheme === 'light' ? '#000000' : '#E2EFFF') : t.noteText,

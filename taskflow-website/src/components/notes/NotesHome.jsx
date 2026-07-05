@@ -152,11 +152,17 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
 
     return (
         <div style={{ flex: 1, overflow: "auto" }}>
+            <style>{`
+                .notes-home-root { padding: 40px 48px 80px; }
+                @media (max-width: 768px) {
+                    .notes-home-root { padding: 20px 16px 80px !important; }
+                }
+            `}</style>
             <div style={{ height: 5, background: `linear-gradient(to right,${t.accent},${t.blue || '#0072FF'})` }} />
-            <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 48px 80px", display: "flex", gap: 40, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div className="notes-home-root" style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 40, alignItems: "flex-start", flexWrap: "wrap" }}>
                 
                 {/* Main Content */}
-                <div style={{ flex: 1, minWidth: 300 }}>
+                <div style={{ flex: 1, minWidth: 300, minWidth: "min(300px, 100%)" }}>
 
                 {/* Header */}
                 <div style={{ marginBottom: 40, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>

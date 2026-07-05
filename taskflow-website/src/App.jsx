@@ -181,10 +181,6 @@ function MainApp() {
     useEffect(() => {
         (async () => {
             try {
-                if (sessionId) {
-                    // Do nothing for demo
-                }
-
                 const sharedNoteId = urlParams.get('note');
                 const token = urlParams.get('token');
                 const shareMode = urlParams.get('mode');
@@ -519,7 +515,6 @@ function MainApp() {
                             { id: "notes", label: "Notes", icon: IC.note },
                             { id: "calendar", label: "Cal", icon: IC.cal },
                             { id: "team", label: "Team", icon: IC.team },
-                            { id: "friends", label: "Friends", icon: IC.user },
                         ].map(n => (
                             <button key={n.id} onClick={() => setPageWithPersist(n.id)}
                                 className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>
