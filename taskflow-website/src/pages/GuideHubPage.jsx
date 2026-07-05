@@ -351,8 +351,9 @@ export default function GuideHubPage({ t, setPage }) {
                 .guide-item-expand { background: ${t.inset}; border-top: 1px solid ${t.border}; padding: 14px 18px; }
                 @media (max-width: 768px) {
                     .guide-layout { flex-direction: column !important; }
-                    .guide-tabs  { flex-direction: row !important; overflow-x: auto; border-right: none !important; border-bottom: 1px solid ${t.border} !important; }
+                    .guide-tabs  { flex-direction: row !important; overflow-x: auto; border-right: none !important; border-bottom: 1px solid ${t.border} !important; width: 100% !important; box-sizing: border-box !important; }
                     .guide-tab   { white-space: nowrap; flex-shrink: 0; }
+                    .guide-content { padding: 16px !important; }
                 }
             `}</style>
 
@@ -432,7 +433,7 @@ export default function GuideHubPage({ t, setPage }) {
                 </div>
 
                 {/* ── Content ── */}
-                <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+                <div className="guide-content" style={{ flex: 1, overflowY: "auto", padding: "24px 28px", boxSizing: "border-box" }}>
 
                     {/* Search Results */}
                     {searchResults ? (
@@ -453,7 +454,7 @@ export default function GuideHubPage({ t, setPage }) {
                     ) : (
                         <div>
                             {activeTab === "support" ? (
-                                <div style={{ width: "100%", maxWidth: 1200 }}>
+                                <div style={{ width: "100%", maxWidth: 1200, boxSizing: "border-box" }}>
                                     <div style={{ marginBottom: 24 }}>
                                         <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
                                             <I d={IC.note} sz={28} c={t.t1} /> Submit Support Ticket
@@ -479,7 +480,7 @@ export default function GuideHubPage({ t, setPage }) {
                                     </form>
                                 </div>
                             ) : activeTab === "feedback" ? (
-                                <div style={{ width: "100%", maxWidth: 1200 }}>
+                                <div style={{ width: "100%", maxWidth: 1200, boxSizing: "border-box" }}>
                                     <div style={{ marginBottom: 24 }}>
                                         <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
                                             <I d={IC.star} sz={28} c={t.t1} /> Share Feedback
@@ -540,7 +541,7 @@ export default function GuideHubPage({ t, setPage }) {
                                                             <div style={{ width: 18, height: 18, borderRadius: "50%", background: t.accentDim, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, flexShrink: 0 }}>
                                                                 {post.author_initial ? post.author_initial.charAt(0).toUpperCase() : "?"}
                                                             </div>
-                                                            <span style={{ whiteSpace: "nowrap" }}>User {post.author_initial?.replace('.', '')}</span>
+                                                            <span style={{ whiteSpace: "nowrap" }}>{post.author_initial?.replace('.', '')}</span>
                                                         </span>
                                                         <span>·</span>
                                                         <span>{new Date(post.created_at).toLocaleDateString()}</span>

@@ -1,6 +1,6 @@
 import { I, IC } from "./Icon.jsx";
 
-export default function EmptyState({ t, icon = "task", title, description, ctaText, onCta }) {
+export default function EmptyState({ t, icon = "task", title, description, ctaText, onCta, style = {} }) {
     // Pick icon path or fallback
     const iconPath = IC[icon] || IC.task;
 
@@ -17,7 +17,8 @@ export default function EmptyState({ t, icon = "task", title, description, ctaTe
             borderRadius: 16,
             margin: "12px 0",
             position: "relative",
-            overflow: "hidden"
+            overflow: "hidden",
+            ...style
         }}>
             {/* Visual spot illustration background */}
             <div style={{

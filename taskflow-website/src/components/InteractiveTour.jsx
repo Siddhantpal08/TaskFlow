@@ -22,7 +22,7 @@ export default function InteractiveTour({ run, setRun, t }) {
             title: 'Create Tasks in One Click',
         },
         {
-            target: '.stats-grid',
+            target: '#dash-hero',
             content: 'The Dashboard shows your task stats, upcoming events, and what needs attention right now.',
             placement: 'center',
             title: 'Your Command Center',

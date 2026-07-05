@@ -166,7 +166,7 @@ export default function Dashboard({ t, setPage, setTask }) {
             `}</style>
 
             {/* ── Hero Strip ── */}
-            <div style={{
+            <div id="dash-hero" style={{
                 background: `linear-gradient(120deg, ${hero.color}18 0%, ${hero.color}08 60%, transparent 100%)`,
                 border: `1px solid ${hero.color}28`, borderRadius: 14, padding: "14px 20px",
                 display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0,
@@ -286,6 +286,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                                     description={taskFilter === "all" ? "Create your first task using the button above." : `No tasks are currently ${taskFilter}.`}
                                     ctaText={taskFilter === "all" ? "Create Task" : ""}
                                     onCta={taskFilter === "all" ? () => setPage("tasks") : null}
+                                    style={{ flex: 1, minHeight: 0 }}
                                 />
                             </div>
                         ) : (
