@@ -75,6 +75,7 @@ app.use(helmet({
         }
     },
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
@@ -100,6 +101,11 @@ app.use('/api/', generalLimiter);
 
 // ─── XSS Sanitization ─────────────────────────────────────────────────────────
 app.use(sanitizeBlock);
+
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get('/ping', (req, res) => {
+    res.status(200).send('pong');
+});
 
 // ─── Root Page ────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
