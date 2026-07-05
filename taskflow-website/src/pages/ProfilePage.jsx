@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useData } from '../context/DataContext.jsx';
 import { toastSuccess, toastError } from '../components/ui/Toast.jsx';
 export default function ProfilePage({ t, onGoBack }) {
     const { user, setUser } = useAuth();
+    const { tasks = [], createTask, deleteTask } = useData();
     const [name, setName] = useState(user?.name || '');
     const [initials, setInitials] = useState(user?.avatar_initials || '');
     const [bio, setBio] = useState(user?.bio || '');
@@ -271,6 +273,34 @@ export default function ProfilePage({ t, onGoBack }) {
                         style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: '10px 18px', color: t.t1, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600 }}>
                         {passLoading ? 'Requesting...' : 'Change Password'}
                     </button>
+                </div>
+
+                {/* Developer Utilities */}
+                <div style={{ marginTop: 40, paddingTop: 32, borderTop: `1px solid ${t.border}`, paddingBottom: 60 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, marginBottom: 8 }}>Developer Utilities</div>
+                    <div style={{ fontSize: 13, color: t.t2, marginBottom: 16 }}>Use these utilities to manage your workspace data for testing purposes.</div>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <button type="button" onClick={async () => {
+                            if (!window.confirm("Are you sure you want to reset and delete all your assigned tasks?")) return;
+                            const myTasks = tasks.filter(x => x.assigned_to === user?.id);
+                            for (const x of myTasks) await deleteTask(x.id);
+                            toastSuccess("All assigned tasks have been deleted.");
+                        }} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: '10px 18px', color: t.red, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 18 }}>🧹</span> Reset User Tasks
+                        </button>
+                        
+                        <button type="button" onClick={async () => {
+                            const dummies = [
+                                { title: "Review Q3 Strategy", priority: "high", assigned_to: user?.id, due_date: new Date().toISOString() },
+                                { title: "Update Documentation", priority: "medium", assigned_to: user?.id, due_date: new Date(Date.now() + 86400000).toISOString() },
+                                { title: "Fix Dashboard bugs", priority: "high", assigned_to: user?.id }
+                            ];
+                            for (const d of dummies) await createTask(d);
+                            toastSuccess("Demo tasks have been added.");
+                        }} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: '10px 18px', color: t.accent, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 18 }}>✨</span> Populate Demo Data
+                        </button>
+                    </div>
                 </div>
 
             </div>

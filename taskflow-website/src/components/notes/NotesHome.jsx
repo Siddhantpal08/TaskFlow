@@ -220,58 +220,33 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
                     </div>
                 </div>
 
-                {/* Right Utility Sidebar */}
-                <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 16 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.6px", fontFamily: t.mono }}>
-                        Developer Utilities
+                </div>
+
+                {/* Developer / Utilities */}
+                <div style={{ marginTop: 24, paddingTop: 24, borderTop: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+                    <div style={{ fontSize: 11, color: t.t3, lineHeight: 1.5 }}>
+                        Missing the default notes? Restore the starter pages to your workspace.
                     </div>
-                    
-                    <button onClick={async () => {
-                        if (!window.confirm("Are you sure you want to reset and delete all your assigned tasks?")) return;
-                        const myTasks = tasks.filter(x => x.assigned_to === user?.id);
-                        for (const x of myTasks) await deleteTask(x.id);
-                    }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.card, color: t.t1, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }} className="note-card-hover">
-                        <span style={{ fontSize: 18 }}>🧹</span> Reset User Tasks
-                    </button>
-                    
-                    <button onClick={async () => {
-                        const dummies = [
-                            { title: "Review Q3 Strategy", priority: "high", assigned_to: user?.id, due_date: new Date().toISOString() },
-                            { title: "Update Documentation", priority: "medium", assigned_to: user?.id, due_date: new Date(Date.now() + 86400000).toISOString() },
-                            { title: "Fix Dashboard bugs", priority: "high", assigned_to: user?.id }
-                        ];
-                        for (const d of dummies) await createTask(d);
-                    }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.card, color: t.t1, cursor: "pointer", fontFamily: t.disp, fontSize: 13, fontWeight: 600, transition: "all .2s" }} className="note-card-hover">
-                        <span style={{ fontSize: 18 }}>✨</span> Populate Demo Data
-                    </button>
-                    
                     <button
                         onClick={handleRestoreStarter}
                         disabled={restoring}
                         title="Re-add the default starter notes"
                         style={{
-                            display: "flex", alignItems: "center", gap: 10,
-                            padding: "12px 16px", borderRadius: 12,
+                            display: "flex", alignItems: "center", gap: 8,
+                            padding: "8px 14px", borderRadius: 8,
                             border: `1px solid ${t.accent}44`,
                             background: restoring ? t.accentDim : `${t.accent}10`,
                             color: t.accent, cursor: restoring ? "not-allowed" : "pointer",
-                            fontFamily: t.disp, fontSize: 13, fontWeight: 600,
+                            fontFamily: t.disp, fontSize: 12, fontWeight: 600,
                             transition: "all .2s", opacity: restoring ? 0.7 : 1,
                         }}
                         onMouseEnter={e => { if (!restoring) e.currentTarget.style.background = `${t.accent}25`; }}
                         onMouseLeave={e => { if (!restoring) e.currentTarget.style.background = `${t.accent}10`; }}
                     >
-                        <span style={{ fontSize: 18 }}>{restoring ? "⏳" : "🔄"}</span>
+                        <span style={{ fontSize: 14 }}>{restoring ? "⏳" : "🔄"}</span>
                         {restoring ? "Restoring…" : "Restore Starter Notes"}
                     </button>
-                    
-                    <div style={{ fontSize: 11, color: t.t3, lineHeight: 1.5, padding: "0 4px", marginTop: 8 }}>
-                        Use these utilities to populate your workspace with demo data or reset it to a clean state.
-                    </div>
                 </div>
-            </div>
             </div>
         </div>
     );

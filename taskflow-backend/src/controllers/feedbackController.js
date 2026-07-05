@@ -162,7 +162,7 @@ const updateTicketStatus = asyncWrapper(async (req, res) => {
     const ticketId = parseInt(req.params.id);
     const { status } = req.body;
     
-    if (!['open', 'in_progress', 'done', 'resolved'].includes(status)) {
+    if (!['open', 'closed'].includes(status)) {
         throw new AppError('Invalid status.', 400);
     }
     
@@ -173,7 +173,7 @@ const updateTicketStatus = asyncWrapper(async (req, res) => {
         [ticketId]
     );
     
-    if (ticket && ticket.email && (status === 'done' || status === 'resolved')) {
+    if (ticket && ticket.email && status === 'closed') {
         await mailer.sendSupportTicketEmail(
             ticket.email, 
             `Your support ticket regarding "${ticket.title}" has been addressed and resolved!`,

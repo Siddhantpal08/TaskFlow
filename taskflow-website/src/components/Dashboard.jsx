@@ -222,6 +222,7 @@ export default function Dashboard({ t, setPage, setTask }) {
 
                     {/* Primary CTA */}
                     <button
+                        id="dash-create-btn"
                         onClick={() => setPage("tasks")}
                         style={{
                             background: "linear-gradient(135deg, #F59E0B, #F97316)",

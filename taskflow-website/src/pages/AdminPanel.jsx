@@ -431,13 +431,13 @@ export default function AdminPanel({ t: themeProp, user }) {
                                 </div>
                                 <div style={{ fontSize: 11, color: thm.t3, fontFamily: thm.mono, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{ display: 'inline-block', padding: '2px 6px', background: (tkt.status === 'done' || tkt.status === 'resolved') ? `${thm.green}22` : `${thm.amber}22`, color: (tkt.status === 'done' || tkt.status === 'resolved') ? thm.green : thm.amber, borderRadius: 4, fontWeight: 700 }}>{tkt.status}</span>
+                                        <span style={{ display: 'inline-block', padding: '2px 6px', background: tkt.status === 'closed' ? `${thm.green}22` : `${thm.amber}22`, color: tkt.status === 'closed' ? thm.green : thm.amber, borderRadius: 4, fontWeight: 700 }}>{tkt.status}</span>
                                         <span>{new Date(tkt.created_at).toLocaleDateString()}</span>
                                     </div>
                                     <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
                                         <button onClick={async () => {
                                             try {
-                                                const newStatus = (tkt.status === 'done' || tkt.status === 'resolved') ? 'in_progress' : 'done';
+                                                const newStatus = tkt.status === 'closed' ? 'open' : 'closed';
                                                 await api.patch(`/feedback/tickets/${tkt.id}/status`, { status: newStatus });
                                                 loadFeedback();
                                             } catch (e) {
@@ -445,7 +445,7 @@ export default function AdminPanel({ t: themeProp, user }) {
                                                 setTimeout(() => setActionMsg(''), 3000);
                                             }
                                         }} style={{ background: thm.surf, border: `1px solid ${thm.border}`, color: thm.t2, padding: '4px 8px', borderRadius: 6, fontSize: 10, cursor: 'pointer' }} className="hvrC">
-                                            {(tkt.status === 'done' || tkt.status === 'resolved') ? 'Reopen' : 'Mark Done'}
+                                            {tkt.status === 'closed' ? 'Reopen' : 'Mark Closed'}
                                         </button>
                                         <button onClick={async () => {
                                             if (!window.confirm("Delete this ticket?")) return;
@@ -471,12 +471,12 @@ export default function AdminPanel({ t: themeProp, user }) {
                             ⭐ User Feedback
                         </div>
                         <div style={{
-                            display: 'grid', gridTemplateColumns: '180px 100px 1fr 180px',
+                            display: 'grid', gridTemplateColumns: '180px 100px 1fr 100px',
                             padding: '10px 18px', borderBottom: `1px solid ${thm.border}`,
                             fontSize: 10, fontWeight: 600, color: thm.t3, textTransform: 'uppercase',
                             letterSpacing: '0.6px', fontFamily: thm.mono,
                         }}>
-                            <span>User</span><span>Rating</span><span>Message</span><span>Status & Actions</span>
+                            <span>User</span><span>Rating</span><span>Message</span><span>Actions</span>
                         </div>
                         {feedbackLoading ? (
                             <div style={{ padding: 20, color: thm.t3, fontSize: 13 }}>Loading feedback…</div>
@@ -484,7 +484,7 @@ export default function AdminPanel({ t: themeProp, user }) {
                             <div style={{ padding: 20, color: thm.t3, fontSize: 13, textAlign: 'center' }}>No feedback entries found.</div>
                         ) : feedback.map(f => (
                             <div key={`fb-${f.id}`} style={{
-                                display: 'grid', gridTemplateColumns: '180px 100px 1fr 180px',
+                                display: 'grid', gridTemplateColumns: '180px 100px 1fr 100px',
                                 padding: '11px 18px', borderBottom: `1px solid ${thm.border}`,
                                 alignItems: 'center', transition: 'background .12s',
                             }}
@@ -501,27 +501,9 @@ export default function AdminPanel({ t: themeProp, user }) {
                                 <div style={{ fontSize: 12.5, color: thm.t2, paddingRight: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>{f.message}</div>
                                 <div style={{ fontSize: 11, color: thm.t3, fontFamily: thm.mono, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{
-                                            padding: '2px 6px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase', fontSize: 10,
-                                            background: f.status === 'done' ? `${thm.green}22` : `${thm.amber}22`,
-                                            color: f.status === 'done' ? thm.green : thm.amber,
-                                        }}>{f.status || 'pending'}</span>
                                         <span>{new Date(f.created_at).toLocaleDateString()}</span>
                                     </div>
                                     <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                                        <button onClick={async () => {
-                                            const newStatus = f.status === 'done' ? 'pending' : 'done';
-                                            try {
-                                                await feedbackApi.updateStatus(f.id, newStatus);
-                                                notify(`Feedback marked as ${newStatus}`);
-                                                loadFeedback();
-                                            } catch { notify('Failed to update status'); }
-                                        }} style={{
-                                            padding: '4px 8px', borderRadius: 6, border: `1px solid ${thm.border}`,
-                                            background: 'transparent', color: thm.t2, fontSize: 10, cursor: 'pointer', fontFamily: thm.mono, fontWeight: 700,
-                                        }}>
-                                            {f.status === 'done' ? 'Mark Pending' : 'Mark Done'}
-                                        </button>
                                         <button onClick={async () => {
                                             if (window.confirm('Delete this feedback?')) {
                                                 try {
@@ -533,7 +515,7 @@ export default function AdminPanel({ t: themeProp, user }) {
                                         }} style={{
                                             padding: '4px 8px', borderRadius: 6, border: `1px solid ${thm.red}44`,
                                             background: 'transparent', color: thm.red, fontSize: 10, cursor: 'pointer', fontFamily: thm.mono,
-                                        }}>✕</button>
+                                        }}>✕ Delete</button>
                                     </div>
                                 </div>
                             </div>

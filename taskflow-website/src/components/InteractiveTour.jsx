@@ -16,7 +16,7 @@ export default function InteractiveTour({ run, setRun, t }) {
             title: 'Your Navigation Hub',
         },
         {
-            target: '#topbar-capture-btn',
+            target: '#dash-create-btn',
             content: 'Need to write something down quickly? Use this button to capture a new task from anywhere in the app.',
             placement: 'bottom',
             title: 'Create Tasks in One Click',

@@ -519,12 +519,12 @@ export default function GuideHubPage({ t, setPage }) {
                                         )}
                                         {communityPosts.map(post => (
                                             <div key={post.id} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
-                                                <div onClick={() => handleUpvote(post.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 12px", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, cursor: "pointer", minWidth: 40, marginTop: 4 }} className="hvrC">
+                                                <div onClick={() => handleUpvote(post.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 12px", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, cursor: "pointer", minWidth: 40, marginTop: 4, flexShrink: 0 }} className="hvrC">
                                                     <span style={{ fontSize: 16, color: t.accent }}>▲</span>
                                                     <span style={{ fontSize: 14, fontWeight: 800, color: t.t1, marginTop: 4 }}>{post.upvotes || 0}</span>
                                                 </div>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{ fontSize: 15, color: t.t1, lineHeight: 1.6, wordBreak: "break-word" }}>{post.message}</div>
+                                                    <div style={{ fontSize: 15, color: t.t1, lineHeight: 1.6, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{post.message}</div>
                                                     <div style={{ fontSize: 12, color: t.t2, marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                                                         <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
                                                             <div style={{ width: 18, height: 18, borderRadius: "50%", background: t.accentDim, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800 }}>
