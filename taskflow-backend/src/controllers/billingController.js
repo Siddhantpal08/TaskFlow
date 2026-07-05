@@ -1,6 +1,13 @@
+// =============================================================================
+// RAZORPAY INTEGRATION — DISABLED
+// Kept for reference / portfolio demonstration purposes only.
+// Not reachable from live UI. Do not re-enable without rotating API keys.
+// =============================================================================
+
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const db = require('../utils/db');
+
 
 // ── Razorpay client ──────────────────────────────────────────────────────────
 let razorpay;

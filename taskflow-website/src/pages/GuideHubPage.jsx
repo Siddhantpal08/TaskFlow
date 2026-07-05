@@ -193,19 +193,18 @@ const GUIDE_DATA = {
         ],
     },
     "account": {
-        label: "Account & Billing",
+        label: "Account & Features",
         icon: IC.user,
         items: [
             {
                 title: "Unlimited Everything",
-                desc: "Pro removes all limits: unlimited note pages (Free: 10), unlimited tasks (Free: 20), unlimited team members (Free: 3). Work without constraints.",
-                shortcut: "Upgrade → Pro",
+                desc: "All features are available for free in this demo: unlimited note pages, unlimited tasks, unlimited team members. Work without constraints.",
+                shortcut: "",
                 tags: ["unlimited", "limits", "pro"],
-                pro: true,
             },
             {
                 title: "Custom Themes — Full App",
-                desc: "Pro users get access to the Custom Builder in Theme Studio. Pick any accent and secondary color — the entire app (background, nav, cards, text) adapts to your palette.",
+                desc: "Get access to the Custom Builder in Theme Studio. Pick any accent and secondary color — the entire app (background, nav, cards, text) adapts to your palette.",
                 shortcut: "Sidebar → Customize → Theme Studio",
                 tags: ["themes", "customize", "colors"],
             },
@@ -214,27 +213,12 @@ const GUIDE_DATA = {
                 desc: "Toggle special writing modes in any note. Script Mode formats text like a screenplay (character, action, dialogue). Lyrics Mode adds verse/chorus structure.",
                 shortcut: "Note editor → Mode dropdown",
                 tags: ["script", "lyrics", "writing", "creative"],
-                pro: true,
             },
             {
                 title: "Note Sharing with Links",
                 desc: "Share any note via a public link. The recipient can view (not edit) the note without needing a TaskFlow account.",
                 shortcut: "Note ⋯ menu → Share Link",
                 tags: ["share", "public", "link"],
-                starter: true,
-            },
-            {
-                title: "Priority Support",
-                desc: "Pro subscribers get priority responses on the Feedback page. Issues are addressed within 24 hours.",
-                shortcut: "Feedback → Pro Priority",
-                tags: ["support", "help", "priority"],
-                pro: true,
-            },
-            {
-                title: "Razorpay Billing — India First",
-                desc: "TaskFlow uses Razorpay for payments. Supports UPI, Credit/Debit Cards, Net Banking, EMI. Plans start at ₹49/month. Cancel anytime from Profile → Subscription.",
-                shortcut: "Sidebar → Upgrade",
-                tags: ["billing", "payment", "subscription", "UPI"],
             },
             {
                 title: "Developer Utilities",
@@ -619,12 +603,6 @@ function GuideCard({ item, t, showSection = false, expanded, onToggle }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: t.t1 }}>{item.title}</span>
-                        {item.pro && (
-                            <span style={{ fontSize: 9, fontWeight: 700, color: t.accent, background: t.accentDim, padding: "2px 7px", borderRadius: 999, fontFamily: t.mono, border: `1px solid ${t.accent}30` }}>PRO</span>
-                        )}
-                        {item.starter && !item.pro && (
-                            <span style={{ fontSize: 9, fontWeight: 700, color: t.amber, background: t.amber + "14", padding: "2px 7px", borderRadius: 999, fontFamily: t.mono, border: `1px solid ${t.amber}30` }}>STARTER+</span>
-                        )}
                         {showSection && (
                             <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono }}>· {item.sectionLabel}</span>
                         )}

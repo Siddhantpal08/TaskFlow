@@ -51,7 +51,7 @@ export const INIT_PAGES = {
         id: "intro", title: "Quick Start Guide", emoji: "🚀", parentId: "root", childIds: [],
         blocks: [
             mkBlock("h1", "Welcome to TaskFlow ✦"),
-            mkBlock("callout", "You're on TaskFlow — a powerful workspace for tasks, notes, and team collaboration by Crevio. Here's everything you need to get started."),
+            mkBlock("callout", "You're on TaskFlow — a powerful workspace for tasks, notes, and team collaboration. Here's everything you need to get started."),
             mkBlock("h2", "✍️ Notes"),
             mkBlock("ul", "Press '/' anywhere to open the command menu — insert headings, lists, code, callouts and more."),
             mkBlock("ul", "Drag the ⠿ handle on the left of any block to reorder it."),

@@ -2,26 +2,34 @@ const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
 const billingController = require('../controllers/billingController');
 
-// ── Razorpay Webhook (unauthenticated, verified via signature) ───────────────
-router.post('/razorpay-webhook', billingController.razorpayWebhook);
+// =============================================================================
+// DISABLED — Razorpay billing kept for reference / portfolio purposes.
+// All endpoints return 503 Service Unavailable.
+// =============================================================================
 
-// ── Authenticated billing endpoints ─────────────────────────────────────────
+const demoDisabledMiddleware = (req, res) => {
+    res.status(503).json({ disabled: true, message: "Billing is disabled in demo mode." });
+};
+
+router.post('/razorpay-webhook', demoDisabledMiddleware);
 router.use(authenticate);
+router.post('/create-checkout-session', demoDisabledMiddleware);
+router.post('/create-subscription', demoDisabledMiddleware);
+router.post('/verify-payment', demoDisabledMiddleware);
+router.post('/cancel-subscription', demoDisabledMiddleware);
+router.get('/plan-status', demoDisabledMiddleware);
+router.get('/verify-session', demoDisabledMiddleware);
 
-// Create checkout session / subscription
+/*
+// ── ORIGINAL ROUTES ────────────────────────────────────────────────────────
+router.post('/razorpay-webhook', billingController.razorpayWebhook);
+router.use(authenticate);
 router.post('/create-checkout-session', billingController.createCheckoutSession);
 router.post('/create-subscription', billingController.createSubscription);
-
-// Verify payment after Razorpay checkout success
 router.post('/verify-payment', billingController.verifyPayment);
-
-// Cancel subscription
 router.post('/cancel-subscription', billingController.cancelSubscription);
-
-// Get plan status
 router.get('/plan-status', billingController.getPlanStatus);
-
-// Legacy compat
 router.get('/verify-session', billingController.verifySession);
+*/
 
 module.exports = router;

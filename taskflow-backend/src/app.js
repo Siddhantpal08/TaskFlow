@@ -36,7 +36,7 @@ const allowedOrigins = process.env.CLIENT_URLS
         'http://localhost:3000',
         'http://localhost:8081',
         'http://localhost:19006',
-        'https://taskflow-by-crevio.vercel.app',
+        'https://taskflow.siddhantpal.me',
     ];
 
 const isLanOrigin = (origin) => {
@@ -193,7 +193,8 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/admin',         adminRoutes);          // admin panel (role=admin gated)
 app.use('/api/v1/feedback',      feedbackRoutes);       // user feedback
 app.use('/api/v1/chat',          chatRoutes);           // team chat
-app.use('/api/v1/billing',       billingRoutes);        // stripe billing
+// DISABLED: Billing routes are kept for reference but all endpoints return 503 in demo mode.
+app.use('/api/v1/billing',       billingRoutes);        
 app.use('/api/v1',               userRoutes);
 
 // ─── /api/college/v1/ — SaaS Frontend (taskflow-app on Vercel) ────────────────

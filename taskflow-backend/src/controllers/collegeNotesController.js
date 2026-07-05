@@ -171,7 +171,7 @@ const sharePage = asyncWrapper(async (req, res) => {
         'INSERT INTO note_shares (id, token, page_id, shared_by, expires_at) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE token=VALUES(token), expires_at=VALUES(expires_at)',
         [uuidv4(), token, id, userId, expiresAt]
     );
-    const shareUrl = `${process.env.CLIENT_URL || 'https://taskflow-by-crevio.vercel.app'}/?note=${id}&token=${token}`;
+    const shareUrl = `${process.env.CLIENT_URL || 'https://taskflow.siddhantpal.me'}/?note=${id}&token=${token}`;
     res.json({ status: 'success', data: { token, shareUrl } });
 });
 

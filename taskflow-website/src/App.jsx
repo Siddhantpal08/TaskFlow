@@ -10,7 +10,6 @@ import ThemePicker from "./components/ui/ThemePicker.jsx";
 import { checkLimit, isPro } from "./utils/planLimits.js";
 import { UpgradeModal } from "./components/ui/UpgradeModal.jsx";
 import ChatWidget from "./components/ui/ChatWidget.jsx";
-import { billingApi } from "./api/billing.js";
 import { authApi } from "./api/auth.js";
 
 // Auth
@@ -33,6 +32,7 @@ import TeamPage from "./components/TeamPage.jsx";
 import Friends from "./components/Friends.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import GuideHubPage from "./pages/GuideHubPage.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
 
 import NotesPage from "./components/notes/NotesPage.jsx";
 import NotesHome from "./components/notes/NotesHome.jsx";
@@ -153,7 +153,6 @@ function MainApp() {
     const [notePageId, setNotePageId] = useState(() => sessionStorage.getItem("tf_notePageId") || null);
     const [expanded, setExpanded] = useState({ root: true });
     const [showQuickCapture, setShowQuickCapture] = useState(false);
-    const [showProFeatures, setShowProFeatures] = useState(false);
 
     // Persist notePageId
     const setNotePageIdWithPersist = (id) => {
@@ -182,32 +181,8 @@ function MainApp() {
     useEffect(() => {
         (async () => {
             try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const sessionId = urlParams.get('session_id');
-                const paymentStatus = urlParams.get('payment');
-
-                if (paymentStatus === 'success') {
-                    const plan = urlParams.get('plan') || 'pro';
-                    localStorage.setItem("tf_plan", plan);
-                    setUpgradeModal({ feature: 'Upgrade Successful!' });
-
-                    if (sessionId && sessionId.startsWith('mock_sub_')) {
-                        try {
-                            await billingApi.verifySession(sessionId);
-                        } catch (err) {
-                            console.error("Failed to verify subscription session:", err);
-                        }
-                    } else {
-                        try {
-                            const userRes = await authApi.getMe();
-                            if (userRes.data) {
-                                setUser(userRes.data);
-                            }
-                        } catch (e) {
-                            // ignore
-                        }
-                    }
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                if (sessionId) {
+                    // Do nothing for demo
                 }
 
                 const sharedNoteId = urlParams.get('note');
@@ -364,7 +339,6 @@ function MainApp() {
 
     const [isAddingPage, setIsAddingPage] = useState(false);
     const addingPageRef = useRef(false);
-    const [upgradeModal, setUpgradeModal] = useState(null); // { feature: string } | null
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
     const addNotePage = async (parentId, meta = {}) => {
@@ -373,7 +347,7 @@ function MainApp() {
         const totalPages = Object.keys(pages).filter(k => k !== 'root').length;
         const { allowed, reason } = checkLimit('notePages', totalPages);
         if (!allowed) {
-            setUpgradeModal({ feature: reason });
+            console.log(reason);
             return;
         }
         // ──────────────────────────────────────────────────────────────────────
@@ -479,7 +453,6 @@ function MainApp() {
                         duplicateNotePage={duplicateNotePage} reorderNotePage={reorderNotePage}
                         updateNotePage={updateNotePage} user={user}
                         isOpen={sidebarOpen} setIsOpen={setSidebarOpen}
-                        onUpgrade={() => setShowProFeatures(true)}
                         className="sidebar-desktop" />
 
 
@@ -499,6 +472,7 @@ function MainApp() {
                             {page === "profile" && <ProfilePage t={t} onGoBack={() => setPageWithPersist("dashboard")} />}
                             {page === "admin" && user?.role === 'admin' && <AdminPanel t={t} user={user} />}
                             {page === "guide" && <GuideHubPage t={t} setPage={setPageWithPersist} />}
+                            {page === "about" && <AboutPage t={t} />}
                             {page === "customize" && (
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                                     <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
@@ -518,13 +492,6 @@ function MainApp() {
                         <ThemePicker t={t} themeKey={themeKey} customTheme={customTheme}
                             onApplyPreset={applyPreset} onApplyCustom={applyCustom}
                             onClose={() => setShowThemePicker(false)} />
-                    )}
-                    {showProFeatures && (
-                        <ProFeaturesModal t={t} onClose={() => setShowProFeatures(false)} onUpgrade={() => { setShowProFeatures(false); setUpgradeModal({ feature: "Pro upgrade" }); }} />
-                    )}
-                    {/* Freemium upgrade modal */}
-                    {upgradeModal && (
-                        <UpgradeModal t={t} feature={upgradeModal.feature} onClose={() => setUpgradeModal(null)} />
                     )}
 
                     {showQuickCapture && (

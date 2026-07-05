@@ -1,3 +1,4 @@
+// DISABLED — Razorpay billing API kept for reference only. Not called from live UI.
 import { api } from './client.js';
 
 export const billingApi = {

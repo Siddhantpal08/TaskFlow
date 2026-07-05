@@ -3,7 +3,6 @@ import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import NoteTreeItem from "./NoteTreeItem.jsx";
 import TFLogo from "./ui/TFLogo.jsx";
-import { PlanBadge } from "./ui/UpgradeModal.jsx";
 import ConfirmModal from "./ui/ConfirmModal.jsx";
 
 // ── Tooltip wrapper for collapsed icons ─────────────────────────────────────
@@ -29,7 +28,7 @@ function Tip({ label, disabled, children }) {
 }
 
 export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded,
-    notePageId, navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, updateNotePage, onUpgrade, user: userProp, className }) {
+    notePageId, navigateNote, addNotePage, deleteNotePage, duplicateNotePage, reorderNotePage, updateNotePage, user: userProp, className }) {
     const { user: authUser, logout } = useAuth();
     const user = userProp || authUser;
 
@@ -51,6 +50,7 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
 
     const bottomNav = [
         { id: "guide",     label: "Help & Guide", ic: IC.book  },
+        { id: "about",     label: "About Project",ic: IC.info  },
         { id: "customize", label: "Customize",    ic: IC.pal   },
         { id: "trash",     label: "Recycle Bin",  ic: IC.trash },
         ...(user?.role === 'admin' ? [{ id: "admin", label: "Admin", ic: IC.edt }] : []),
@@ -191,16 +191,6 @@ export default function Sidebar({ t, page, setPage, pages, expanded, setExpanded
 
             {/* ── Bottom Nav ── */}
             <div style={{ padding: isOpen ? "4px 10px 6px" : "4px 0 6px", borderTop: `1px solid ${t.border}`, display: "flex", flexDirection: "column", gap: 2 }}>
-                {isOpen && (
-                    <div style={{ padding: "6px 10px 4px" }}>
-                        <PlanBadge
-                            t={t}
-                            userPlan={user?.plan}
-                            onClick={onUpgrade}
-                        />
-                    </div>
-                )}
-
                 {bottomNav.map(n => <NavBtn key={n.id} n={n} bottom />)}
             </div>
 

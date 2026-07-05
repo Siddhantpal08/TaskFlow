@@ -12,61 +12,74 @@
  * 
  * PRO tier (paid):
  *   - Unlimited everything
- *   - Priority sync
- *   - Export PDF
- *   - All writing modes
- *   - Priority support
- * 
- * Implementation: stored in localStorage for now (can be moved to backend).
- * On a real SaaS this would come from a /me API call with plan field.
+ * NOTE: As a portfolio demo, all limits are effectively disabled.
+ * The system considers everyone "pro" to showcase all features.
  */
 
 export const PLANS = {
     free: {
-        label: 'Free',
-        price: '₹0/mo',
-        notePages: 10,
+        pages: 10,
         tasks: 20,
-        teamMembers: 3,
-        sharing: false,
-        writingModes: false,
-        exportPdf: false,
-        aiSuggestions: false,
+        members: 3,
+        fileSizeMB: 5,
+        totalStorageMB: 50,
+        support: "standard",
+        customThemes: false,
+        writingModes: false, // script, lyrics
+        shareLinks: false,
     },
     starter: {
-        label: 'Starter',
-        price: '₹49/mo',
-        notePages: 25,
+        pages: 50,
         tasks: 100,
-        teamMembers: 5,
-        sharing: true,
+        members: 5,
+        fileSizeMB: 10,
+        totalStorageMB: 200,
+        support: "standard",
+        customThemes: false,
         writingModes: false,
-        exportPdf: false,
-        aiSuggestions: false,
+        shareLinks: true,
     },
     pro: {
-        label: 'Pro',
-        price: '₹99/mo',
-        notePages: Infinity,
+        pages: Infinity,
         tasks: Infinity,
-        teamMembers: Infinity,
-        sharing: true,
+        members: Infinity,
+        fileSizeMB: 50,
+        totalStorageMB: 1024,
+        support: "priority",
+        customThemes: true,
         writingModes: true,
-        exportPdf: true,
-        aiSuggestions: true,
+        shareLinks: true,
     },
 };
 
+// Map features to their limit keys
+const LIMIT_KEYS = {
+    'page': 'pages',
+    'task': 'tasks',
+    'team_member': 'members',
+    'storage': 'totalStorageMB',
+    'file_size': 'fileSizeMB',
+    'theme': 'customThemes',
+    'writing_mode': 'writingModes',
+    'share_link': 'shareLinks',
+};
+
+// Internal caching (optional, but helps if called frequently)
+let currentUserPlanCache = 'free';
+
 /**
- * Returns the user's current plan key ('free' | 'pro').
- * Source of truth: localStorage tf_plan (set after payment).
+ * Call this when auth state changes to cache the user's plan.
  */
-export function getPlan() {
-    return localStorage.getItem('tf_plan') || 'free';
+export function setUserPlanContext(plan) {
+    currentUserPlanCache = plan || 'free';
 }
 
-export function getCurrentLimits() {
-    return PLANS[getPlan()] || PLANS.free;
+/**
+ * Returns the active plan name.
+ * DEMO OVERRIDE: Always return 'pro' so all features are unlocked.
+ */
+export function getPlan() {
+    return 'pro';
 }
 
 export function isPro() {
@@ -74,44 +87,27 @@ export function isPro() {
 }
 
 /**
- * Check if an action is allowed under the current plan.
- * @param {'notePages'|'tasks'|'teamMembers'|'sharing'|'writingModes'|'exportPdf'} feature
- * @param {number} [currentCount] - current usage count (for numeric limits)
- * @returns {{ allowed: boolean, limit: number|boolean, reason: string }}
+ * Checks if a user has reached a specific limit.
+ * DEMO OVERRIDE: Always returns { allowed: true }
  */
 export function checkLimit(feature, currentCount = 0) {
-    const limits = getCurrentLimits();
-    const limit = limits[feature];
-
-    if (typeof limit === 'boolean') {
-        return {
-            allowed: limit,
-            limit,
-            reason: limit ? '' : `${featureLabel(feature)} requires a Pro plan.`,
-        };
-    }
-
-    if (typeof limit === 'number') {
-        const allowed = limit === Infinity || currentCount < limit;
-        return {
-            allowed,
-            limit,
-            reason: allowed ? '' : `Free plan limit: ${limit} ${featureLabel(feature)}. Upgrade to Pro for unlimited.`,
-        };
-    }
-
-    return { allowed: true, limit, reason: '' };
+    return {
+        allowed: true,
+        limit: Infinity,
+        current: currentCount,
+        reason: ''
+    };
 }
 
-function featureLabel(f) {
+function featureLabel(feature) {
     const map = {
-        notePages: 'note pages',
-        tasks: 'tasks',
-        teamMembers: 'team members',
-        sharing: 'Note Sharing',
-        writingModes: 'Script & Lyrics mode',
-        exportPdf: 'PDF Export',
-        aiSuggestions: 'AI Suggestions',
+        'page': 'pages',
+        'task': 'tasks',
+        'team_member': 'team members',
+        'storage': 'MB of storage',
+        'theme': 'custom themes',
+        'writing_mode': 'pro writing modes',
+        'share_link': 'public share links',
     };
-    return map[f] || f;
+    return map[feature] || feature;
 }

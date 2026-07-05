@@ -13,7 +13,7 @@ const allowedOrigins = process.env.CLIENT_URLS
         'http://localhost:3000',
         'http://localhost:8081',
         'http://localhost:19006',
-        'https://taskflow-by-crevio.vercel.app',
+        'https://taskflow.siddhantpal.me',
     ];
 
 const isLanOrigin = (origin) => {

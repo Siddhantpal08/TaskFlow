@@ -1,5 +1,5 @@
 /**
- * collegeRoutes.js — Routes for the TaskFlow (by Crevio) frontend.
+ * collegeRoutes.js — Routes for the TaskFlow frontend.
  *
  * Mounted at: /api/college/v1/
  *

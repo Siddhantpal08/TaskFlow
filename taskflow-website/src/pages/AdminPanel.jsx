@@ -134,7 +134,7 @@ export default function AdminPanel({ t: themeProp, user }) {
                         ⚙️ Admin Panel
                     </div>
                     <div style={{ fontSize: 12, color: thm.t3, fontFamily: thm.mono, marginTop: 2 }}>
-                        Crevio — TaskFlow internal dashboard · {user?.email}
+                        TaskFlow Admin Dashboard · {user?.email}
                     </div>
                 </div>
                 <button onClick={() => { loadStats(); loadUsers(); if (activeTab === 'feedback') loadFeedback(); }} style={{

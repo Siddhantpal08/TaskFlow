@@ -1,13 +1,13 @@
 import { I, IC } from "./Icon.jsx";
 
-export default function ProFeaturesModal({ t, onClose, onUpgrade }) {
-    const proFeatures = [
-        { icon: "✨", title: "Unlimited Note Pages", desc: "Build out a massive second brain with zero limits." },
-        { icon: "✅", title: "Unlimited Tasks & Sub-tasks", desc: "Break down complex projects endlessly." },
-        { icon: "👥", title: "Unlimited Team Members", desc: "Collaborate with your entire agency or team." },
-        { icon: "🔗", title: "Public Link Sharing", desc: "Share notes instantly with external clients." },
-        { icon: "📄", title: "PDF Exporting", desc: "Download professional documents of your notes." },
-        { icon: "⚡", title: "Real-time Collaboration", desc: "See your team's cursors instantly." }
+export default function ProFeaturesModal({ t, onClose }) {
+    const features = [
+        { icon: "📝", title: "Unlimited Pages & Tasks", desc: "No limits on creation." },
+        { icon: "🎨", title: "Custom Workspaces", desc: "Adapt the app to your brand colors." },
+        { icon: "🎭", title: "Writing Modes", desc: "Script and Lyrics modes." },
+        { icon: "👥", title: "Unlimited Team Members", desc: "Collaborate with everyone." },
+        { icon: "🔗", title: "Public Share Links", desc: "Share notes with outside clients." },
+        { icon: "⚡", title: "Priority Support", desc: "Skip the line for help." }
     ];
 
     return (
@@ -23,12 +23,15 @@ export default function ProFeaturesModal({ t, onClose, onUpgrade }) {
                 <button type="button" onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: "none", border: "none", color: t.t3, fontSize: 24, cursor: "pointer", lineHeight: 1 }}>×</button>
                 
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 13, color: t.accent, fontFamily: t.mono, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 8 }}>Unlock Everything</div>
-                    <div style={{ fontSize: 28, fontWeight: 900, color: t.t1, fontFamily: t.disp, letterSpacing: '-0.5px' }}>TaskFlow Pro ✦</div>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 999, background: `${t.accent}22`, color: t.accent, fontSize: 11, fontWeight: 800, fontFamily: t.mono, marginBottom: 12 }}>
+                        ✦ PORTFOLIO DEMO
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: t.t1, fontFamily: t.disp, letterSpacing: '-0.5px', marginBottom: 8 }}>TaskFlow Features</div>
+                    <div style={{ fontSize: 14, color: t.t2, lineHeight: 1.5 }}>TaskFlow includes powerful tools for productivity and collaboration. All features are unlocked.</div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16, background: t.inset, padding: '20px', borderRadius: 16, border: `1px solid ${t.border}` }}>
-                    {proFeatures.map((f, i) => (
+                    {features.map((f, i) => (
                         <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                             <div style={{ width: 36, height: 36, borderRadius: 10, background: `${t.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, border: `1px solid ${t.accent}30` }}>
                                 {f.icon}
@@ -40,17 +43,6 @@ export default function ProFeaturesModal({ t, onClose, onUpgrade }) {
                         </div>
                     ))}
                 </div>
-
-                <button onClick={onUpgrade} style={{
-                    width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-                    background: `linear-gradient(135deg, ${t.accent}, #0072FF)`, color: '#fff',
-                    fontSize: 15, fontWeight: 800, fontFamily: t.disp, cursor: 'pointer',
-                    boxShadow: `0 8px 24px ${t.accent}55`, transition: 'transform 0.2s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                    Upgrade Now →
-                </button>
             </div>
         </div>
     );

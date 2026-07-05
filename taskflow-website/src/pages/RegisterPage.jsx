@@ -243,7 +243,7 @@ export default function RegisterPage({ onGoLogin, googleLogin }) {
                                         color: t.accent, fontWeight: 600, fontFamily: t.disp,
                                         fontSize: 12, padding: 0, textDecoration: 'underline',
                                     }}>Terms of Service & Privacy Policy</button>
-                                    {' '}of TaskFlow by Crevio.
+                                    {' '}of TaskFlow.
                                 </span>
                             </label>
 
