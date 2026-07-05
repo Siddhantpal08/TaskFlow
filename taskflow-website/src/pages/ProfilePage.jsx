@@ -12,6 +12,7 @@ export default function ProfilePage({ t, onGoBack }) {
     const [isEditing, setIsEditing] = useState(false);
     const fileRef = useRef();
     const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || null);
+    const [cancelLoading, setCancelLoading] = useState(false);
 
     // Image Zoom Modal
     const [imgModal, setImgModal] = useState(false);
@@ -86,6 +87,22 @@ export default function ProfilePage({ t, onGoBack }) {
             toastError(err.message || 'Failed to change password.');
         } finally {
             setPassLoading(false);
+        }
+    };
+
+    const handleCancelSubscription = async () => {
+        if (!window.confirm("Are you sure you want to cancel your subscription? It will not auto-renew and will expire at the end of the current billing cycle.")) return;
+        setCancelLoading(true);
+        try {
+            const { billingApi } = await import('../api/billing.js');
+            await billingApi.cancelSubscription();
+            toastSuccess("Subscription cancelled successfully. It will not auto-renew.");
+            // Update local user state
+            setUser({ ...user, plan: 'free' });
+        } catch (err) {
+            toastError(err.response?.data?.error || err.message || "Failed to cancel subscription.");
+        } finally {
+            setCancelLoading(false);
         }
     };
 
@@ -193,6 +210,42 @@ export default function ProfilePage({ t, onGoBack }) {
                         </div>
                     )}
                 </form>
+
+                {/* Subscription Section */}
+                <div style={{ marginTop: 40, paddingTop: 32, borderTop: `1px solid ${t.border}` }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: t.t1, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                        Subscription Plan
+                        {(user?.plan === 'pro' || user?.plan === 'starter') && (
+                            <span style={{ fontSize: 9, fontWeight: 700, background: t.accentDim, color: t.accent, padding: "2px 6px", borderRadius: 4 }}>ACTIVE</span>
+                        )}
+                    </div>
+                    
+                    <div style={{ padding: "16px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div>
+                            <div style={{ fontSize: 13, color: t.t3, fontFamily: t.mono, marginBottom: 4 }}>CURRENT PLAN</div>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: t.t1, textTransform: 'capitalize' }}>{user?.plan || 'Free'} Plan</div>
+                        </div>
+                        
+                        {(user?.plan === 'pro' || user?.plan === 'starter') ? (
+                            <>
+                                <div style={{ fontSize: 12, color: t.t2, lineHeight: 1.5 }}>
+                                    Your subscription will auto-renew securely via Razorpay at the end of your billing cycle. If you cancel, your current benefits will remain active until the cycle ends.
+                                </div>
+                                <button type="button" onClick={handleCancelSubscription} disabled={cancelLoading}
+                                    style={{ background: 'transparent', border: `1px solid ${t.red}40`, borderRadius: 8, padding: '8px 16px', color: t.red, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 600, alignSelf: 'flex-start', marginTop: 4, transition: "all .2s", opacity: cancelLoading ? 0.6 : 1 }}
+                                    onMouseEnter={e => { if(!cancelLoading) e.currentTarget.style.background = `${t.red}15`; }}
+                                    onMouseLeave={e => { if(!cancelLoading) e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                    {cancelLoading ? 'Cancelling...' : 'Cancel Subscription'}
+                                </button>
+                            </>
+                        ) : (
+                            <div style={{ fontSize: 12, color: t.t2 }}>
+                                You are currently on the free plan. Upgrade to unlock more features!
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {/* Security Section */}
                 <div style={{ marginTop: 40, paddingTop: 32, borderTop: `1px solid ${t.border}` }}>

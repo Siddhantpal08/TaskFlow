@@ -63,8 +63,8 @@ export function UpgradeModal({ t, feature, onClose }) {
                 document.body.appendChild(s);
             });
 
-            if (!scriptLoaded) {
-                setError("Failed to load payment gateway. Please try again.");
+            if (!scriptLoaded || !window.Razorpay) {
+                setError("Payment gateway failed to load. Please disable your ad-blocker (e.g. Brave Shields, uBlock) for this site and try again.");
                 setLoading(false);
                 return;
             }

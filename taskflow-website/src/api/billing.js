@@ -14,6 +14,9 @@ export const billingApi = {
     // Get current plan status from server
     getPlanStatus: () => api.get('/billing/plan-status'),
 
+    // Cancel active subscription
+    cancelSubscription: () => api.post('/billing/cancel-subscription'),
+
     // Legacy compat
     verifySession: (sessionId) => api.get(`/billing/verify-session?session_id=${sessionId}`),
 };

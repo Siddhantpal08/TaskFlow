@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { I, IC } from "./ui/Icon.jsx";
 import { Av } from "./ui/Av.jsx";
 import { useData } from "../context/DataContext.jsx";
@@ -22,6 +23,11 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
     const [renaming, setRenaming] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [memberToRemove, setMemberToRemove] = useState(null); // { id, name }
+    
+    // Member Activity Tracking
+    const [viewActivityUser, setViewActivityUser] = useState(null); // user object
+    const [activityData, setActivityData] = useState(null);
+    const [loadingActivity, setLoadingActivity] = useState(false);
 
     useEffect(() => {
         if (!team) return;
@@ -122,6 +128,20 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
             toastError(e.response?.data?.message || 'Failed to remove member.');
         } finally {
             setMemberToRemove(null);
+        }
+    };
+
+    const handleViewActivity = async (u) => {
+        setViewActivityUser(u);
+        setLoadingActivity(true);
+        setActivityData(null);
+        try {
+            const res = await teamApi.getMemberActivity(u.id);
+            setActivityData(res.data);
+        } catch (err) {
+            toastError("Failed to fetch user's task activity.");
+        } finally {
+            setLoadingActivity(false);
         }
     };
 
@@ -276,6 +296,12 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
 
                             {/* Action buttons */}
                             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                <button onClick={() => handleViewActivity(u)}
+                                    style={{ padding: '6px 10px', borderRadius: 7, border: `1px solid ${t.border}`, background: 'transparent', color: t.t2, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 700, transition: 'all .15s', whiteSpace: "nowrap" }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = t.inset; e.currentTarget.style.color = t.t1; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = t.t2; }}>
+                                    View Tasks
+                                </button>
                                 <button onClick={() => setAssignToUser(u.id)}
                                     style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${t.accent}44`, background: t.accentDim, color: t.accent, fontSize: 11, cursor: 'pointer', fontFamily: t.disp, fontWeight: 700, transition: 'all .15s', whiteSpace: "nowrap" }}
                                     onMouseEnter={e => { e.currentTarget.style.background = t.accent; e.currentTarget.style.color = "#000"; }}
@@ -380,6 +406,85 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                     </div>
                 </div>
             )}
+
+            {/* Member Activity Modal */}
+            {viewActivityUser && createPortal(
+                <div onClick={(e) => { if(e.target === e.currentTarget) setViewActivityUser(null); }} style={{
+                    position: 'fixed', inset: 0, background: '#000000a0', backdropFilter: 'blur(4px)', zIndex: 9999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div className="popIn" style={{
+                        background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: '24px',
+                        width: '100%', maxWidth: 500, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: t.shadow
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <Av u={{ ...viewActivityUser, av: viewActivityUser.avatar_initials || viewActivityUser.name?.slice(0, 2), color: t.accent }} sz={36} />
+                                <div>
+                                    <div style={{ fontSize: 16, fontWeight: 800, color: t.t1 }}>{viewActivityUser.name}'s Tasks</div>
+                                    <div style={{ fontSize: 11, color: t.t3, fontFamily: t.mono }}>{viewActivityUser.email}</div>
+                                </div>
+                            </div>
+                            <button onClick={() => setViewActivityUser(null)} style={{ background: 'none', border: 'none', color: t.t3, fontSize: 24, cursor: 'pointer' }}>×</button>
+                        </div>
+                        
+                        <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                            {loadingActivity ? (
+                                <div style={{ padding: '40px 0', textAlign: 'center', color: t.t3, fontSize: 13 }}>Loading activity...</div>
+                            ) : activityData ? (
+                                <>
+                                    {/* Tasks assigned TO this user */}
+                                    <div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: t.t2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assigned To Them</div>
+                                        {activityData.assigned?.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                {activityData.assigned.map(task => (
+                                                    <div key={task.id} style={{ background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 13, fontWeight: 600, color: t.t1, textDecoration: task.status === 'done' ? 'line-through' : 'none', opacity: task.status === 'done' ? 0.6 : 1 }}>{task.title}</div>
+                                                            <div style={{ fontSize: 10, color: t.t3, marginTop: 4 }}>Assigned by {task.assigned_by_name}</div>
+                                                        </div>
+                                                        <div style={{ fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 4, background: task.status === 'done' ? `${t.green}22` : `${t.amber}22`, color: task.status === 'done' ? t.green : t.amber }}>
+                                                            {task.status.toUpperCase()}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: 12, color: t.t3, padding: '10px', background: `${t.t3}10`, borderRadius: 8, textAlign: 'center' }}>No tasks assigned currently.</div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Tasks created BY this user */}
+                                    <div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: t.t2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assigned By Them</div>
+                                        {activityData.created?.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                {activityData.created.map(task => (
+                                                    <div key={task.id} style={{ background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 13, fontWeight: 600, color: t.t1, textDecoration: task.status === 'done' ? 'line-through' : 'none', opacity: task.status === 'done' ? 0.6 : 1 }}>{task.title}</div>
+                                                            <div style={{ fontSize: 10, color: t.t3, marginTop: 4 }}>Assigned to {task.assigned_to_name}</div>
+                                                        </div>
+                                                        <div style={{ fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 4, background: task.status === 'done' ? `${t.green}22` : `${t.amber}22`, color: task.status === 'done' ? t.green : t.amber }}>
+                                                            {task.status.toUpperCase()}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: 12, color: t.t3, padding: '10px', background: `${t.t3}10`, borderRadius: 8, textAlign: 'center' }}>No tasks assigned to others.</div>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ padding: '40px 0', textAlign: 'center', color: t.red, fontSize: 13 }}>Failed to load data.</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            , document.body)}
+
         </div>
     );
 }

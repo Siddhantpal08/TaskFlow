@@ -15,6 +15,9 @@ router.post('/create-subscription', billingController.createSubscription);
 // Verify payment after Razorpay checkout success
 router.post('/verify-payment', billingController.verifyPayment);
 
+// Cancel subscription
+router.post('/cancel-subscription', billingController.cancelSubscription);
+
 // Get plan status
 router.get('/plan-status', billingController.getPlanStatus);
 

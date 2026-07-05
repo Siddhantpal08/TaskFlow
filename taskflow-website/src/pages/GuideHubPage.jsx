@@ -236,6 +236,12 @@ const GUIDE_DATA = {
                 shortcut: "Sidebar → Upgrade",
                 tags: ["billing", "payment", "subscription", "UPI"],
             },
+            {
+                title: "Developer Utilities",
+                desc: "Reset your assigned tasks or populate demo data anytime from the Workspace Home using the Developer Utilities buttons on the right sidebar.",
+                shortcut: "Workspace Home → Right Sidebar",
+                tags: ["reset", "demo", "data", "utilities"],
+            },
         ],
     },
 };
@@ -499,7 +505,7 @@ export default function GuideHubPage({ t, setPage }) {
                                     <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                         <div>
                                             <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
-                                                <I d={IC.team} sz={28} c={t.t1} /> Feature Requests
+                                                <I d={IC.team} sz={28} c={t.t1} /> Community Board
                                             </div>
                                             <div style={{ fontSize: 13, color: t.t2, marginTop: 6 }}>See what others are requesting. Upvote the features and suggestions you want built next!</div>
                                         </div>

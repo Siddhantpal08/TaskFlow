@@ -129,8 +129,8 @@ exports.verifyPayment = async (req, res) => {
 
         // Update user plan in DB
         await db.query(
-            `UPDATE users SET plan = ?, plan_expires_at = ?, razorpay_payment_id = ?, updated_at = NOW() WHERE id = ?`,
-            [plan, expiresAt, razorpay_payment_id, userId]
+            `UPDATE users SET plan = ?, plan_expires_at = ?, razorpay_payment_id = ?, razorpay_subscription_id = ?, updated_at = NOW() WHERE id = ?`,
+            [plan, expiresAt, razorpay_payment_id, razorpay_subscription_id || null, userId]
         );
 
         res.json({
@@ -231,6 +231,48 @@ exports.getPlanStatus = async (req, res) => {
     } catch (err) {
         console.error('[Billing] getPlanStatus error:', err);
         res.status(500).json({ error: 'Failed to fetch plan status' });
+    }
+};
+
+// ── Cancel Subscription ────────────────────────────────────────────────────────
+exports.cancelSubscription = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            'SELECT plan, razorpay_subscription_id FROM users WHERE id = ?',
+            [userId]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'User not found' });
+
+        const { plan, razorpay_subscription_id } = rows[0];
+
+        if (plan === 'free') {
+            return res.status(400).json({ error: 'You are already on the free plan.' });
+        }
+
+        // Cancel in Razorpay if we have the ID and razorpay is configured
+        if (razorpay_subscription_id && razorpay) {
+            try {
+                await razorpay.subscriptions.cancel(razorpay_subscription_id, false); // cancel at end of billing cycle
+            } catch (rzpErr) {
+                console.error('[Billing] Razorpay cancel error:', rzpErr);
+                // Even if razorpay fails (e.g., already cancelled), proceed to update local DB
+            }
+        }
+
+        // We do not immediately set plan = 'free' because they paid for the current cycle.
+        // We will clear the razorpay_subscription_id so it doesn't renew, and Webhook will handle expiry,
+        // or getPlanStatus will see it's expired once the date passes.
+        // For simplicity and immediate user feedback, we will just clear the subscription ID.
+        await db.query(
+            `UPDATE users SET razorpay_subscription_id = NULL WHERE id = ?`,
+            [userId]
+        );
+
+        res.json({ success: true, message: 'Subscription cancelled. It will not auto-renew.' });
+    } catch (err) {
+        console.error('[Billing] cancelSubscription error:', err);
+        res.status(500).json({ error: 'Failed to cancel subscription' });
     }
 };
 
