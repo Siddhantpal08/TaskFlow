@@ -47,6 +47,7 @@ export default function FocusTimer({ t }) {
     if (!expanded) {
         return (
             <div onClick={() => setExpanded(true)}
+                className="hide-mobile"
                 style={{
                     display: "flex", alignItems: "center", gap: 6, padding: "5px 10px",
                     borderRadius: 20, background: isRunning ? t.accentDim : t.card,

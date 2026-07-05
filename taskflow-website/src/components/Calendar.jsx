@@ -215,12 +215,14 @@ export default function Calendar({ t }) {
             <style>{`
                 .cal-wrap { display: flex !important; }
                 @media (max-width: 900px) {
-                    .cal-wrap { flex-direction: column !important; height: auto !important; overflow-y: auto !important; padding: 16px !important; gap: 16px !important; }
-                    .cal-sidebar { width: 100% !important; max-height: 340px !important; }
+                    .cal-wrap { flex-direction: column !important; height: auto !important; overflow-y: auto !important; padding: 12px 12px 70px !important; gap: 12px !important; }
+                    .cal-sidebar { width: 100% !important; padding: 0 !important; max-height: none !important; }
+                    .cal-grid { padding: 0 !important; }
+                    .cal-grid-inner { padding: 10px !important; }
                 }
             `}</style>
             {/* Calendar grid */}
-            <div style={{ flex: 1, padding: "22px 18px 22px 28px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <div className="cal-grid" style={{ flex: 1, padding: "22px 18px 22px 28px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", boxShadow: t.shadow, display: "flex", flexDirection: "column", height: "100%" }}>
 
                     {/* Month nav */}

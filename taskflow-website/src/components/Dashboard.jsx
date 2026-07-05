@@ -20,7 +20,7 @@ function fmtDate(d) {
 // ── Stat Card ────────────────────────────────────────────────────────────────
 function Stat({ val, label, note, color, onClick, trend, trendUp, pulse }) {
     return (
-        <div onClick={onClick} className="hvrC" style={{
+        <div onClick={onClick} className="hvrC stat-card" style={{
             background: "var(--card, #0D1824)",
             border: `1px solid ${pulse ? color + "44" : "var(--border, #1A2D42)"}`,
             borderRadius: 14, padding: "16px 18px",
@@ -32,9 +32,9 @@ function Stat({ val, label, note, color, onClick, trend, trendUp, pulse }) {
             {/* Accent top line */}
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2.5, background: `linear-gradient(90deg, ${color}, ${color}44)` }} />
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-                <div style={{ fontSize: 34, fontWeight: 900, color, letterSpacing: "-2px", lineHeight: 1 }}>{val}</div>
+                <div className="stat-val" style={{ fontSize: 34, fontWeight: 900, color, letterSpacing: "-2px", lineHeight: 1 }}>{val}</div>
                 {trend && (
-                    <div style={{
+                    <div className="stat-trend" style={{
                         fontSize: 10, fontWeight: 700,
                         color: trendUp === false ? "#ef4444" : color,
                         background: `${trendUp === false ? "#ef4444" : color}14`,
@@ -46,7 +46,7 @@ function Stat({ val, label, note, color, onClick, trend, trendUp, pulse }) {
                     </div>
                 )}
             </div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--t1, #E2EFFF)", marginTop: 7 }}>{label}</div>
+            <div className="stat-label" style={{ fontSize: 12.5, fontWeight: 700, color: "var(--t1, #E2EFFF)", marginTop: 7 }}>{label}</div>
             <div style={{ fontSize: 10, color: "var(--t3, #2E4A68)", fontFamily: "var(--mono,'IBM Plex Mono',monospace)", marginTop: 2 }}>{note}</div>
         </div>
     );
@@ -159,9 +159,17 @@ export default function Dashboard({ t, setPage, setTask }) {
                     .dash-root { overflow-y: auto !important; height: auto !important; padding-bottom: 60px !important; }
                     .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
                 }
-                @media (max-width: 520px) {
-                    .stats-grid { grid-template-columns: 1fr !important; }
-                    .dash-root { padding: 10px 10px 60px !important; }
+                @media (max-width: 600px) {
+                    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+                    .stat-card { padding: 12px 14px !important; border-radius: 10px !important; }
+                    .stat-val { font-size: 22px !important; }
+                    .stat-label { font-size: 11px !important; }
+                    .stat-trend { font-size: 9px !important; padding: 2px 6px !important; }
+                    
+                    .dash-hero { flex-direction: column !important; text-align: left; padding: 16px !important; gap: 16px !important; }
+                    .dash-hero-actions { width: 100%; justify-content: space-between; }
+                    .cmd-palette-btn { display: none !important; }
+                    .dash-root { padding: 12px 12px 70px !important; gap: 12px !important; }
                 }
             `}</style>
 

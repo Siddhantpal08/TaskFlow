@@ -53,7 +53,7 @@ export default function KanbanBoard({ t, tasks, setTask, updateTaskStatus, user 
     };
 
     return (
-        <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16, flex: 1, minHeight: 0 }}>
+        <div className="kanban-root" style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16, flex: 1, minHeight: 0 }}>
             <style dangerouslySetInnerHTML={{__html: `
                 .kanban-col::-webkit-scrollbar { width: 4px; }
                 .kanban-col::-webkit-scrollbar-thumb { background: ${t.border}; border-radius: 4px; }
@@ -62,6 +62,11 @@ export default function KanbanBoard({ t, tasks, setTask, updateTaskStatus, user 
                 .kanban-card.dragging { opacity: 0.5; transform: scale(0.95); }
                 .kanban-col-bg { transition: background 0.2s; }
                 .kanban-col-bg.drag-over { background: ${t.accent}11 !important; border-color: ${t.accent}44 !important; }
+                @media (max-width: 600px) {
+                    .kanban-col-bg { min-width: 85vw !important; max-width: 85vw !important; }
+                    .kanban-root { gap: 8px !important; padding-bottom: 8px !important; scroll-snap-type: x mandatory; }
+                    .kanban-col-bg { scroll-snap-align: center; }
+                }
             `}} />
             
             {columns.map(col => {

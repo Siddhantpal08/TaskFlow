@@ -41,7 +41,13 @@ export default function Tasks({ t, setTask, searchQuery }) {
         .filter(tk => !searchQuery || tk.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
-        <div style={{ padding: "22px 26px", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <div className="tasks-root" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <style>{`
+                .tasks-root { padding: 22px 26px; }
+                @media (max-width: 600px) {
+                    .tasks-root { padding: 12px 14px 70px !important; }
+                }
+            `}</style>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
                 {/* Filter tabs */}

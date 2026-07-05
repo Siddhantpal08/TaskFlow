@@ -181,6 +181,7 @@ function MainApp() {
     useEffect(() => {
         (async () => {
             try {
+                const urlParams = new URLSearchParams(window.location.search);
                 const sharedNoteId = urlParams.get('note');
                 const token = urlParams.get('token');
                 const shareMode = urlParams.get('mode');

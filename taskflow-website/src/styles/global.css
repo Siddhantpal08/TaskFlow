@@ -299,6 +299,7 @@ textarea:focus {
 
 /* ── Mobile Responsive ── */
 @media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
   .mobile-user-actions {
     display: flex !important;
   }
@@ -394,10 +395,7 @@ textarea:focus {
 
 @media (max-width: 480px) {
 
-  /* Stats: single column */
-  .stats-grid {
-    grid-template-columns: 1fr !important;
-  }
+  /* Team grid: single column */
 
   /* Team grid: single column */
   .team-grid {
