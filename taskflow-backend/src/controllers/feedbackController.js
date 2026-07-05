@@ -169,7 +169,7 @@ const updateTicketStatus = asyncWrapper(async (req, res) => {
     await db.query(`UPDATE support_tickets SET status = ? WHERE id = ?`, [status, ticketId]);
     
     const [[ticket]] = await db.query(
-        `SELECT t.*, u.email, u.name FROM support_tickets t JOIN users u ON u.id = t.user_id WHERE t.id = ?`,
+        `SELECT t.*, u.email, u.name FROM support_tickets t LEFT JOIN users u ON u.id = t.user_id WHERE t.id = ?`,
         [ticketId]
     );
     

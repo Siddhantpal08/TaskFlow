@@ -45,9 +45,9 @@ import CreateTaskModal from "./components/CreateTaskModal.jsx";
 import { ToastProvider } from "./components/ui/Toast.jsx";
 import FeedbackModal from "./components/ui/FeedbackModal.jsx";
 import ProFeaturesModal from "./components/ui/ProFeaturesModal.jsx";
-import OnboardingGuide from "./components/ui/OnboardingGuide.jsx";
 import RecycleBin from "./components/RecycleBin.jsx";
 import CommandPalette from "./components/CommandPalette.jsx";
+import InteractiveTour from "./components/InteractiveTour.jsx";
 // ── Credits Modal ────────────────────────────────────────────────────────────
 function CreditsModal({ onClose }) {
     return (
@@ -163,6 +163,18 @@ function MainApp() {
 
     // ── Credits Modal ────────────────────────────────────────────────────────
     const [showCredits, setShowCredits] = useState(() => new URLSearchParams(window.location.search).has("credits"));
+    const [runTour, setRunTour] = useState(false);
+
+    useEffect(() => {
+        const seen = localStorage.getItem("tf_tour_seen_v6");
+        if (!seen) {
+            setTimeout(() => setRunTour(true), 800);
+            localStorage.setItem("tf_tour_seen_v6", "1");
+        }
+        const handleStartTour = () => setRunTour(true);
+        window.addEventListener('start-tour', handleStartTour);
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, []);
 
     useEffect(() => {
         (async () => {
@@ -527,7 +539,7 @@ function MainApp() {
                     <CommandPalette t={t} setPage={setPageWithPersist} open={commandOpen} setOpen={setCommandOpen} pages={pages} navigateNote={navigateNote} />
 
                     {/* First-login Onboarding Guide */}
-                    <OnboardingGuide t={t} />
+                    <InteractiveTour run={runTour} setRun={setRunTour} t={t} />
 
                     {/* Mobile bottom nav */}
                     <nav className="mobile-nav">

@@ -290,7 +290,7 @@ export default function GuideHubPage({ t, setPage }) {
         try {
             const res = await feedbackApi.upvote(id);
             if (res.success) {
-                setCommunityPosts(prev => prev.map(p => p.id === id ? { ...p, upvotes: res.upvotes || p.upvotes + 1 } : p));
+                setCommunityPosts(prev => prev.map(p => p.id === id ? { ...p, upvotes: res.upvotes !== undefined ? res.upvotes : p.upvotes + 1 } : p));
             }
         } catch (e) {
             console.error("Upvote failed", e);
@@ -501,7 +501,7 @@ export default function GuideHubPage({ t, setPage }) {
                                     </form>
                                 </div>
                             ) : activeTab === "community" ? (
-                                <div style={{ maxWidth: 800 }}>
+                                <div style={{ width: "100%", maxWidth: "1200px" }}>
                                     <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                         <div>
                                             <div style={{ fontSize: 24, fontWeight: 800, color: t.t1, display: "flex", alignItems: "center", gap: 10 }}>
@@ -518,16 +518,16 @@ export default function GuideHubPage({ t, setPage }) {
                                             <div style={{ padding: "40px 0", textAlign: "center", color: t.t3, fontSize: 13 }}>No community feedback available yet.</div>
                                         )}
                                         {communityPosts.map(post => (
-                                            <div key={post.id} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center" }}>
-                                                <div onClick={() => handleUpvote(post.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 12px", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, cursor: "pointer", minWidth: 40 }} className="hvrC">
+                                            <div key={post.id} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
+                                                <div onClick={() => handleUpvote(post.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 12px", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, cursor: "pointer", minWidth: 40, marginTop: 4 }} className="hvrC">
                                                     <span style={{ fontSize: 16, color: t.accent }}>▲</span>
                                                     <span style={{ fontSize: 14, fontWeight: 800, color: t.t1, marginTop: 4 }}>{post.upvotes || 0}</span>
                                                 </div>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{ fontSize: 14, color: t.t1, lineHeight: 1.5, wordBreak: "break-word" }}>{post.message}</div>
-                                                    <div style={{ fontSize: 11, color: t.t3, marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                                                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                                            <div style={{ width: 16, height: 16, borderRadius: "50%", background: t.accentDim, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 }}>
+                                                    <div style={{ fontSize: 15, color: t.t1, lineHeight: 1.6, wordBreak: "break-word" }}>{post.message}</div>
+                                                    <div style={{ fontSize: 12, color: t.t2, marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                                        <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+                                                            <div style={{ width: 18, height: 18, borderRadius: "50%", background: t.accentDim, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800 }}>
                                                                 {post.author_initial || "?"}
                                                             </div>
                                                             User {post.author_initial}
