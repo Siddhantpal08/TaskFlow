@@ -171,7 +171,10 @@ function MainApp() {
             setTimeout(() => setRunTour(true), 800);
             localStorage.setItem("tf_tour_seen_v6", "1");
         }
-        const handleStartTour = () => setRunTour(true);
+        const handleStartTour = () => {
+            setPageWithPersist("dashboard");
+            setTimeout(() => setRunTour(true), 700);
+        };
         window.addEventListener('start-tour', handleStartTour);
         return () => window.removeEventListener('start-tour', handleStartTour);
     }, []);

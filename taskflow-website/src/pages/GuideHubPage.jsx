@@ -462,12 +462,17 @@ export default function GuideHubPage({ t, setPage }) {
                                     </div>
                                     <form onSubmit={handleSupportSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                         <input required value={ticket.title} onChange={e => setTicket(p => ({ ...p, title: e.target.value }))} placeholder="Ticket Subject" style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", boxSizing: "border-box" }} />
-                                        <select value={ticket.category} onChange={e => setTicket(p => ({ ...p, category: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", boxSizing: "border-box" }}>
-                                            <option value="bug">Bug Report</option>
-                                            <option value="billing">Billing Issue</option>
-                                            <option value="account">Account Access</option>
-                                            <option value="other">Other</option>
-                                        </select>
+                                        <CustomSelect 
+                                            options={[
+                                                {value:"bug", label:"Bug Report"},
+                                                {value:"billing", label:"Billing Issue"},
+                                                {value:"account", label:"Account Access"},
+                                                {value:"other", label:"Other"}
+                                            ]} 
+                                            value={ticket.category} 
+                                            onChange={val => setTicket(p => ({ ...p, category: val }))} 
+                                            t={t} 
+                                        />
                                         <textarea required rows={5} value={ticket.desc} onChange={e => setTicket(p => ({ ...p, desc: e.target.value }))} placeholder="Describe the issue in detail..." style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
                                         <button disabled={loading} style={{ padding: "12px", background: t.accent, color: "#000", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontFamily: t.disp, transition: "opacity .2s" }}>{loading ? "Submitting..." : "Submit Ticket"}</button>
                                         {msg && <div style={{ color: t.green, fontSize: 13, fontWeight: 600 }}>{msg}</div>}
@@ -490,11 +495,16 @@ export default function GuideHubPage({ t, setPage }) {
                                                 ))}
                                             </div>
                                         </div>
-                                        <select value={feedback.type} onChange={e => setFeedback(p => ({ ...p, type: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", boxSizing: "border-box" }}>
-                                            <option value="feature">Feature Request</option>
-                                            <option value="ui">UI/UX Suggestion</option>
-                                            <option value="general">General Feedback</option>
-                                        </select>
+                                        <CustomSelect 
+                                            options={[
+                                                {value:"feature", label:"Feature Request"},
+                                                {value:"ui", label:"UI/UX Suggestion"},
+                                                {value:"general", label:"General Feedback"}
+                                            ]} 
+                                            value={feedback.type} 
+                                            onChange={val => setFeedback(p => ({ ...p, type: val }))} 
+                                            t={t} 
+                                        />
                                         <textarea required rows={5} value={feedback.desc} onChange={e => setFeedback(p => ({ ...p, desc: e.target.value }))} placeholder="I would love it if..." style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
                                         <button disabled={loading} style={{ padding: "12px", background: t.accent, color: "#000", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontFamily: t.disp, transition: "opacity .2s" }}>{loading ? "Sending..." : "Send Feedback"}</button>
                                         {msg && <div style={{ color: t.green, fontSize: 13, fontWeight: 600 }}>{msg}</div>}
@@ -527,20 +537,30 @@ export default function GuideHubPage({ t, setPage }) {
                                                     <div style={{ fontSize: 15, color: t.t1, lineHeight: 1.6, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{post.message}</div>
                                                     <div style={{ fontSize: 12, color: t.t2, marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                                                         <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
-                                                            <div style={{ width: 18, height: 18, borderRadius: "50%", background: t.accentDim, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800 }}>
-                                                                {post.author_initial || "?"}
+                                                            <div style={{ width: 18, height: 18, borderRadius: "50%", background: t.accentDim, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, flexShrink: 0 }}>
+                                                                {post.author_initial ? post.author_initial.charAt(0).toUpperCase() : "?"}
                                                             </div>
-                                                            User {post.author_initial}
+                                                            <span style={{ whiteSpace: "nowrap" }}>User {post.author_initial?.replace('.', '')}</span>
                                                         </span>
                                                         <span>·</span>
                                                         <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                                                        {post.status && (
+                                                        <span>·</span>
+                                                        <span style={{ 
+                                                            padding: '2px 6px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase', fontSize: 9,
+                                                            background: post.id.startsWith('t_') ? `${t.blue}22` : `${t.accent}22`,
+                                                            color: post.id.startsWith('t_') ? t.blue : t.accent,
+                                                            whiteSpace: "nowrap"
+                                                        }}>
+                                                            {post.id.startsWith('t_') ? "Support Ticket" : "Feedback"}
+                                                        </span>
+                                                        {post.status && post.id.startsWith('t_') && (
                                                             <>
                                                                 <span>·</span>
                                                                 <span style={{ 
                                                                     padding: '2px 6px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase', fontSize: 9,
-                                                                    background: post.status === 'done' ? `${t.green}22` : `${t.amber}22`,
-                                                                    color: post.status === 'done' ? t.green : t.amber
+                                                                    background: post.status === 'closed' || post.status === 'done' ? `${t.green}22` : `${t.amber}22`,
+                                                                    color: post.status === 'closed' || post.status === 'done' ? t.green : t.amber,
+                                                                    whiteSpace: "nowrap"
                                                                 }}>
                                                                     {post.status}
                                                                 </span>
@@ -622,6 +642,35 @@ function GuideCard({ item, t, showSection = false, expanded, onToggle }) {
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+function CustomSelect({ options, value, onChange, t, placeholder }) {
+    const [open, setOpen] = useState(false);
+    const selected = options.find(o => o.value === value) || options[0];
+    return (
+        <div style={{ position: "relative", width: "100%" }}>
+            <div onClick={() => setOpen(!open)}
+                 style={{ width: "100%", padding: "12px 14px", background: t.card, border: `1px solid ${open ? t.accent : t.border}`, borderRadius: 10, color: t.t1, fontSize: 13, fontFamily: t.disp, cursor: "pointer", boxSizing: "border-box", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>{selected?.label || placeholder}</span>
+                <span style={{ fontSize: 10, color: t.t3, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▼</span>
+            </div>
+            {open && (
+                <>
+                    <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
+                    <div className="slideDown" style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 8, background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, overflow: "hidden", zIndex: 20, boxShadow: `0 10px 30px rgba(0,0,0,0.5)` }}>
+                        {options.map(o => (
+                            <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }}
+                                 style={{ padding: "12px 14px", fontSize: 13, color: value === o.value ? t.accent : t.t2, background: value === o.value ? t.accentDim : "transparent", cursor: "pointer", transition: "background .2s" }}
+                                 onMouseEnter={e => { if (value !== o.value) e.currentTarget.style.background = t.inset; }}
+                                 onMouseLeave={e => { if (value !== o.value) e.currentTarget.style.background = "transparent"; }}>
+                                {o.label}
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

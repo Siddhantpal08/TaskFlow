@@ -280,7 +280,7 @@ export default function Dashboard({ t, setPage, setTask }) {
                     </div>
                     <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                         {filteredTasks.length === 0 ? (
-                            <div style={{ padding: "12px 18px 24px" }}>
+                            <div style={{ padding: "12px 18px 24px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                                 <EmptyState t={t} icon="task"
                                     title={taskFilter === "all" ? "No tasks found" : `No ${taskFilter} tasks`}
                                     description={taskFilter === "all" ? "Create your first task using the button above." : `No tasks are currently ${taskFilter}.`}
