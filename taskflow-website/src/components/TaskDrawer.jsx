@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { toastSuccess, toastError } from './ui/Toast.jsx';
 import ConfirmModal from './ui/ConfirmModal.jsx';
 import CustomSelect from './ui/CustomSelect.jsx';
+import useIsMobile from '../hooks/useIsMobile.js';
 
 function fmtDate(d) {
     if (!d) return '—';
@@ -37,6 +38,7 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     const [saving, setSaving] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showRefuseModal, setShowRefuseModal] = useState(false);
+    const isMobile = useIsMobile();
 
     const amIAdmin = teamMembers.some(tm => tm.id === user?.id && tm.role === 'admin');
     // isCreator is purely who assigned_by the task, not role-based
@@ -121,9 +123,10 @@ export default function TaskDrawer({ t, task: initialTask, onClose }) {
     return (
         <>
             <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 40, backdropFilter: 'blur(2px)' }} />
-            <div className="slideRight" style={{
-                position: 'fixed', top: 0, right: 0, height: '100vh', width: 380, zIndex: 50,
-                background: t.surf, borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column',
+            <div className={isMobile ? "slideUpSheet" : "slideRight"} style={{
+                position: 'fixed', zIndex: 50,
+                ...(isMobile ? { bottom: 0, left: 0, right: 0, width: "100%", height: "85vh", borderRadius: "16px 16px 0 0" } : { top: 0, right: 0, height: '100vh', width: 380 }),
+                background: t.surf, ...(isMobile ? {} : { borderLeft: `1px solid ${t.border}` }), display: 'flex', flexDirection: 'column',
                 overflow: 'hidden', boxShadow: '-20px 0 60px #00000066',
             }}>
                 {/* Header */}

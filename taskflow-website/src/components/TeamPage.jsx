@@ -4,7 +4,7 @@ import { teamApi } from '../api/team.js';
 import { toastError, toastSuccess } from './ui/Toast.jsx';
 import Team from './Team.jsx';
 import EmptyState from './ui/EmptyState.jsx';
-
+import useIsMobile from '../hooks/useIsMobile.js';
 
 export default function TeamPage({ t }) {
     const { refreshTeams, refreshAll, refreshTasks } = useData();
@@ -14,6 +14,7 @@ export default function TeamPage({ t }) {
     const [newTeam, setNewTeam] = useState(null);
     const [teams, setTeams] = useState([]);
     const [selectedTeam, setSelectedTeam] = useState(null);
+    const isMobile = useIsMobile();
 
     const fetchMyTeams = async () => {
         setLoading(true);
@@ -77,20 +78,20 @@ export default function TeamPage({ t }) {
     if (selectedTeam) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
-                <div style={{ padding: "22px 26px 0 26px" }}>
+                <div style={{ padding: isMobile ? "16px 16px 0 16px" : "22px 26px 0 26px" }}>
                     <button onClick={() => setSelectedTeam(null)} style={{ background: 'none', border: 'none', color: t.t3, cursor: 'pointer', fontSize: 13, marginBottom: 16, fontFamily: t.disp, display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}>
                         ← Back to Teams
                     </button>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? 12 : 0, marginBottom: 20 }}>
                         <div>
-                            <h2 style={{ fontSize: 24, fontWeight: 800, color: t.t1, margin: 0 }}>{selectedTeam.name}</h2>
+                            <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: t.t1, margin: 0 }}>{selectedTeam.name}</h2>
                             <div style={{ fontSize: 13, color: t.t2, marginTop: 4 }}>Role: {selectedTeam.role || 'Member'}</div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ fontFamily: t.mono, fontSize: 18, fontWeight: 900, letterSpacing: 4, color: t.accent, background: t.inset, padding: '8px 16px', borderRadius: 8 }}>
+                            <div style={{ fontFamily: t.mono, fontSize: isMobile ? 14 : 18, fontWeight: 900, letterSpacing: isMobile ? 2 : 4, color: t.accent, background: t.inset, padding: isMobile ? '6px 12px' : '8px 16px', borderRadius: 8 }}>
                                 {selectedTeam.join_code}
                             </div>
-                            <button onClick={() => copyCode(selectedTeam.join_code)} style={{ background: t.accentDim, color: t.accent, border: `1px solid ${t.accent}44`, borderRadius: 8, padding: '8px 14px', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: 13 }}>
+                            <button onClick={() => copyCode(selectedTeam.join_code)} style={{ background: t.accentDim, color: t.accent, border: `1px solid ${t.accent}44`, borderRadius: 8, padding: isMobile ? '6px 10px' : '8px 14px', fontWeight: 700, cursor: 'pointer', fontFamily: t.disp, fontSize: isMobile ? 11 : 13 }}>
                                 Copy Code
                             </button>
                         </div>
@@ -103,11 +104,11 @@ export default function TeamPage({ t }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
-            <div style={{ padding: "22px 26px" }}>
-                <h2 style={{ fontSize: 24, fontWeight: 800, color: t.t1, margin: '0 0 24px 0' }}>Teams</h2>
+            <div style={{ padding: isMobile ? "16px" : "22px 26px", paddingBottom: isMobile ? 80 : 26 }}>
+                <h2 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 800, color: t.t1, margin: '0 0 24px 0' }}>Teams</h2>
 
                 {/* Grid for forms */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 32 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20, marginBottom: 32 }}>
                     {/* Create Team */}
                     <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 20 }}>
                         <h3 style={{ fontSize: 14, color: t.t1, marginBottom: 12, marginTop: 0, fontFamily: t.disp }}>Create a New Team</h3>

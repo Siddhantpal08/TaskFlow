@@ -162,7 +162,7 @@ export default function NotesHome({ t, pages, addNotePage, navigateNote }) {
             <div className="notes-home-root" style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 40, alignItems: "flex-start", flexWrap: "wrap" }}>
                 
                 {/* Main Content */}
-                <div style={{ flex: 1, minWidth: 300, minWidth: "min(300px, 100%)" }}>
+                <div style={{ flex: 1, minWidth: "min(300px, 100%)" }}>
 
                 {/* Header */}
                 <div style={{ marginBottom: 40, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>

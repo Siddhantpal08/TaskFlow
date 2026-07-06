@@ -11,6 +11,9 @@ import { checkLimit, isPro } from "./utils/planLimits.js";
 import { UpgradeModal } from "./components/ui/UpgradeModal.jsx";
 import ChatWidget from "./components/ui/ChatWidget.jsx";
 import { authApi } from "./api/auth.js";
+import useIsMobile from "./hooks/useIsMobile.js";
+import MobileFAB from "./components/ui/MobileFAB.jsx";
+import MoreDrawer from "./components/ui/MoreDrawer.jsx";
 
 // Auth
 import { useAuth } from "./context/AuthContext.jsx";
@@ -107,6 +110,8 @@ function MainApp() {
     const [customTheme, setCustomTheme] = useState(storedTheme.custom || null);
     const [showThemePicker, setShowThemePicker] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [showMoreDrawer, setShowMoreDrawer] = useState(false);
+    const isMobile = useIsMobile();
 
     const t = customTheme || THEMES[themeKey] || THEMES.dark;
 
@@ -443,15 +448,16 @@ function MainApp() {
                 <div style={{ display: "flex", height: "100vh", width: "100%", background: t.bg, color: t.t1, fontFamily: t.disp, overflow: "hidden" }}
                     className="app-root">
 
-                    <Sidebar t={t} page={page} setPage={setPageWithPersist}
-                        pages={pages} expanded={expanded} setExpanded={setExpanded}
-                        notePageId={notePageId} navigateNote={navigateNote}
-                        addNotePage={addNotePage} deleteNotePage={deleteNotePage}
-                        duplicateNotePage={duplicateNotePage} reorderNotePage={reorderNotePage}
-                        updateNotePage={updateNotePage} user={user}
-                        isOpen={sidebarOpen} setIsOpen={setSidebarOpen}
-                        className="sidebar-desktop" />
-
+                    {!isMobile && (
+                        <Sidebar t={t} page={page} setPage={setPageWithPersist}
+                            pages={pages} expanded={expanded} setExpanded={setExpanded}
+                            notePageId={notePageId} navigateNote={navigateNote}
+                            addNotePage={addNotePage} deleteNotePage={deleteNotePage}
+                            duplicateNotePage={duplicateNotePage} reorderNotePage={reorderNotePage}
+                            updateNotePage={updateNotePage} user={user}
+                            isOpen={sidebarOpen} setIsOpen={setSidebarOpen}
+                            className="sidebar-desktop" />
+                    )}
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
                         <Topbar t={t} showThemePicker={showThemePicker} setShowThemePicker={setShowThemePicker}
@@ -506,24 +512,40 @@ function MainApp() {
                     <CommandPalette t={t} setPage={setPageWithPersist} open={commandOpen} setOpen={setCommandOpen} pages={pages} navigateNote={navigateNote} />
 
                     {/* First-login Onboarding Guide */}
-                    <InteractiveTour run={runTour} setRun={setRunTour} t={t} />
+                    {!isMobile && <InteractiveTour run={runTour} setRun={setRunTour} t={t} />}
 
                     {/* Mobile bottom nav */}
-                    <nav className="mobile-nav">
-                        {[
-                            { id: "dashboard", label: "Home", icon: IC.dash },
-                            { id: "tasks", label: "Tasks", icon: IC.task },
-                            { id: "notes", label: "Notes", icon: IC.note },
-                            { id: "calendar", label: "Cal", icon: IC.cal },
-                            { id: "team", label: "Team", icon: IC.team },
-                        ].map(n => (
-                            <button key={n.id} onClick={() => setPageWithPersist(n.id)}
-                                className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>
-                                <I d={n.icon} sz={20} c={page === n.id ? t.accent : t.t3} sw={page === n.id ? 2.2 : 1.7} />
-                                <span style={{ color: page === n.id ? t.accent : t.t3 }}>{n.label}</span>
+                    {isMobile && (
+                        <nav className="mobile-nav">
+                            {[
+                                { id: "dashboard", label: "Home", icon: IC.dash },
+                                { id: "tasks", label: "Tasks", icon: IC.task },
+                                { id: "notes", label: "Notes", icon: IC.note },
+                                { id: "calendar", label: "Cal", icon: IC.cal },
+                            ].map(n => (
+                                <button key={n.id} onClick={() => setPageWithPersist(n.id)}
+                                    className={`mobile-nav-btn${page === n.id ? ' active' : ''}`}>
+                                    <I d={n.icon} sz={24} c={page === n.id ? t.accent : t.t3} sw={page === n.id ? 2.2 : 1.7} />
+                                    <span style={{ color: page === n.id ? t.accent : t.t3 }}>{n.label}</span>
+                                </button>
+                            ))}
+                            <button onClick={() => setShowMoreDrawer(true)} className={`mobile-nav-btn`}>
+                                <I d={IC.menu} sz={24} c={t.t3} sw={1.7} />
+                                <span style={{ color: t.t3 }}>More</span>
                             </button>
-                        ))}
-                    </nav>
+                        </nav>
+                    )}
+
+                    {showMoreDrawer && <MoreDrawer t={t} user={user} setPage={setPageWithPersist} onClose={() => setShowMoreDrawer(false)} />}
+                    
+                    {isMobile && (
+                        <>
+                            {page === "dashboard" && <MobileFAB t={t} icon={IC.plus} label="Create Task" onClick={() => setPageWithPersist("tasks")} />}
+                            {page === "tasks" && <MobileFAB t={t} icon={IC.plus} label="New Task" onClick={() => setShowQuickCapture(true)} />}
+                            {page === "notes" && <MobileFAB t={t} icon={IC.plus} label="New Note" onClick={() => addNotePage("root")} />}
+                            {page === "team" && <MobileFAB t={t} icon={IC.plus} label="New Team" onClick={() => {}} />}
+                        </>
+                    )}
                 </div>
             </ToastProvider>
         </>

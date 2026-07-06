@@ -3,6 +3,7 @@ import { I, IC } from "./ui/Icon.jsx";
 import { Av } from "./ui/Av.jsx";
 import { chatApi } from "../api/chat.js";
 import { io } from "socket.io-client";
+import useIsMobile from "../hooks/useIsMobile.js";
 
 export default function TeamChatDrawer({ t, team, members = [], user, onClose }) {
     const [msgs, setMsgs] = useState([]);
@@ -10,6 +11,7 @@ export default function TeamChatDrawer({ t, team, members = [], user, onClose })
     const [txt, setTxt] = useState("");
     const [mentionSearch, setMentionSearch] = useState(null);
     const endRef = useRef();
+    const isMobile = useIsMobile();
 
     useEffect(() => {
         if (!team?.id) return;
@@ -66,7 +68,7 @@ export default function TeamChatDrawer({ t, team, members = [], user, onClose })
         <>
             <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }} />
             <div className="slideLeft" style={{
-                position: "fixed", top: 0, right: 0, bottom: 0, width: 360, maxWidth: "100%",
+                position: "fixed", top: 0, right: 0, bottom: 0, width: isMobile ? "100%" : 360,
                 background: t.card, borderLeft: `1px solid ${t.border}`, boxShadow: t.shadow,
                 zIndex: 999, display: "flex", flexDirection: "column"
             }}>

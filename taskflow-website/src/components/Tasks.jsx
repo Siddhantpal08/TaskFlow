@@ -10,10 +10,83 @@ import EmptyState from "./ui/EmptyState.jsx";
 import ConfirmModal from "./ui/ConfirmModal.jsx";
 import KanbanBoard from "./KanbanBoard.jsx";
 import DatabaseGrid from "./DatabaseGrid.jsx";
+import useIsMobile from "../hooks/useIsMobile.js";
 
 function fmtDate(d) {
     if (!d) return "—";
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function MobileTaskRow({ t, tk, onSelect, onUpdateStatus, onDelete }) {
+    const [swiping, setSwiping] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [offsetX, setOffsetX] = useState(0);
+    const threshold = 80;
+
+    const handleTouchStart = (e) => {
+        setStartX(e.touches[0].clientX);
+        setSwiping(true);
+    };
+
+    const handleTouchMove = (e) => {
+        if (!swiping) return;
+        const x = e.touches[0].clientX;
+        const diff = x - startX;
+        if (diff > 120) setOffsetX(120);
+        else if (diff < -120) setOffsetX(-120);
+        else setOffsetX(diff);
+    };
+
+    const handleTouchEnd = () => {
+        setSwiping(false);
+        if (offsetX > threshold) {
+            onUpdateStatus(tk);
+        } else if (offsetX < -threshold) {
+            onDelete(tk);
+        }
+        setOffsetX(0);
+    };
+
+    return (
+        <div className="swipe-action-container" style={{ borderBottom: `1px solid ${t.border}`, position: 'relative' }}>
+            <div className="swipe-action-bg-left" style={{ opacity: offsetX > 0 ? Math.min(offsetX / threshold, 1) : 0 }}>
+                <I d={IC.chk} sz={20} c="#000" />
+            </div>
+            <div className="swipe-action-bg-right" style={{ opacity: offsetX < 0 ? Math.min(-offsetX / threshold, 1) : 0 }}>
+                <I d={IC.trash} sz={20} c="#000" />
+            </div>
+            
+            <div 
+                onClick={() => onSelect(tk)}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{ 
+                    padding: "14px", 
+                    background: t.card,
+                    display: "flex", 
+                    flexDirection: "column",
+                    gap: 10,
+                    transform: `translateX(${offsetX}px)`,
+                    transition: swiping ? "none" : "transform 0.25s ease-out"
+                }}
+            >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: tk.priority === "high" || tk.priority === "critical" ? t.red : (tk.priority === "medium" ? t.amber : t.green), flexShrink: 0 }} />
+                    <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: t.t1, textDecoration: tk.status === "done" ? "line-through" : "none", opacity: tk.status === "done" ? 0.45 : 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {tk.title}
+                    </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingLeft: 18 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <StTag s={tk.status} t={t} />
+                        <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono }}>{fmtDate(tk.due_date)}</span>
+                    </div>
+                    {tk.parent_task_id && <span style={{ fontSize: 10, color: t.amber }}>↗ delegated</span>}
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default function Tasks({ t, setTask, searchQuery }) {
@@ -23,6 +96,7 @@ export default function Tasks({ t, setTask, searchQuery }) {
     const [viewMode, setViewMode] = useState("list"); // "list" | "board"
     const [showCreate, setShowCreate] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState(null);
+    const isMobile = useIsMobile();
 
     const tabs = ["all", "mine", "pending", "active", "pending_approval", "done", "delegated"];
     const count = f => {
@@ -51,11 +125,11 @@ export default function Tasks({ t, setTask, searchQuery }) {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
                 {/* Filter tabs */}
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: isMobile ? "nowrap" : "wrap", overflowX: isMobile ? "auto" : "visible", paddingBottom: isMobile ? 4 : 0, maxWidth: isMobile ? "100%" : "auto" }}>
                     {tabs.map(f => {
                         const a = fil === f; return (
                             <button key={f} onClick={() => setFil(f)} className="pill"
-                                style={{ padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontFamily: t.disp, fontSize: 12, fontWeight: a ? 600 : 400, border: `1px solid ${a ? t.accent : t.border}`, background: a ? t.accentDim : t.card, color: a ? t.accent : t.t2, transition: "all .15s", display: "flex", alignItems: "center", gap: 6 }}>
+                                style={{ padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontFamily: t.disp, fontSize: 12, fontWeight: a ? 600 : 400, border: `1px solid ${a ? t.accent : t.border}`, background: a ? t.accentDim : t.card, color: a ? t.accent : t.t2, transition: "all .15s", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                                 {f === 'mine' ? 'Assigned to Me' : f === 'pending_approval' ? 'Needs Approval' : f.charAt(0).toUpperCase() + f.slice(1)}
                                 <span style={{ fontSize: 10, background: a ? t.accent + "28" : t.border, color: a ? t.accent : t.t3, padding: "1px 6px", borderRadius: 10 }}>{count(f)}</span>
                             </button>
@@ -67,7 +141,9 @@ export default function Tasks({ t, setTask, searchQuery }) {
                     <div style={{ display: 'flex', background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: 2 }}>
                         <button onClick={() => setViewMode("list")} style={{ background: viewMode === "list" ? t.accentDim : "transparent", color: viewMode === "list" ? t.accent : t.t2, border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: viewMode === "list" ? 700 : 500, fontFamily: t.disp, transition: "all .15s" }}>List</button>
                         <button onClick={() => setViewMode("board")} style={{ background: viewMode === "board" ? t.accentDim : "transparent", color: viewMode === "board" ? t.accent : t.t2, border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: viewMode === "board" ? 700 : 500, fontFamily: t.disp, transition: "all .15s" }}>Board</button>
-                        <button onClick={() => setViewMode("grid")} style={{ background: viewMode === "grid" ? t.accentDim : "transparent", color: viewMode === "grid" ? t.accent : t.t2, border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: viewMode === "grid" ? 700 : 500, fontFamily: t.disp, transition: "all .15s" }}>Grid</button>
+                        {!isMobile && (
+                            <button onClick={() => setViewMode("grid")} style={{ background: viewMode === "grid" ? t.accentDim : "transparent", color: viewMode === "grid" ? t.accent : t.t2, border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: viewMode === "grid" ? 700 : 500, fontFamily: t.disp, transition: "all .15s" }}>Grid</button>
+                        )}
                     </div>
 
 
@@ -81,9 +157,11 @@ export default function Tasks({ t, setTask, searchQuery }) {
             ) : (
                 /* Tasks table (List View) */
                 <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: "auto", boxShadow: t.shadow, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "10px 18px", borderBottom: `1px solid ${t.border}`, fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", fontFamily: t.mono, flexShrink: 0 }}>
-                    <span>Task</span><span>Assigned By</span><span>Due</span><span>Priority</span><span>Status</span><span></span>
-                </div>
+                {!isMobile && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "10px 18px", borderBottom: `1px solid ${t.border}`, fontSize: 10, fontWeight: 600, color: t.t3, textTransform: "uppercase", letterSpacing: "0.7px", fontFamily: t.mono, flexShrink: 0 }}>
+                        <span>Task</span><span>Assigned By</span><span>Due</span><span>Priority</span><span>Status</span><span></span>
+                    </div>
+                )}
                 {loading && <div style={{ padding: '20px', textAlign: 'center', color: t.t3, fontSize: 13 }}>Loading tasks…</div>}
                 {!loading && list.length === 0 && (
                     <div style={{ padding: '16px 20px 32px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -97,57 +175,85 @@ export default function Tasks({ t, setTask, searchQuery }) {
                         />
                     </div>
                 )}
-                {list.map(tk => (
-                    <div key={tk.id} className="hvr" onClick={() => setTask(tk)}
-                        style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "12px 18px", borderBottom: `1px solid ${t.border}`, alignItems: "center", cursor: "pointer", background: "transparent", transition: "background .15s" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                            {/* Checkbox: only clickable for pending/active tasks */}
-                            <div onClick={async e => {
-                                e.stopPropagation();
-                                if (tk.status === 'done' || tk.status === 'pending_approval') return; // backend handles revert/approve
-                                const next = tk.status === 'pending' ? 'active' : 'done';
-                                try {
-                                    await updateTaskStatus(tk.id, next);
-                                    toastSuccess(`Task marked ${next}.`);
-                                } catch (err) {
-                                    toastError(err.message || 'Could not update status.');
-                                }
-                            }}
-                                style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${tk.status === "done" ? t.green : tk.status === "pending_approval" ? t.orange : t.border}`, background: tk.status === "done" ? t.green + "20" : tk.status === "pending_approval" ? t.orange + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: (tk.status === 'done' || tk.status === 'pending_approval') ? 'default' : 'pointer', opacity: (tk.status === 'done' || tk.status === 'pending_approval') ? 0.5 : 1 }}>
-                                {tk.status === "done" && <I d={IC.chk} sz={9} c={t.green} sw={3} />}
-                                {tk.status === "pending_approval" && <span style={{ fontSize: 10, color: t.orange, fontWeight: 800 }}>?</span>}
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 500, color: t.t1, textDecoration: tk.status === "done" ? "line-through" : "none", opacity: tk.status === "done" ? 0.45 : 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    {tk.title}
-                                </div>
-                                {tk.parent_task_id && <span style={{ fontSize: 10, color: t.amber }}>↗ delegated</span>}
-                            </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: `${t.accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: t.accent, flexShrink: 0 }}>
-                                {tk.assigned_by_initials || tk.assigned_by_name?.slice(0, 2) || '?'}
-                            </div>
-                            <span style={{ fontSize: 11.5, color: t.t2 }}>{tk.assigned_by_name?.split(" ")[0] || '—'}</span>
-                        </div>
-                        <span style={{ fontFamily: t.mono, fontSize: 11, color: t.t3 }}>{fmtDate(tk.due_date)}</span>
-                        <PriTag p={tk.priority} t={t} />
-                        <div>
-                            <StTag s={tk.status} t={t} />
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                            {/* Delete button (only for creators, or done tasks) */}
-                            {(tk.status === "done" || tk.assigned_by === user?.id) && (
-                                <button onClick={e => {
+                {list.map(tk => {
+                    if (isMobile) {
+                        return (
+                            <MobileTaskRow 
+                                key={tk.id} 
+                                t={t} 
+                                tk={tk} 
+                                onSelect={setTask}
+                                onUpdateStatus={async (task) => {
+                                    if (task.status === 'done' || task.status === 'pending_approval') return;
+                                    const next = task.status === 'pending' ? 'active' : 'done';
+                                    try {
+                                        await updateTaskStatus(task.id, next);
+                                        toastSuccess(`Task marked ${next}.`);
+                                    } catch (err) { toastError(err.message); }
+                                }}
+                                onDelete={(task) => {
+                                    if (task.status === 'done' || task.assigned_by === user?.id) {
+                                        setTaskToDelete(task);
+                                    } else {
+                                        toastError("You don't have permission to delete this task.");
+                                    }
+                                }}
+                            />
+                        );
+                    }
+                    
+                    return (
+                        <div key={tk.id} className="hvr" onClick={() => setTask(tk)}
+                            style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px 80px 88px 32px", padding: "12px 18px", borderBottom: `1px solid ${t.border}`, alignItems: "center", cursor: "pointer", background: "transparent", transition: "background .15s" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                                {/* Checkbox: only clickable for pending/active tasks */}
+                                <div onClick={async e => {
                                     e.stopPropagation();
-                                    setTaskToDelete(tk);
-                                }} style={{ background: "transparent", border: "none", color: t.t3, cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, transition: "background .15s" }} onMouseEnter={e => { e.currentTarget.style.color = t.red; e.currentTarget.style.background = t.red + "20"; }} onMouseLeave={e => { e.currentTarget.style.color = t.t3; e.currentTarget.style.background = "transparent"; }} title="Delete task">
-                                    <I d={IC.trash} sz={16} />
-                                </button>
-                            )}
+                                    if (tk.status === 'done' || tk.status === 'pending_approval') return; // backend handles revert/approve
+                                    const next = tk.status === 'pending' ? 'active' : 'done';
+                                    try {
+                                        await updateTaskStatus(tk.id, next);
+                                        toastSuccess(`Task marked ${next}.`);
+                                    } catch (err) {
+                                        toastError(err.message || 'Could not update status.');
+                                    }
+                                }}
+                                    style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${tk.status === "done" ? t.green : tk.status === "pending_approval" ? t.orange : t.border}`, background: tk.status === "done" ? t.green + "20" : tk.status === "pending_approval" ? t.orange + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: (tk.status === 'done' || tk.status === 'pending_approval') ? 'default' : 'pointer', opacity: (tk.status === 'done' || tk.status === 'pending_approval') ? 0.5 : 1 }}>
+                                    {tk.status === "done" && <I d={IC.chk} sz={9} c={t.green} sw={3} />}
+                                    {tk.status === "pending_approval" && <span style={{ fontSize: 10, color: t.orange, fontWeight: 800 }}>?</span>}
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 500, color: t.t1, textDecoration: tk.status === "done" ? "line-through" : "none", opacity: tk.status === "done" ? 0.45 : 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        {tk.title}
+                                    </div>
+                                    {tk.parent_task_id && <span style={{ fontSize: 10, color: t.amber }}>↗ delegated</span>}
+                                </div>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                <div style={{ width: 20, height: 20, borderRadius: '50%', background: `${t.accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: t.accent, flexShrink: 0 }}>
+                                    {tk.assigned_by_initials || tk.assigned_by_name?.slice(0, 2) || '?'}
+                                </div>
+                                <span style={{ fontSize: 11.5, color: t.t2 }}>{tk.assigned_by_name?.split(" ")[0] || '—'}</span>
+                            </div>
+                            <span style={{ fontFamily: t.mono, fontSize: 11, color: t.t3 }}>{fmtDate(tk.due_date)}</span>
+                            <PriTag p={tk.priority} t={t} />
+                            <div>
+                                <StTag s={tk.status} t={t} />
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                {/* Delete button (only for creators, or done tasks) */}
+                                {(tk.status === "done" || tk.assigned_by === user?.id) && (
+                                    <button onClick={e => {
+                                        e.stopPropagation();
+                                        setTaskToDelete(tk);
+                                    }} style={{ background: "transparent", border: "none", color: t.t3, cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, transition: "background .15s" }} onMouseEnter={e => { e.currentTarget.style.color = t.red; e.currentTarget.style.background = t.red + "20"; }} onMouseLeave={e => { e.currentTarget.style.color = t.t3; e.currentTarget.style.background = "transparent"; }} title="Delete task">
+                                        <I d={IC.trash} sz={16} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
             )}
 

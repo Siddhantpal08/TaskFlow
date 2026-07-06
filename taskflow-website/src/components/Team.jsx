@@ -8,6 +8,7 @@ import { teamApi } from '../api/team.js';
 import { toastSuccess, toastError } from './ui/Toast.jsx';
 import CreateTaskModal from './CreateTaskModal.jsx';
 import ConfirmModal from './ui/ConfirmModal.jsx';
+import useIsMobile from '../hooks/useIsMobile.js';
 
 export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave }) {
     const { tasks = [], onlineUsers = new Set(), createTask, teamMembers: allTeamMembers, refreshTeams } = useData();
@@ -28,6 +29,7 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
     const [viewActivityUser, setViewActivityUser] = useState(null); // user object
     const [activityData, setActivityData] = useState(null);
     const [loadingActivity, setLoadingActivity] = useState(false);
+    const isMobile = useIsMobile();
 
     useEffect(() => {
         if (!team) return;
@@ -146,14 +148,14 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
     };
 
     return (
-        <div style={{ padding: "0 26px 26px 26px", display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ padding: isMobile ? "0 16px 80px 16px" : "0 26px 26px 26px", display: "flex", flexDirection: "column", gap: 18 }}>
 
             {/* Team Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginTop: 8, gap: 10 }}>
                 <h3 style={{ fontSize: 16, color: t.t1, margin: 0, fontFamily: t.disp }}>Members</h3>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: isMobile ? "100%" : "auto" }}>
                     <button onClick={() => window.dispatchEvent(new CustomEvent('open-team-chat', { detail: { team } }))}
-                        style={{ background: t.accent, border: 'none', color: '#000', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        style={{ flex: isMobile ? 1 : "auto", background: t.accent, border: 'none', color: '#000', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: t.disp, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                         <I d={IC.msg} sz={14} /> Team Chat
                     </button>
                     {/* Admin-only: Rename + Delete */}
@@ -241,8 +243,8 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                             </div>
 
                             {/* Name + Role */}
-                            <div style={{ minWidth: 130, flexShrink: 0 }}>
-                                <div style={{ fontSize: 13.5, fontWeight: 700, color: t.t1 }}>
+                            <div style={{ minWidth: isMobile ? 0 : 130, flex: isMobile ? 1 : "none", flexShrink: 0 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 700, color: t.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                     {u.name} {isMe && <span style={{ fontSize: 10, color: t.accent, fontFamily: t.mono }}>(you)</span>}
                                 </div>
                                 <div style={{ fontSize: 10.5, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>
@@ -251,7 +253,7 @@ export default function Team({ t, team, refreshTeams: refreshTeamsList, onLeave 
                             </div>
 
                             {/* Stats row */}
-                            <div style={{ display: "flex", gap: 16, flex: 1, alignItems: "center" }}>
+                            <div style={{ gap: 16, flex: 1, alignItems: "center", display: isMobile ? "none" : "flex" }}>
                                 {/* Task counts */}
                                 <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
                                     <div style={{ textAlign: "center" }}>

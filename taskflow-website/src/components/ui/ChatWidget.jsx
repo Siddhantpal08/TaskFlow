@@ -5,10 +5,12 @@ import { chatApi } from "../../api/chat.js";
 import { teamApi } from "../../api/team.js";
 import { I, IC } from "./Icon.jsx";
 import { Av } from "./Av.jsx";
+import useIsMobile from "../../hooks/useIsMobile.js";
 
 export default function ChatWidget({ t }) {
     const { user } = useAuth();
     const { socket } = useData();
+    const isMobile = useIsMobile();
     const [teams, setTeams] = useState([]);
     const [open, setOpen] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState(null);
@@ -158,7 +160,7 @@ export default function ChatWidget({ t }) {
                 onClick={() => setOpen(true)}
                 className="hvrPop"
                 style={{
-                    position: "fixed", bottom: 20, right: 24, zIndex: 100, width: 56, height: 56,
+                    position: "fixed", bottom: isMobile ? 150 : 20, right: 24, zIndex: 100, width: 56, height: 56,
                     borderRadius: "50%", background: t.accent, color: t.accent === '#FAFAFA' ? '#000' : '#000', border: `1px solid ${t.border}`,
                     boxShadow: "0 8px 24px rgba(0,0,0,0.4)", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center"
@@ -171,7 +173,7 @@ export default function ChatWidget({ t }) {
 
     return (
         <div className="slideUp" style={{
-            position: "fixed", bottom: 20, right: 24, zIndex: 100, width: 340, height: 480,
+            position: "fixed", bottom: isMobile ? 150 : 20, right: 24, zIndex: 100, width: 340, height: 480,
             background: t.card, border: `1px solid ${t.border}`, borderRadius: 16,
             boxShadow: t.shadow, display: "flex", flexDirection: "column", overflow: "hidden"
         }}>

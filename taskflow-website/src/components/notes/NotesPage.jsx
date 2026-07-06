@@ -11,6 +11,7 @@ import { io } from "socket.io-client";
 import { isPro, checkLimit } from "../../utils/planLimits.js";
 import { UpgradeModal } from "../ui/UpgradeModal.jsx";
 import ConfirmModal from "../ui/ConfirmModal.jsx";
+import useIsMobile from "../../hooks/useIsMobile.js";
 
 // ── Lock Gate ──────────────────────────────────────────────────────────────────
 function LockGate({ notePageId, t, onUnlock }) {
@@ -295,20 +296,21 @@ function ShareModal({ notePageId, pg, subNoteCount, t, onClose }) {
 
 export default function NotesPage({ t, dark, pages, notePageId, navigateNote, updateNotePage, addNotePage, deleteNotePage, duplicateNotePage }) {
     const pg = pages[notePageId];
-    if (!pg) return null;
 
     const [blocks, setBlocks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [slash, setSlash] = useState(null);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [writingMode, setWritingMode] = useState(
-        pg.writingMode || pg.writing_mode || localStorage.getItem(`tf_wm_${notePageId}`) || null
+        pg?.writingMode || pg?.writing_mode || localStorage.getItem(`tf_wm_${notePageId}`) || null
     );
     const [saveStatus, setSaveStatus] = useState("saved"); // 'saving' | 'saved'
     const [docTheme, setDocTheme] = useState(() => localStorage.getItem("tf_docTheme") || 'light');
     const [useTypewriter, setUseTypewriter] = useState(() => localStorage.getItem("tf_docFont") === 'true');
     const [docFontFamily, setDocFontFamily] = useState(() => localStorage.getItem(`tf_docFontFamily_${notePageId}`) || '');
     const [zoom, setZoom] = useState(100);
+    const isMobile = useIsMobile();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const toggleDocTheme = () => { const nv = docTheme === 'light' ? 'dark' : 'light'; setDocTheme(nv); localStorage.setItem("tf_docTheme", nv); };
     const toggleDocFont = () => { const nv = !useTypewriter; setUseTypewriter(nv); localStorage.setItem("tf_docFont", nv.toString()); };
@@ -359,12 +361,12 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     // Sync writing mode when navigating to a different note page
     useEffect(() => {
-        const fromDb = pg.writingMode || pg.writing_mode || null;
+        const fromDb = pg?.writingMode || pg?.writing_mode || null;
         const fromStorage = localStorage.getItem(`tf_wm_${notePageId}`);
         // DB is authoritative; fall back to localStorage for legacy notes
         const resolved = fromDb || fromStorage || null;
         setWritingMode(resolved);
-    }, [notePageId, pg.writingMode, pg.writing_mode]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [notePageId, pg?.writingMode, pg?.writing_mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSaveNow = useCallback(() => {
         setSaveStatus("saving");
@@ -500,7 +502,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
         setLoading(true);
         setUnlocked(false);
         // Restore writing mode — DB is source of truth, localStorage is fallback
-        const fromDb = pg.writingMode || pg.writing_mode || null;
+        const fromDb = pg?.writingMode || pg?.writing_mode || null;
         const fromStorage = localStorage.getItem(`tf_wm_${notePageId}`) || null;
         setWritingMode(fromDb || fromStorage || null);
         let active = true;
@@ -911,7 +913,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
     const crumbs = [];
     let cur = notePageId;
     while (cur && pages[cur]) { crumbs.unshift(pages[cur]); cur = pages[cur].parentId; }
-    const subPages = (pg.childIds || []).map(id => pages[id]).filter(Boolean);
+    const subPages = (pg?.childIds || []).map(id => pages[id]).filter(Boolean);
 
     const slashBlockTypes = writingMode === 'script' ? SCRIPT_BLOCK_TYPES
         : writingMode === 'lyrics' ? LYRICS_BLOCK_TYPES
@@ -1089,6 +1091,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
 
     const openShareModal = () => setShowShareModal(true);
 
+    if (!pg) return null;
+
     // Skeleton loading
     if (loading) return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -1126,7 +1130,14 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
             </style>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 {/* Breadcrumb bar */}
-                <div style={{ display: "flex", alignItems: "center", padding: "9px 28px", borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0, gap: 0, flexWrap: "wrap" }}>
+                <div className="notes-topbar" style={{ display: "flex", alignItems: "center", padding: "9px 28px", borderBottom: `1px solid ${t.border}`, background: t.nav, flexShrink: 0, gap: 8, overflowX: "auto", scrollbarWidth: "none" }}>
+                    <style>{`
+                        .notes-topbar::-webkit-scrollbar { display: none; }
+                        @media (max-width: 768px) {
+                            .notes-topbar { padding: 8px 12px !important; }
+                        }
+                    `}</style>
+                    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                     {crumbs.map((p, i) => (
                         <div key={p.id} style={{ display: "flex", alignItems: "center" }}>
                             {i > 0 && <span style={{ color: t.t3, fontSize: 11, margin: "0 5px" }}>/</span>}
@@ -1138,7 +1149,8 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                             </button>
                         </div>
                     ))}
-                    <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+                    </div>
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center", flexWrap: "nowrap", flexShrink: 0 }}>
                         {/* Undo / Redo */}
                         <div style={{ display: "flex", gap: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 2px" }}>
                             <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
@@ -1147,122 +1159,231 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                                 style={{ background: "none", border: "none", color: canRedo ? t.t2 : t.t3, cursor: canRedo ? "pointer" : "default", fontSize: 14, padding: "2px 6px", borderRadius: 5, opacity: canRedo ? 1 : 0.4, transition: "opacity .15s" }}>↪</button>
                         </div>
 
-                        {/* Writing mode dropdown */}
-                        <div style={{ width: 140 }}>
-                            <CustomSelect
-                                t={t}
-                                value={writingMode || ""}
-                                disabled={writingMode === "script" || writingMode === "lyrics"}
-                                onChange={val => {
-                                    const finalVal = val || null;
-                                    // ── Confirm before switching to a special mode ──
-                                    if (finalVal && finalVal !== writingMode) {
-                                        const modeLabel = finalVal === 'script' ? '📽️ Script Mode' : '🎵 Lyrics Mode';
-                                        setPendingWritingMode({ value: finalVal, label: modeLabel });
-                                        return;
-                                    }
-                                    // Allow switching back to normal (clearing the mode)
-                                    setWritingMode(null);
-                                    localStorage.removeItem(`tf_wm_${notePageId}`);
-                                    updateNotePage(notePageId, { writing_mode: null, writingMode: null });
-                                    notesApi.setWritingMode(notePageId, null).catch(() => {});
+                        {/* Controls (Responsive) */}
+                        {isMobile ? (
+                            <div style={{ position: "relative" }}>
+                                <button type="button" onClick={() => setMobileMenuOpen(p => !p)}
+                                    style={{ background: "none", border: "none", color: t.t2, fontSize: 20, cursor: "pointer", padding: "4px 8px" }}>
+                                    ⋮
+                                </button>
+                                {mobileMenuOpen && createPortal(
+                                    <>
+                                        <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setMobileMenuOpen(false)} />
+                                        <div className="slideDown" style={{ position: "fixed", top: 56, right: 12, zIndex: 100, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 16, boxShadow: t.shadow, display: "flex", flexDirection: "column", gap: 12, width: 260, maxHeight: "calc(100vh - 80px)", overflowY: "auto" }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: t.t3, marginBottom: -4, fontFamily: t.disp }}>Options</div>
+                                            
+                                            <button type="button" onClick={() => { handleSaveNow(); setMobileMenuOpen(false); }} disabled={saveStatus === "saving"}
+                                                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: `1px solid ${saveStatus === "saving" ? t.accent : t.border}`, background: saveStatus === "saving" ? t.accentDim : t.inset, cursor: "pointer", color: saveStatus === "saving" ? t.accent : t.t1, fontSize: 13, fontFamily: t.disp }}>
+                                                {saveStatus === "saving" ? "Saving..." : "💾 Save Note"}
+                                            </button>
+
+                                            <button type="button" onClick={() => { setShowLockModal(true); setMobileMenuOpen(false); }}
+                                                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: `1px solid ${localStorage.getItem(storageKey) ? t.accent : t.border}`, background: localStorage.getItem(storageKey) ? t.accentDim : t.inset, cursor: "pointer", color: localStorage.getItem(storageKey) ? t.accent : t.t1, fontSize: 13, fontFamily: t.disp }}>
+                                                {localStorage.getItem(storageKey) ? "🔒 Locked" : "🔓 Lock Note"}
+                                            </button>
+
+                                            {hasSpeechSupport && (
+                                                <button type="button" onClick={() => { toggleSpeech(); setMobileMenuOpen(false); }}
+                                                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: `1px solid ${isListening ? t.red : t.border}`, background: isListening ? t.red + "22" : t.inset, cursor: "pointer", color: isListening ? t.red : t.t1, fontSize: 13, fontFamily: t.disp }}>
+                                                    🎤 {isListening ? "Listening…" : "Speech to Text"}
+                                                </button>
+                                            )}
+
+                                            <button type="button" onClick={() => {
+                                                if (!checkLimit('sharing').allowed) { setShowUpgradeModal({ feature: 'Note Sharing requires Starter or Pro plan.' }); return; }
+                                                openShareModal(); setMobileMenuOpen(false);
+                                            }}
+                                                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, cursor: "pointer", color: t.t1, fontSize: 13, fontFamily: t.disp }}>
+                                                <I d={IC.lnk} sz={14} c="currentColor" /> {checkLimit('sharing').allowed ? "Share Note" : "🔒 Share Note"}
+                                            </button>
+
+                                            <button type="button" onClick={() => { addNotePage(notePageId); setMobileMenuOpen(false); }}
+                                                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, cursor: "pointer", color: t.t1, fontSize: 13, fontFamily: t.disp }}>
+                                                <I d={IC.plus} sz={14} c="currentColor" /> Add Sub-page
+                                            </button>
+                                            
+                                            <button type="button" onClick={() => { duplicateNotePage?.(notePageId); setMobileMenuOpen(false); }}
+                                                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.inset, cursor: "pointer", color: t.t1, fontSize: 13, fontFamily: t.disp }}>
+                                                📋 Duplicate Note
+                                            </button>
+
+                                            <div style={{ height: 1, background: t.border, margin: "4px 0" }} />
+
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: t.t3, marginBottom: -4, fontFamily: t.disp }}>Format</div>
+                                            <div style={{ width: "100%" }}>
+                                                <CustomSelect
+                                                    t={t} value={writingMode || ""} disabled={writingMode === "script" || writingMode === "lyrics"}
+                                                    onChange={val => {
+                                                        const finalVal = val || null;
+                                                        if (finalVal && finalVal !== writingMode) {
+                                                            setPendingWritingMode({ value: finalVal, label: finalVal === 'script' ? '📽️ Script Mode' : '🎵 Lyrics Mode' });
+                                                            return;
+                                                        }
+                                                        setWritingMode(null); localStorage.removeItem(`tf_wm_${notePageId}`);
+                                                        updateNotePage(notePageId, { writing_mode: null, writingMode: null });
+                                                        notesApi.setWritingMode(notePageId, null).catch(() => {});
+                                                    }}
+                                                    options={[
+                                                        { value: "", label: "📄 Normal Note" },
+                                                        { value: "script", label: "📽️ Script Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
+                                                        { value: "lyrics", label: "🎵 Lyrics Mode", disabled: writingMode === "script" || writingMode === "lyrics" }
+                                                    ]}
+                                                />
+                                            </div>
+                                            <div style={{ width: "100%" }}>
+                                                <CustomSelect
+                                                    t={t} value={docFontFamily}
+                                                    onChange={val => {
+                                                        setDocFontFamily(val);
+                                                        if (val) localStorage.setItem(`tf_docFontFamily_${notePageId}`, val);
+                                                        else localStorage.removeItem(`tf_docFontFamily_${notePageId}`);
+                                                    }}
+                                                    options={[
+                                                        { value: "", label: "Aa System Default" },
+                                                        { value: "'Lora', serif", label: "Aa Serif (Lora)" },
+                                                        { value: "'IBM Plex Mono', monospace", label: "Aa Monospace" },
+                                                        { value: "'Inter', sans-serif", label: "Aa Sans-serif (Inter)" },
+                                                        { value: "'Outfit', sans-serif", label: "Aa Outfit" }
+                                                    ]}
+                                                />
+                                            </div>
+
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px" }}>
+                                                <span style={{ fontSize: 12, color: t.t2, fontFamily: t.disp }}>Zoom</span>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                    <button type="button" onClick={() => setZoom(z => Math.max(50, z - 10))} style={{ background: "none", border: "none", color: t.t1, cursor: "pointer", fontSize: 16 }}>−</button>
+                                                    <span style={{ fontSize: 11, color: t.t3, fontFamily: t.mono, minWidth: 32, textAlign: "center" }}>{zoom}%</span>
+                                                    <button type="button" onClick={() => setZoom(z => Math.min(150, z + 10))} style={{ background: "none", border: "none", color: t.t1, cursor: "pointer", fontSize: 16 }}>+</button>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ height: 1, background: t.border, margin: "4px 0" }} />
+
+                                            <button type="button" onClick={() => { setShowDeleteConfirm(true); setMobileMenuOpen(false); }}
+                                                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: `1px solid ${t.red || "#ef4444"}`, background: (t.red || "#ef4444") + "18", cursor: "pointer", color: t.red || "#ef4444", fontSize: 13, fontFamily: t.disp }}>
+                                                🗑 Delete Note
+                                            </button>
+                                        </div>
+                                    </>, document.body
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                {/* Writing mode dropdown */}
+                                <div style={{ width: 140 }}>
+                                    <CustomSelect
+                                        t={t}
+                                        value={writingMode || ""}
+                                        disabled={writingMode === "script" || writingMode === "lyrics"}
+                                        onChange={val => {
+                                            const finalVal = val || null;
+                                            if (finalVal && finalVal !== writingMode) {
+                                                const modeLabel = finalVal === 'script' ? '📽️ Script Mode' : '🎵 Lyrics Mode';
+                                                setPendingWritingMode({ value: finalVal, label: modeLabel });
+                                                return;
+                                            }
+                                            setWritingMode(null);
+                                            localStorage.removeItem(`tf_wm_${notePageId}`);
+                                            updateNotePage(notePageId, { writing_mode: null, writingMode: null });
+                                            notesApi.setWritingMode(notePageId, null).catch(() => {});
+                                        }}
+                                        options={[
+                                            { value: "", label: "📄 Normal Note" },
+                                            { value: "script", label: "📽️ Script Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
+                                            { value: "lyrics", label: "🎵 Lyrics Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
+                                        ]}
+                                    />
+                                </div>
+
+                                {/* Font Family Selector */}
+                                <div style={{ width: 140 }}>
+                                    <CustomSelect
+                                        t={t}
+                                        value={docFontFamily}
+                                        onChange={val => {
+                                            setDocFontFamily(val);
+                                            if (val) localStorage.setItem(`tf_docFontFamily_${notePageId}`, val);
+                                            else localStorage.removeItem(`tf_docFontFamily_${notePageId}`);
+                                        }}
+                                        options={[
+                                            { value: "", label: "Aa System Default" },
+                                            { value: "'Lora', serif", label: "Aa Serif (Lora)" },
+                                            { value: "'IBM Plex Mono', monospace", label: "Aa Monospace" },
+                                            { value: "'Inter', sans-serif", label: "Aa Sans-serif (Inter)" },
+                                            { value: "'Outfit', sans-serif", label: "Aa Outfit" },
+                                        ]}
+                                    />
+                                </div>
+
+                                <button type="button" onClick={handleSaveNow} disabled={saveStatus === "saving"}
+                                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${saveStatus === "saving" ? t.accent : t.border}`, background: saveStatus === "saving" ? t.accentDim : "transparent", cursor: "pointer", color: saveStatus === "saving" ? t.accent : t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                                    onMouseEnter={e => { if (saveStatus !== "saving") e.currentTarget.style.background = t.noteHover; }}
+                                    onMouseLeave={e => { if (saveStatus !== "saving") e.currentTarget.style.background = "transparent"; }}>
+                                    {saveStatus === "saving" ? "Saving..." : "💾 Save"}
+                                </button>
+
+                                {/* Zoom controls */}
+                                <div style={{ display: "flex", alignItems: "center", gap: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 4px" }}>
+                                    <button type="button" onClick={() => setZoom(z => Math.max(50, z - 10))}
+                                        style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 13, fontFamily: t.mono, padding: "2px 5px", borderRadius: 4 }} title="Zoom out">−</button>
+                                    <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, minWidth: 28, textAlign: "center" }}>{zoom}%</span>
+                                    <button type="button" onClick={() => setZoom(z => Math.min(150, z + 10))}
+                                        style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 13, fontFamily: t.mono, padding: "2px 5px", borderRadius: 4 }} title="Zoom in">+</button>
+                                </div>
+
+                                {/* Lock */}
+                                <button type="button" onClick={() => setShowLockModal(true)}
+                                    title={localStorage.getItem(storageKey) ? "Note is locked" : "Lock this note"}
+                                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${localStorage.getItem(storageKey) ? t.accent : t.border}`, background: localStorage.getItem(storageKey) ? t.accentDim : "transparent", cursor: "pointer", color: localStorage.getItem(storageKey) ? t.accent : t.t2, fontSize: 13, transition: "all .15s" }}>
+                                    {localStorage.getItem(storageKey) ? "🔒" : "🔓"}
+                                </button>
+
+                                {/* Speech-to-text */}
+                                {hasSpeechSupport && (
+                                    <button type="button" onClick={toggleSpeech}
+                                        title="Speech to Text (Beta)"
+                                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${isListening ? t.red : t.border}`, background: isListening ? t.red + "22" : "transparent", cursor: "pointer", color: isListening ? t.red : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s", animation: isListening ? "pulse 1s ease infinite" : "none" }}>
+                                        🎤 {isListening ? "Listening…" : "Speak"}
+                                    </button>
+                                )}
+
+                                {/* Share */}
+                                <button type="button" onClick={() => {
+                                    if (!checkLimit('sharing').allowed) { setShowUpgradeModal({ feature: 'Note Sharing requires Starter or Pro plan.' }); return; }
+                                    openShareModal();
                                 }}
-                                options={[
-                                    { value: "", label: "📄 Normal Note" },
-                                    { value: "script", label: "📽️ Script Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
-                                    { value: "lyrics", label: "🎵 Lyrics Mode", disabled: writingMode === "script" || writingMode === "lyrics" },
-                                ]}
-                            />
-                        </div>
-
-                        {/* Font Family Selector */}
-                        <div style={{ width: 140 }}>
-                            <CustomSelect
-                                t={t}
-                                value={docFontFamily}
-                                onChange={val => {
-                                    setDocFontFamily(val);
-                                    if (val) localStorage.setItem(`tf_docFontFamily_${notePageId}`, val);
-                                    else localStorage.removeItem(`tf_docFontFamily_${notePageId}`);
-                                    // Update css variable on root doc
-                                }}
-                                options={[
-                                    { value: "", label: "Aa System Default" },
-                                    { value: "'Lora', serif", label: "Aa Serif (Lora)" },
-                                    { value: "'IBM Plex Mono', monospace", label: "Aa Monospace" },
-                                    { value: "'Inter', sans-serif", label: "Aa Sans-serif (Inter)" },
-                                    { value: "'Outfit', sans-serif", label: "Aa Outfit" },
-                                ]}
-                            />
-                        </div>
-
-                        <button type="button" onClick={handleSaveNow} disabled={saveStatus === "saving"}
-                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${saveStatus === "saving" ? t.accent : t.border}`, background: saveStatus === "saving" ? t.accentDim : "transparent", cursor: "pointer", color: saveStatus === "saving" ? t.accent : t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
-                            onMouseEnter={e => { if (saveStatus !== "saving") e.currentTarget.style.background = t.noteHover; }}
-                            onMouseLeave={e => { if (saveStatus !== "saving") e.currentTarget.style.background = "transparent"; }}>
-                            {saveStatus === "saving" ? "Saving..." : "💾 Save"}
-                        </button>
-
-                        {/* Zoom controls */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 1, background: t.inset, border: `1px solid ${t.border}`, borderRadius: 7, padding: "1px 4px" }}>
-                            <button type="button" onClick={() => setZoom(z => Math.max(50, z - 10))}
-                                style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 13, fontFamily: t.mono, padding: "2px 5px", borderRadius: 4 }} title="Zoom out">−</button>
-                            <span style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, minWidth: 28, textAlign: "center" }}>{zoom}%</span>
-                            <button type="button" onClick={() => setZoom(z => Math.min(150, z + 10))}
-                                style={{ background: "none", border: "none", color: t.t2, cursor: "pointer", fontSize: 13, fontFamily: t.mono, padding: "2px 5px", borderRadius: 4 }} title="Zoom in">+</button>
-                        </div>
-
-                        {/* Lock */}
-                        <button type="button" onClick={() => setShowLockModal(true)}
-                            title={localStorage.getItem(storageKey) ? "Note is locked" : "Lock this note"}
-                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${localStorage.getItem(storageKey) ? t.accent : t.border}`, background: localStorage.getItem(storageKey) ? t.accentDim : "transparent", cursor: "pointer", color: localStorage.getItem(storageKey) ? t.accent : t.t2, fontSize: 13, transition: "all .15s" }}>
-                            {localStorage.getItem(storageKey) ? "🔒" : "🔓"}
-                        </button>
-
-                        {/* Speech-to-text */}
-                        {hasSpeechSupport && (
-                            <button type="button" onClick={toggleSpeech}
-                                title="Speech to Text (Beta)"
-                                style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7, border: `1px solid ${isListening ? t.red : t.border}`, background: isListening ? t.red + "22" : "transparent", cursor: "pointer", color: isListening ? t.red : t.t2, fontSize: 11, fontFamily: t.disp, transition: "all .15s", animation: isListening ? "pulse 1s ease infinite" : "none" }}>
-                                🎤 {isListening ? "Listening…" : "Speak"}
-                            </button>
+                                    title={checkLimit('sharing').allowed ? "Share this note" : "Upgrade to share notes"}
+                                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                                    onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                    <I d={IC.lnk} sz={12} c="currentColor" />{checkLimit('sharing').allowed ? "Share" : "🔒 Share"}
+                                </button>
+                                <button type="button" onClick={() => addNotePage(notePageId)}
+                                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                                    onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                    <I d={IC.plus} sz={12} c="currentColor" />Sub-page
+                                </button>
+                                <button type="button" onClick={() => duplicateNotePage?.(notePageId)}
+                                    title="Duplicate this note"
+                                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                                    onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
+                                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                                    📋 Duplicate
+                                </button>
+                                {/* Separator */}
+                                <div style={{ width: 1, height: 18, background: t.border, margin: "0 2px", flexShrink: 0 }} />
+                                {/* Delete note */}
+                                <button type="button"
+                                    title="Delete this note"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.red || "#ef4444", fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = (t.red || "#ef4444") + "18"; e.currentTarget.style.borderColor = t.red || "#ef4444"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = t.border; }}>
+                                    🗑 Delete
+                                </button>
+                            </>
                         )}
-
-                        {/* Share */}
-                        <button type="button" onClick={() => {
-                            if (!checkLimit('sharing').allowed) { setShowUpgradeModal({ feature: 'Note Sharing requires Starter or Pro plan.' }); return; }
-                            openShareModal();
-                        }}
-                            title={checkLimit('sharing').allowed ? "Share this note" : "Upgrade to share notes"}
-                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
-                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <I d={IC.lnk} sz={12} c="currentColor" />{checkLimit('sharing').allowed ? "Share" : "🔒 Share"}
-                        </button>
-                        <button type="button" onClick={() => addNotePage(notePageId)}
-                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
-                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <I d={IC.plus} sz={12} c="currentColor" />Sub-page
-                        </button>
-                        <button type="button" onClick={() => duplicateNotePage?.(notePageId)}
-                            title="Duplicate this note"
-                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.t2, fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
-                            onMouseEnter={e => e.currentTarget.style.background = t.noteHover}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            📋 Duplicate
-                        </button>
-                        {/* Separator */}
-                        <div style={{ width: 1, height: 18, background: t.border, margin: "0 2px", flexShrink: 0 }} />
-                        {/* Delete note */}
-                        <button type="button"
-                            title="Delete this note"
-                            onClick={() => setShowDeleteConfirm(true)}
-                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 7, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer", color: t.red || "#ef4444", fontSize: 11.5, fontFamily: t.disp, transition: "all .15s" }}
-                            onMouseEnter={e => { e.currentTarget.style.background = (t.red || "#ef4444") + "18"; e.currentTarget.style.borderColor = t.red || "#ef4444"; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = t.border; }}>
-                            🗑 Delete
-                        </button>
                     </div>
                 </div>
 
@@ -1477,8 +1598,9 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                 )}
             </div>
 
-            {writingMode ? (
-                <div style={{
+            {!isMobile && (
+                writingMode ? (
+                    <div style={{
                     position: "fixed",
                     right: 24,
                     bottom: 84,
@@ -1567,6 +1689,7 @@ export default function NotesPage({ t, dark, pages, notePageId, navigateNote, up
                         </div>
                     </div>
                 </div>
+                )
             )}
 
             {/* Drag-to-select visual box overlay */}

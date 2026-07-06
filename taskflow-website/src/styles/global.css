@@ -311,7 +311,7 @@ textarea:focus {
 
   /* Add bottom padding to main content so bottom nav doesn't cover it */
   .app-root main {
-    padding-bottom: 64px !important;
+    padding-bottom: 84px !important;
   }
 
   /* Topbar: hide search bar if present, show condensed */
@@ -346,6 +346,48 @@ textarea:focus {
   .cal-sidebar {
     width: 100% !important;
   }
+
+  /* Mobile Swipe Gestures & Bottom Sheets */
+  .swipe-action-container {
+    position: relative;
+    overflow: hidden;
+  }
+  .swipe-action-bg-left {
+    position: absolute;
+    inset: 0;
+    background: var(--green);
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    z-index: 0;
+  }
+  .swipe-action-bg-right {
+    position: absolute;
+    inset: 0;
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 20px;
+    z-index: 0;
+  }
+  
+  @keyframes slideUpSheet {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+  }
+  
+  .bottom-sheet {
+      animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  
+  /* Disable hover transitions on mobile for active states instead */
+  .hvrC:hover, .kanban-card:hover, .tpl-card-hover:hover {
+      transform: none !important;
+  }
+  .hvrC:active, .kanban-card:active, .tpl-card-hover:active {
+      transform: scale(0.98) !important;
+  }
 }
 
 /* ── Bottom Nav Bar (mobile only) ── */
@@ -376,27 +418,25 @@ textarea:focus {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px 12px;
+    padding: 4px 0;
     border-radius: 10px;
     transition: background 0.15s;
     flex: 1;
+    color: var(--t3);
   }
 
   .mobile-nav-btn span {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
   }
 
   .mobile-nav-btn.active {
-    background: var(--accentDim, rgba(0, 229, 204, 0.1));
+    color: var(--accent);
   }
 }
 
 @media (max-width: 480px) {
-
-  /* Team grid: single column */
-
   /* Team grid: single column */
   .team-grid {
     grid-template-columns: 1fr !important;

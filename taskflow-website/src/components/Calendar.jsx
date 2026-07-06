@@ -8,6 +8,8 @@ import { toastSuccess, toastError } from "./ui/Toast.jsx";
 import EmptyState from "./ui/EmptyState.jsx";
 import ConfirmModal from "./ui/ConfirmModal.jsx";
 import CustomDateTimePicker from "./ui/CustomDateTimePicker.jsx";
+import useIsMobile from "../hooks/useIsMobile.js";
+import MobileAccordion from "./ui/MobileAccordion.jsx";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const PCOLORS = ['#FF3D5A', '#00E5CC', '#00D67B', '#B083FF', '#FFAA00'];
@@ -97,6 +99,7 @@ export default function Calendar({ t }) {
     const [showAdd, setShowAdd] = useState(false);
     const [clickedDate, setClickedDate] = useState(null);
     const [eventToDelete, setEventToDelete] = useState(null);
+    const isMobile = useIsMobile();
 
     const today = now.getDate();
     const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
@@ -237,9 +240,11 @@ export default function Calendar({ t }) {
                                 <button onClick={goToday} style={{ background: t.accentDim, border: `1px solid ${t.accent}33`, borderRadius: 6, padding: '3px 10px', color: t.accent, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: t.disp }}>Today</button>
                             )}
                         </div>
-                        <button onClick={() => { setClickedDate(null); setShowAdd(true); }} style={{ background: t.accentDim, border: `1px solid ${t.accent}44`, borderRadius: 8, padding: '6px 14px', color: t.accent, fontFamily: t.disp, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <I d={IC.plus} sz={11} c={t.accent} /> Add Event
-                        </button>
+                        {!isMobile && (
+                            <button onClick={() => { setClickedDate(null); setShowAdd(true); }} style={{ background: t.accentDim, border: `1px solid ${t.accent}44`, borderRadius: 8, padding: '6px 14px', color: t.accent, fontFamily: t.disp, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <I d={IC.plus} sz={11} c={t.accent} /> Add Event
+                            </button>
+                        )}
                     </div>
  
                     {/* Day headers */}
@@ -279,44 +284,75 @@ export default function Calendar({ t }) {
                 </div>
             </div>
 
-            {/* Sidebar */}
-            <div style={{ width: 340, flexShrink: 0, padding: "22px 28px 22px 0", overflow: "hidden", display: "flex", flexDirection: "column" }} className="cal-sidebar">
-                <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 15, boxShadow: t.shadow, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-
-                    <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>{MONTHS[viewMonth].slice(0, 3)} Events</div>
-                    {monthEventsList.length === 0 && (
-                        <div style={{ padding: "10px 0" }}>
-                            <EmptyState
-                                t={t}
-                                icon="cal"
-                                title="No events"
-                                description="No events scheduled for this month."
-                            />
-                        </div>
-                    )}
-                    {monthEventsList.map(ev => {
-                        const c = PCOLORS[ev.id % PCOLORS.length];
-                        const d = new Date(ev.event_date);
-                        const ed = ev.end_date ? new Date(ev.end_date) : null;
-                        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + (ed ? ` - ${ed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '');
-                        return (
-                            <div key={ev.id} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: `1px solid ${t.border}`, alignItems: 'flex-start' }}>
-                                <div style={{ width: 2.5, borderRadius: 2, background: c, flexShrink: 0, alignSelf: 'stretch', minHeight: 32 }} />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 600, color: t.t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        {ev.recurrence && ev.recurrence !== 'none' && <span>🔁</span>}
-                                        {ev.title}
-                                    </div>
-                                    <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>{label} · {ev.event_time ? ev.event_time.slice(0, 5) : 'All Day'}</div>
+            {/* Sidebar / Accordion */}
+            <div style={{ width: isMobile ? "100%" : 340, flexShrink: 0, padding: isMobile ? "0 14px 22px" : "22px 28px 22px 0", overflow: "hidden", display: "flex", flexDirection: "column" }} className="cal-sidebar">
+                
+                {isMobile ? (
+                    <MobileAccordion t={t} title={`${MONTHS[viewMonth].slice(0, 3)} Events`} icon={IC.cal}>
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                            {monthEventsList.length === 0 && (
+                                <div style={{ padding: "10px 0" }}>
+                                    <EmptyState t={t} icon="cal" title="No events" description="No events scheduled for this month." />
                                 </div>
-                                <button onClick={() => setEventToDelete(ev)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 12, padding: '2px 4px', lineHeight: 1 }} title="Delete event" className="hvrI">✕</button>
+                            )}
+                            {monthEventsList.map(ev => {
+                                const c = PCOLORS[ev.id % PCOLORS.length];
+                                const d = new Date(ev.event_date);
+                                const ed = ev.end_date ? new Date(ev.end_date) : null;
+                                const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + (ed ? ` - ${ed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '');
+                                return (
+                                    <div key={ev.id} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: `1px solid ${t.border}`, alignItems: 'flex-start' }}>
+                                        <div style={{ width: 2.5, borderRadius: 2, background: c, flexShrink: 0, alignSelf: 'stretch', minHeight: 32 }} />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 600, color: t.t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                {ev.recurrence && ev.recurrence !== 'none' && <span>🔁</span>}
+                                                {ev.title}
+                                            </div>
+                                            <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>{label} · {ev.event_time ? ev.event_time.slice(0, 5) : 'All Day'}</div>
+                                        </div>
+                                        <button onClick={() => setEventToDelete(ev)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 12, padding: '2px 4px', lineHeight: 1 }} title="Delete event" className="hvrI">✕</button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </MobileAccordion>
+                ) : (
+                    <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 15, boxShadow: t.shadow, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.t1, marginBottom: 12 }}>{MONTHS[viewMonth].slice(0, 3)} Events</div>
+                        {monthEventsList.length === 0 && (
+                            <div style={{ padding: "10px 0" }}>
+                                <EmptyState
+                                    t={t}
+                                    icon="cal"
+                                    title="No events"
+                                    description="No events scheduled for this month."
+                                />
                             </div>
-                        );
-                    })}
-                    <button onClick={() => { setClickedDate(null); setShowAdd(true); }} style={{ width: "100%", marginTop: 11, padding: "7px", borderRadius: 8, border: `1px dashed ${t.border}`, background: "transparent", color: t.t3, fontSize: 12, fontFamily: t.disp, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, flexShrink: 0 }}>
-                        <I d={IC.plus} sz={12} c={t.t3} /> Add Event
-                    </button>
-                </div>
+                        )}
+                        {monthEventsList.map(ev => {
+                            const c = PCOLORS[ev.id % PCOLORS.length];
+                            const d = new Date(ev.event_date);
+                            const ed = ev.end_date ? new Date(ev.end_date) : null;
+                            const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + (ed ? ` - ${ed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '');
+                            return (
+                                <div key={ev.id} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: `1px solid ${t.border}`, alignItems: 'flex-start' }}>
+                                    <div style={{ width: 2.5, borderRadius: 2, background: c, flexShrink: 0, alignSelf: 'stretch', minHeight: 32 }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 600, color: t.t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            {ev.recurrence && ev.recurrence !== 'none' && <span>🔁</span>}
+                                            {ev.title}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: t.t3, fontFamily: t.mono, marginTop: 1 }}>{label} · {ev.event_time ? ev.event_time.slice(0, 5) : 'All Day'}</div>
+                                    </div>
+                                    <button onClick={() => setEventToDelete(ev)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.t3, fontSize: 12, padding: '2px 4px', lineHeight: 1 }} title="Delete event" className="hvrI">✕</button>
+                                </div>
+                            );
+                        })}
+                        <button onClick={() => { setClickedDate(null); setShowAdd(true); }} style={{ width: "100%", marginTop: 11, padding: "7px", borderRadius: 8, border: `1px dashed ${t.border}`, background: "transparent", color: t.t3, fontSize: 12, fontFamily: t.disp, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, flexShrink: 0 }}>
+                            <I d={IC.plus} sz={12} c={t.t3} /> Add Event
+                        </button>
+                    </div>
+                )}
             </div>
 
             {showAdd && <AddEventModal t={t} date={clickedDate} onClose={() => setShowAdd(false)} onAdd={createEvent} />}

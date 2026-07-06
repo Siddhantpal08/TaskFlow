@@ -2,10 +2,12 @@ import { I, IC } from "./ui/Icon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
 import FocusTimer from "./FocusTimer.jsx";
+import useIsMobile from "../hooks/useIsMobile.js";
 
 export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, setNotif, page, setPage, setShowQuickCapture }) {
     const { user, logout } = useAuth();
     const { unreadCount } = useData();
+    const isMobile = useIsMobile();
     const labels = { dashboard: "Dashboard", tasks: "My Tasks", notes: "Notes", calendar: "Calendar", team: "Team", friends: "Friends", guide: "Help & Guide", profile: "Profile", admin: "Admin Panel", customize: "Customize", trash: "Recycle Bin" };
 
     return (
@@ -23,9 +25,9 @@ export default function Topbar({ t, showThemePicker, setShowThemePicker, notif, 
 
             <div style={{ flex: 1 }} />
 
-            <FocusTimer t={t} />
+            {!isMobile && <FocusTimer t={t} />}
 
-            {setShowQuickCapture && page !== "dashboard" && (
+            {setShowQuickCapture && page !== "dashboard" && !isMobile && (
                 <button onClick={() => setShowQuickCapture(true)} id="topbar-capture-btn"
                     title="Quick Capture Task (Alt+T)"
                     style={{
